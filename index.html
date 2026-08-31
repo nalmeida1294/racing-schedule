@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Racing Schedule</title>
 
@@ -10,43 +16,135 @@
 
 </head>
 
+
 <body>
 
-    <header>
-        <h1>🏁 Racing Schedule</h1>
-        <p>Upcoming races across every series</p>
-    </header>
+<header>
 
+    <div class="header-content">
 
-<main>
+        <div class="header-title">
 
-    <div id="app">
+            <h1>🏁 Racing Schedule</h1>
 
-        <div id="home-view">
-
-            <div id="schedule">
-                <p>Loading racing schedule...</p>
-            </div>
+            <p>Upcoming races across every series</p>
 
         </div>
 
 
-        <div id="series-view" style="display: none;">
+        <button id="customize-button">
 
-            <button id="back-button">
-                ← Back to All Series
-            </button>
+            <span class="customize-icon">
+                ⚙
+            </span>
 
-            <div id="series-calendar"></div>
+            <span>
+                Customize Series
+            </span>
+
+        </button>
+
+    </div>
+
+</header>
+
+
+    <main>
+
+        <div id="app">
+
+
+            <!-- HOME VIEW -->
+
+            <div id="home-view">
+
+                <div id="schedule">
+
+                    <p>
+                        Loading racing schedule...
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- SERIES VIEW -->
+
+            <div
+                id="series-view"
+                style="display: none;"
+            >
+
+                <button id="back-button">
+                    ← Back to All Series
+                </button>
+
+                <div id="series-calendar"></div>
+
+            </div>
+
+
+        </div>
+
+    </main>
+
+
+    <!-- CUSTOMIZE SERIES PANEL -->
+
+    <div
+        id="customize-overlay"
+        class="customize-overlay"
+    >
+
+        <div class="customize-panel">
+
+
+            <div class="customize-header">
+
+                <div>
+
+                    <h2>
+                        Customize Series
+                    </h2>
+
+                    <p>
+                        Drag series to change their order.
+                        Hide any series you don't want to see.
+                    </p>
+
+                </div>
+
+
+                <button
+                    id="close-customize"
+                    class="close-customize"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <div id="customize-series-list"></div>
+
+
+            <div class="customize-footer">
+
+                <button id="reset-series">
+                    Reset to Default
+                </button>
+
+            </div>
+
 
         </div>
 
     </div>
 
-</main>
-
 
     <script src="script.js"></script>
 
 </body>
+
 </html>
