@@ -114,14 +114,27 @@ function setView(id) {
 function showSeries(series) {
   activeSeriesName = series;
   const races = racesFor(series), container = document.getElementById("series-calendar");
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const nextRace = races.find(race => raceTime(race) >= today.getTime());
+  let nextRaceElement = null;
   container.innerHTML = `<h1>${escapeHtml(series)}</h1><p class="calendar-subtitle">Full Season Calendar</p>`;
   if (!races.length) container.innerHTML += "<p class=\"no-races-message\">No schedule is available for this series yet.</p>";
   races.forEach(race => {
     const item = document.createElement("button"); item.className = "calendar-race calendar-race-button";
+    const isNextRace = nextRace === race;
+    if (raceTime(race) < today.getTime()) item.classList.add("calendar-race-completed");
+    if (isNextRace) {
+      item.classList.add("calendar-race-next");
+      const [color, glow] = themeFor(series);
+      item.style.setProperty("--series-color", color);
+      item.style.setProperty("--series-glow", glow);
+      nextRaceElement = item;
+    }
     item.innerHTML = `<div class="calendar-date">${formatDate(race.date)}</div><div class="calendar-event">${escapeHtml(race.event)}</div><div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
     item.addEventListener("click", () => showRaceDetails(race)); container.appendChild(item);
   });
   setView("series-view");
+  if (nextRaceElement) requestAnimationFrame(() => nextRaceElement.scrollIntoView({ behavior: "smooth", block: "center" }));
 }
 
 function sessionsMarkup(sessions) {
