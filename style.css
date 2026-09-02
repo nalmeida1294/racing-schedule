@@ -1024,3 +1024,371 @@ main {
     }
 
 }
+
+
+/* =========================================
+   EVENT DETAILS
+========================================= */
+
+#event-back-button {
+
+    padding:
+        11px
+        17px;
+
+    margin-bottom:
+        28px;
+
+    border-radius:
+        10px;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.12);
+
+    color:
+        white;
+
+    background:
+        #222222;
+
+    cursor:
+        pointer;
+
+}
+
+
+.series-name-button,
+.event-button {
+
+    border:
+        none;
+
+    background:
+        transparent;
+
+    text-align:
+        left;
+
+    cursor:
+        pointer;
+
+}
+
+
+.series-name-button {
+
+    display:
+        block;
+
+    width:
+        100%;
+
+}
+
+
+.series-name-button:hover {
+
+    color:
+        white;
+
+}
+
+
+.event-button {
+
+    display:
+        block;
+
+    width:
+        100%;
+
+    padding:
+        0;
+
+    color:
+        var(--text-primary);
+
+}
+
+
+.event-button:hover {
+
+    color:
+        var(--series-color);
+
+}
+
+
+.schedule-unavailable {
+
+    opacity:
+        0.70;
+
+}
+
+
+.calendar-race-button {
+
+    width:
+        100%;
+
+    color:
+        var(--text-primary);
+
+    text-align:
+        left;
+
+    cursor:
+        pointer;
+
+}
+
+
+.calendar-race-button:hover {
+
+    border-color:
+        rgba(255, 255, 255, 0.32);
+
+}
+
+
+#event-details {
+
+    max-width:
+        850px;
+
+}
+
+
+.detail-series {
+
+    margin:
+        0
+        0
+        8px;
+
+    color:
+        #999999;
+
+    font-size:
+        13px;
+
+    font-weight:
+        bold;
+
+    letter-spacing:
+        1.4px;
+
+    text-transform:
+        uppercase;
+
+}
+
+
+.detail-meta,
+.track-id,
+.empty-details {
+
+    color:
+        #9a9a9a;
+
+}
+
+
+.detail-meta {
+
+    margin:
+        0
+        0
+        18px;
+
+}
+
+
+.detail-section {
+
+    margin-top:
+        28px;
+
+    padding:
+        22px;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.09);
+
+    border-radius:
+        14px;
+
+    background:
+        linear-gradient(145deg, #242424, #181818);
+
+}
+
+
+.detail-section h2 {
+
+    margin-top:
+        0;
+
+}
+
+
+.session-list {
+
+    display:
+        grid;
+
+    gap:
+        12px;
+
+}
+
+
+.session-item {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        minmax(92px, 120px) 1fr;
+
+    gap:
+        14px;
+
+    padding:
+        14px 0;
+
+    border-top:
+        1px solid rgba(255, 255, 255, 0.08);
+
+    color:
+        #c5c5c5;
+
+    line-height:
+        1.55;
+
+}
+
+
+.session-item:first-child {
+
+    padding-top:
+        0;
+
+    border-top:
+        none;
+
+}
+
+
+.session-type {
+
+    color:
+        #a8a8a8;
+
+    font-size:
+        12px;
+
+    font-weight:
+        bold;
+
+    letter-spacing:
+        0.8px;
+
+    text-transform:
+        uppercase;
+
+}
+
+
+.session-item strong {
+
+    color:
+        white;
+
+}
+
+
+.track-facts {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(150px, 1fr));
+
+    gap:
+        16px;
+
+    margin:
+        22px 0;
+
+}
+
+
+.track-facts div {
+
+    padding-left:
+        12px;
+
+    border-left:
+        3px solid #f5c518;
+
+}
+
+
+.track-facts dt {
+
+    color:
+        #8d8d8d;
+
+    font-size:
+        12px;
+
+    font-weight:
+        bold;
+
+    letter-spacing:
+        0.7px;
+
+    text-transform:
+        uppercase;
+
+}
+
+
+.track-facts dd {
+
+    margin:
+        5px 0 0;
+
+    color:
+        #eeeeee;
+
+}
+
+
+.track-description {
+
+    color:
+        #c5c5c5;
+
+    line-height:
+        1.6;
+
+}
+
+
+@media (max-width: 600px) {
+
+    .session-item {
+
+        grid-template-columns:
+            1fr;
+
+        gap:
+            5px;
+
+    }
+
+}
