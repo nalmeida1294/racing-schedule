@@ -60,6 +60,15 @@ function formatDate(date) {
 }
 
 function raceTime(race) { return new Date(`${race.date || ""}T12:00:00`).getTime(); }
+function sessionTime(session) {
+  const match = String(session.time || "").match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!session.date || !match) return Number.MAX_SAFE_INTEGER;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (/PM/i.test(match[3]) && hour !== 12) hour += 12;
+  if (/AM/i.test(match[3]) && hour === 12) hour = 0;
+  return new Date(`${session.date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`).getTime();
+}
 function racesFor(series) { return allRaces.filter(race => race.series === series).sort((a, b) => raceTime(a) - raceTime(b)); }
 function themeFor(series) { return seriesThemes[series] || ["#888", "rgba(255,255,255,.12)"]; }
 function trackNameForRace(race) {
@@ -149,7 +158,7 @@ function trackMarkup(track, trackId) {
 }
 
 function showRaceDetails(race) {
-  const sessions = allSessions.filter(session => String(session.raceId) === String(race.raceId) && session.series === race.series).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  const sessions = allSessions.filter(session => String(session.raceId) === String(race.raceId) && session.series === race.series).sort((a, b) => sessionTime(a) - sessionTime(b));
   const source = formulaSeries.has(race.series) ? "formula" : "nascar";
   const track = allTracks.find(item => item.source === source && String(item.trackId) === String(race.trackId));
   const detailedSeries = nascarSeries.has(race.series) || formulaSeries.has(race.series);
