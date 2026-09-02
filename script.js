@@ -3,16 +3,22 @@ const scheduleSources = {
   sessions: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=284115388&single=true&output=csv",
   tracks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=601316395&single=true&output=csv"
 };
+const formulaSources = {
+  main: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=472158354&single=true&output=csv",
+  sessions: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=292090109&single=true&output=csv",
+  tracks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=74500379&single=true&output=csv"
+};
 
 const defaultSeriesOrder = ["Formula 1", "INDYCAR", "NASCAR Cup Series", "WEC", "IMSA", "Formula E", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
 const nascarSeries = new Set(["NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series"]);
+const formulaSeries = new Set(["Formula 1", "Formula 2", "Formula 3", "F1 Academy"]);
 const seriesThemes = {
   "Formula 1": ["#e10600", "rgba(225,6,0,.22)"], "INDYCAR": ["#c8102e", "rgba(200,16,46,.2)"], "NASCAR Cup Series": ["#f5c518", "rgba(245,197,24,.2)"], "WEC": ["#d8b24c", "rgba(216,178,76,.18)"], "IMSA": ["#e53935", "rgba(229,57,53,.2)"], "Formula E": ["#00a8e8", "rgba(0,168,232,.2)"], "O'Reilly Auto Parts Series": ["#00a651", "rgba(0,166,81,.2)"], "Craftsman Truck Series": ["#ff6b00", "rgba(255,107,0,.2)"], "ARCA Menards Series": ["#d71920", "rgba(215,25,32,.2)"], "Indy NXT": ["#0072ce", "rgba(0,114,206,.2)"], "Formula 2": ["#ff2b2b", "rgba(255,43,43,.2)"], "Formula 3": ["#7d4cff", "rgba(125,76,255,.2)"], "F1 Academy": ["#ff5ca8", "rgba(255,92,168,.2)"], "Formula Regional": ["#ff8c42", "rgba(255,140,66,.2)"], "CARS Tour LMSC": ["#00a6a6", "rgba(0,166,166,.2)"], "Dirt Sprint Cars": ["#b87333", "rgba(184,115,51,.2)"], "Special Event": ["#d8d8d8", "rgba(255,255,255,.16)"]
 };
 
 let allRaces = [];
-let nascarSessions = [];
-let nascarTracks = [];
+let allSessions = [];
+let allTracks = [];
 let activeSeriesName = null;
 let seriesSettings = { order: [...defaultSeriesOrder], hidden: [] };
 
@@ -56,6 +62,10 @@ function formatDate(date) {
 function raceTime(race) { return new Date(`${race.date || ""}T12:00:00`).getTime(); }
 function racesFor(series) { return allRaces.filter(race => race.series === series).sort((a, b) => raceTime(a) - raceTime(b)); }
 function themeFor(series) { return seriesThemes[series] || ["#888", "rgba(255,255,255,.12)"]; }
+function trackNameForRace(race) {
+  const source = formulaSeries.has(race.series) ? "formula" : "nascar";
+  return allTracks.find(track => track.source === source && String(track.trackId) === String(race.trackId))?.name || "";
+}
 
 function loadSettings() {
   try {
@@ -81,7 +91,8 @@ function renderHome() {
     card.className = "race-card"; card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const seriesButton = `<button class="series-name series-name-button">${escapeHtml(series)}</button>`;
     if (nextRace) {
-      card.innerHTML = `${seriesButton}<div class="next-race-label">NEXT RACE</div><button class="event-name event-button">${escapeHtml(nextRace.event)}</button><p class="race-info">${formatDate(nextRace.date)}</p><p class="race-info">${escapeHtml(nextRace.time || "Time to be announced")}</p>${nextRace.network ? `<p class="race-network">${escapeHtml(nextRace.network)}</p>` : ""}${nextRace.notes ? `<p class="race-notes">${escapeHtml(nextRace.notes)}</p>` : ""}`;
+      const trackName = trackNameForRace(nextRace);
+      card.innerHTML = `${seriesButton}<div class="next-race-label">NEXT RACE</div><button class="event-name event-button">${escapeHtml(nextRace.event)}</button>${trackName ? `<p class="race-track">${escapeHtml(trackName)}</p>` : ""}<p class="race-info">${formatDate(nextRace.date)}</p><p class="race-info">${escapeHtml(nextRace.time || "Time to be announced")}</p>${nextRace.network ? `<p class="race-network">${escapeHtml(nextRace.network)}</p>` : ""}${nextRace.notes ? `<p class="race-notes">${escapeHtml(nextRace.notes)}</p>` : ""}`;
       card.querySelector(".event-button").addEventListener("click", () => showRaceDetails(nextRace));
     } else if (thisYear.length) {
       card.classList.add("season-completed");
@@ -125,10 +136,11 @@ function trackMarkup(track, trackId) {
 }
 
 function showRaceDetails(race) {
-  const sessions = nascarSessions.filter(session => String(session.raceId) === String(race.raceId)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
-  const track = nascarTracks.find(item => String(item.trackId) === String(race.trackId));
-  const nascar = nascarSeries.has(race.series);
-  document.getElementById("event-details").innerHTML = `<p class="detail-series">${escapeHtml(race.series)}</p><h1>${escapeHtml(race.event)}</h1><p class="detail-meta">${formatDate(race.date)} · ${escapeHtml(race.time || "Time to be announced")}</p>${race.network ? `<p class="race-network">${escapeHtml(race.network)}</p>` : ""}${race.notes ? `<p class="race-notes">${escapeHtml(race.notes)}</p>` : ""}${nascar ? sessionsMarkup(sessions) + trackMarkup(track, race.trackId) : "<section class=\"detail-section empty-details\"><h2>Weekend details coming soon</h2><p>Session and track information will be added for this series in a future update.</p></section>"}`;
+  const sessions = allSessions.filter(session => String(session.raceId) === String(race.raceId) && session.series === race.series).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  const source = formulaSeries.has(race.series) ? "formula" : "nascar";
+  const track = allTracks.find(item => item.source === source && String(item.trackId) === String(race.trackId));
+  const detailedSeries = nascarSeries.has(race.series) || formulaSeries.has(race.series);
+  document.getElementById("event-details").innerHTML = `<p class="detail-series">${escapeHtml(race.series)}</p><h1>${escapeHtml(race.event)}</h1><p class="detail-meta">${formatDate(race.date)} · ${escapeHtml(race.time || "Time to be announced")}</p>${race.network ? `<p class="race-network">${escapeHtml(race.network)}</p>` : ""}${race.notes ? `<p class="race-notes">${escapeHtml(race.notes)}</p>` : ""}${detailedSeries ? sessionsMarkup(sessions) + trackMarkup(track, race.trackId) : "<section class=\"detail-section empty-details\"><h2>Weekend details coming soon</h2><p>Session and track information will be added for this series in a future update.</p></section>"}`;
   setView("event-view");
 }
 
@@ -162,11 +174,17 @@ document.getElementById("event-back-button").addEventListener("click", () => act
 document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [] }; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();
-Promise.all([fetchSheet(scheduleSources.main), fetchSheet(scheduleSources.sessions), fetchSheet(scheduleSources.tracks)])
-  .then(([races, sessions, tracks]) => {
-    allRaces = races.map(row => ({ raceId: row["Race ID"], round: row.Round, event: row.Event, trackId: row["Track ID"], series: row.Series, date: row.Date, time: row.Time, network: row.Network, notes: row.Notes })).filter(race => race.series && race.event);
-    nascarSessions = sessions.map(row => ({ raceId: row["Race ID"], trackId: row["Track ID"], series: row.Series, session: row.Session, type: row["Session Type"], date: row["Start Date"], time: row["Start Time"], notes: row.Notes })).filter(session => session.raceId && session.session);
-    nascarTracks = tracks.map(row => ({ trackId: row["Track ID"], name: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], description: row.Description })).filter(track => track.trackId);
+Promise.all([
+  fetchSheet(scheduleSources.main), fetchSheet(scheduleSources.sessions), fetchSheet(scheduleSources.tracks),
+  fetchSheet(formulaSources.main), fetchSheet(formulaSources.sessions), fetchSheet(formulaSources.tracks)
+])
+  .then(([nascarRaces, nascarSessions, nascarTracks, formulaRaces, formulaSessions, formulaTracks]) => {
+    const raceRows = nascarRaces.concat(formulaRaces);
+    const sessionRows = nascarSessions.concat(formulaSessions);
+    allRaces = raceRows.map(row => ({ raceId: row["Race ID"], round: row.Round, event: row.Event, trackId: row["Track ID"], series: row.Series, date: row.Date, time: row.Time, network: row.Network, notes: row.Notes })).filter(race => race.series && race.event);
+    allSessions = sessionRows.map(row => ({ raceId: row["Race ID"], trackId: row["Track ID"], series: row.Series, session: row.Session, type: row["Session Type"], date: row["Start Date"], time: row["Start Time"], notes: row.Notes })).filter(session => session.raceId && session.session);
+    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], description: row.Description, source });
+    allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula"))).filter(track => track.trackId);
     renderHome();
   })
   .catch(error => { console.error("Error loading racing schedule:", error); document.getElementById("schedule").innerHTML = "<p>Unable to load the racing schedule. Please try again shortly.</p>"; });
