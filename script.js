@@ -78,6 +78,20 @@ function formatDate(date) {
 }
 
 function raceTime(race) { return new Date(`${race.date || ""}T12:00:00`).getTime(); }
+function raceStartTime(race) {
+  const match = String(race.time || "").match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  const dateParts = String(race.date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match || !dateParts) return Number.POSITIVE_INFINITY;
+  let hour = Number(match[1]);
+  if (/PM/i.test(match[3]) && hour !== 12) hour += 12;
+  if (/AM/i.test(match[3]) && hour === 12) hour = 0;
+  const [year, month, day] = dateParts.slice(1).map(Number);
+  const noonUtc = new Date(Date.UTC(year, month - 1, day, 12));
+  const zoneName = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", timeZoneName: "longOffset" }).formatToParts(noonUtc).find(part => part.type === "timeZoneName")?.value || "GMT-05:00";
+  const offset = zoneName.match(/GMT([+-])(\d{2}):(\d{2})/);
+  const offsetMinutes = offset ? (Number(offset[2]) * 60 + Number(offset[3])) * (offset[1] === "+" ? 1 : -1) : -300;
+  return Date.UTC(year, month - 1, day, hour, Number(match[2])) - offsetMinutes * 60 * 1000;
+}
 function sessionTime(session) {
   const match = String(session.time || "").match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (!session.date || !match) return Number.MAX_SAFE_INTEGER;
@@ -138,7 +152,6 @@ function weekendRangeLabel({ start, end }) {
 
 function renderWeekendRaces() {
   const window = weekendWindow();
-  const today = easternIsoDate();
   const container = document.getElementById("weekend-races");
   document.getElementById("weekend-date-range").textContent = weekendRangeLabel(window);
   const races = allRaces.filter(race => !seriesSettings.hidden.includes(race.series) && race.date >= window.start && race.date <= window.end).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
@@ -150,7 +163,7 @@ function renderWeekendRaces() {
   races.forEach(race => {
     const card = document.createElement("button"); const [color, glow] = themeFor(race.series);
     card.type = "button"; card.className = "weekend-race";
-    if (race.date < today) card.classList.add("weekend-race-completed");
+    if (raceStartTime(race) <= Date.now()) card.classList.add("weekend-race-started");
     card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const trackName = trackNameForRace(race);
     card.innerHTML = `<span class="weekend-series">${escapeHtml(race.series)}</span><strong class="weekend-event">${escapeHtml(race.event)}</strong>${trackName ? `<span class="weekend-track">${escapeHtml(trackName)}</span>` : ""}<span class="weekend-time">${formatDate(race.date)} · ${escapeHtml(race.time || "Time TBD")}</span>`;

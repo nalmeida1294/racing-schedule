@@ -27,10 +27,7 @@ body {
 
     margin: 0;
 
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+    font-family: "Manrope", Arial, Helvetica, sans-serif;
 
     color:
         var(--text-primary);
@@ -58,20 +55,14 @@ body {
 
 header {
 
-    padding:
-        32px
-        20px;
+    padding: 24px 20px;
 
     border-bottom:
         1px solid rgba(255, 255, 255, 0.08);
 
     background:
 
-        radial-gradient(
-            circle at 25% 0%,
-            rgba(255, 255, 255, 0.05),
-            transparent 45%
-        ),
+        linear-gradient(90deg, rgba(255, 187, 0, 0.10), transparent 32%),
 
         linear-gradient(
             135deg,
@@ -86,26 +77,66 @@ header {
 
 }
 
-
-header h1 {
-
-    margin: 0;
-
-    font-size: 32px;
-
+.header-content {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
 }
 
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
 
-header p {
+.race-mark {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    transform: skewX(-8deg);
+    box-shadow: 4px 4px 0 rgba(255, 187, 0, 0.88);
+}
 
-    margin:
-        8px
-        0
-        16px;
+.race-mark span:nth-child(odd) { background: #f3f3f3; }
+.race-mark span:nth-child(even) { background: #151515; }
 
+.header-kicker {
+    margin: 0 0 1px;
+    color: #ffbb00;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+}
+
+header h1 {
+    margin: 0;
+    font-family: "Barlow Condensed", Impact, sans-serif;
+    font-size: clamp(34px, 5vw, 48px);
+    font-style: italic;
+    font-weight: 800;
+    line-height: 0.85;
+    letter-spacing: 0.015em;
+}
+
+.header-title h1 em {
+    color: #ffbb00;
+    font-style: inherit;
+}
+
+.header-subtitle {
+    margin: 7px 0 0;
     color:
         var(--text-secondary);
-
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 
@@ -421,13 +452,21 @@ main {
 }
 
 
-.weekend-race-completed {
+.weekend-race-started {
 
     opacity:
-        0.48;
+        0.62;
 
     filter:
-        saturate(0.5);
+        saturate(0.82);
+
+}
+
+
+.weekend-race-started:hover {
+
+    opacity:
+        0.8;
 
 }
 
@@ -1245,7 +1284,54 @@ main {
     header h1 {
 
         font-size:
-            27px;
+            36px;
+
+    }
+
+    .header-content {
+
+        align-items:
+            flex-start;
+
+        gap:
+            12px;
+
+    }
+
+    .race-mark {
+
+        width:
+            34px;
+
+        height:
+            34px;
+
+        box-shadow:
+            3px 3px 0 rgba(255, 187, 0, 0.88);
+
+    }
+
+    .header-subtitle {
+
+        font-size:
+            10px;
+
+    }
+
+    #customize-button {
+
+        padding:
+            10px;
+
+        font-size:
+            0;
+
+    }
+
+    #customize-button .customize-icon {
+
+        font-size:
+            18px;
 
     }
 
