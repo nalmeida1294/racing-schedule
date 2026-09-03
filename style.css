@@ -183,6 +183,266 @@ main {
    RACE GRID
 ========================================= */
 
+#weekend-section {
+
+    margin:
+        0
+        0
+        38px;
+
+    padding:
+        22px;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.10);
+
+    border-radius:
+        20px;
+
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018));
+
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.20),
+        inset 0 1px 0 rgba(255, 255, 255, 0.045);
+
+}
+
+
+.weekend-heading-row {
+
+    display:
+        flex;
+
+    align-items:
+        flex-end;
+
+    justify-content:
+        space-between;
+
+    gap:
+        16px;
+
+    margin-bottom:
+        17px;
+
+}
+
+
+.weekend-eyebrow {
+
+    margin:
+        0
+        0
+        5px;
+
+    color:
+        #8e8e8e;
+
+    font-size:
+        11px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.12em;
+
+}
+
+
+#weekend-heading {
+
+    margin:
+        0;
+
+    font-size:
+        25px;
+
+}
+
+
+.weekend-date-range {
+
+    margin:
+        0;
+
+    color:
+        #b8b8b8;
+
+    font-size:
+        14px;
+
+    font-weight:
+        600;
+
+    white-space:
+        nowrap;
+
+}
+
+
+#weekend-races {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(205px, 1fr));
+
+    gap:
+        11px;
+
+}
+
+
+.weekend-race {
+
+    position:
+        relative;
+
+    display:
+        flex;
+
+    min-height:
+        126px;
+
+    padding:
+        15px;
+
+    overflow:
+        hidden;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.10);
+
+    border-radius:
+        14px;
+
+    background:
+        radial-gradient(circle at 100% 0%, var(--series-glow), transparent 62%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.02));
+
+    color:
+        var(--text-primary);
+
+    cursor:
+        pointer;
+
+    flex-direction:
+        column;
+
+    text-align:
+        left;
+
+    transition:
+        transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+}
+
+
+.weekend-race:hover {
+
+    transform:
+        translateY(-3px);
+
+    border-color:
+        var(--series-color);
+
+    box-shadow:
+        0 12px 26px rgba(0, 0, 0, 0.32),
+        0 0 20px var(--series-glow);
+
+}
+
+
+.weekend-series {
+
+    margin-bottom:
+        8px;
+
+    color:
+        var(--series-color);
+
+    font-size:
+        11px;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        0.08em;
+
+}
+
+
+.weekend-event {
+
+    font-size:
+        16px;
+
+    line-height:
+        1.25;
+
+}
+
+
+.weekend-track {
+
+    margin-top:
+        6px;
+
+    color:
+        #d2d2d2;
+
+    font-size:
+        13px;
+
+}
+
+
+.weekend-time {
+
+    margin-top:
+        auto;
+
+    padding-top:
+        11px;
+
+    color:
+        #a6a6a6;
+
+    font-size:
+        12px;
+
+    font-weight:
+        600;
+
+}
+
+
+.weekend-race-completed {
+
+    opacity:
+        0.48;
+
+    filter:
+        saturate(0.5);
+
+}
+
+
+.weekend-empty {
+
+    margin:
+        2px
+        0;
+
+    color:
+        #a8a8a8;
+
+}
+
 #schedule {
 
     display:
@@ -1001,6 +1261,47 @@ main {
 
 
     #schedule {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+
+    #weekend-section {
+
+        padding:
+            18px;
+
+        margin-bottom:
+            28px;
+
+    }
+
+
+    .weekend-heading-row {
+
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+
+        gap:
+            5px;
+
+    }
+
+
+    .weekend-date-range {
+
+        white-space:
+            normal;
+
+    }
+
+
+    #weekend-races {
 
         grid-template-columns:
             1fr;

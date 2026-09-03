@@ -8,10 +8,28 @@ const formulaSources = {
   sessions: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=292090109&single=true&output=csv",
   tracks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=74500379&single=true&output=csv"
 };
+const indySources = {
+  main: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=1480948301&single=true&output=csv",
+  sessions: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=389254904&single=true&output=csv",
+  tracks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=1628135713&single=true&output=csv"
+};
+const wecSources = {
+  main: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=1344844418&single=true&output=csv",
+  sessions: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=2134603755&single=true&output=csv",
+  tracks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=620612287&single=true&output=csv"
+};
+const formulaESources = {
+  main: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=386235495&single=true&output=csv",
+  sessions: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=1976553374&single=true&output=csv",
+  tracks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=1070679692&single=true&output=csv"
+};
 
 const defaultSeriesOrder = ["Formula 1", "INDYCAR", "NASCAR Cup Series", "WEC", "IMSA", "Formula E", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
 const nascarSeries = new Set(["NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series"]);
 const formulaSeries = new Set(["Formula 1", "Formula 2", "Formula 3", "F1 Academy"]);
+const indySeries = new Set(["INDYCAR", "Indy NXT"]);
+const wecSeries = new Set(["WEC"]);
+const formulaESeries = new Set(["Formula E"]);
 const seriesThemes = {
   "Formula 1": ["#e10600", "rgba(225,6,0,.22)"], "INDYCAR": ["#c8102e", "rgba(200,16,46,.2)"], "NASCAR Cup Series": ["#f5c518", "rgba(245,197,24,.2)"], "WEC": ["#d8b24c", "rgba(216,178,76,.18)"], "IMSA": ["#e53935", "rgba(229,57,53,.2)"], "Formula E": ["#00a8e8", "rgba(0,168,232,.2)"], "O'Reilly Auto Parts Series": ["#00a651", "rgba(0,166,81,.2)"], "Craftsman Truck Series": ["#ff6b00", "rgba(255,107,0,.2)"], "ARCA Menards Series": ["#d71920", "rgba(215,25,32,.2)"], "Indy NXT": ["#0072ce", "rgba(0,114,206,.2)"], "Formula 2": ["#ff2b2b", "rgba(255,43,43,.2)"], "Formula 3": ["#7d4cff", "rgba(125,76,255,.2)"], "F1 Academy": ["#ff5ca8", "rgba(255,92,168,.2)"], "Formula Regional": ["#ff8c42", "rgba(255,140,66,.2)"], "CARS Tour LMSC": ["#00a6a6", "rgba(0,166,166,.2)"], "Dirt Sprint Cars": ["#b87333", "rgba(184,115,51,.2)"], "Special Event": ["#d8d8d8", "rgba(255,255,255,.16)"]
 };
@@ -72,8 +90,15 @@ function sessionTime(session) {
 function racesFor(series) { return allRaces.filter(race => race.series === series).sort((a, b) => raceTime(a) - raceTime(b)); }
 function themeFor(series) { return seriesThemes[series] || ["#888", "rgba(255,255,255,.12)"]; }
 function trackNameForRace(race) {
-  const source = formulaSeries.has(race.series) ? "formula" : "nascar";
+  const source = sourceForSeries(race.series);
   return allTracks.find(track => track.source === source && String(track.trackId) === String(race.trackId))?.name || "";
+}
+function sourceForSeries(series) {
+  if (formulaSeries.has(series)) return "formula";
+  if (indySeries.has(series)) return "indy";
+  if (wecSeries.has(series)) return "wec";
+  if (formulaESeries.has(series)) return "formula-e";
+  return "nascar";
 }
 
 function loadSettings() {
@@ -88,9 +113,56 @@ function loadSettings() {
 }
 function saveSettings() { localStorage.setItem("racingSeriesSettings", JSON.stringify(seriesSettings)); }
 
+function easternIsoDate(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+  const values = Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function addDays(isoDate, days) {
+  const date = new Date(`${isoDate}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function weekendWindow() {
+  const today = easternIsoDate();
+  const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
+  const start = weekday >= 4 ? today : addDays(today, (4 - weekday + 7) % 7);
+  return { start, end: addDays(start, 3) };
+}
+
+function weekendRangeLabel({ start, end }) {
+  const options = { timeZone: "UTC", month: "short", day: "numeric" };
+  return `${new Date(`${start}T12:00:00Z`).toLocaleDateString("en-US", options)} – ${new Date(`${end}T12:00:00Z`).toLocaleDateString("en-US", options)}`;
+}
+
+function renderWeekendRaces() {
+  const window = weekendWindow();
+  const today = easternIsoDate();
+  const container = document.getElementById("weekend-races");
+  document.getElementById("weekend-date-range").textContent = weekendRangeLabel(window);
+  const races = allRaces.filter(race => !seriesSettings.hidden.includes(race.series) && race.date >= window.start && race.date <= window.end).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  container.innerHTML = "";
+  if (!races.length) {
+    container.innerHTML = `<p class="weekend-empty">No races are scheduled for this weekend in your selected series.</p>`;
+    return;
+  }
+  races.forEach(race => {
+    const card = document.createElement("button"); const [color, glow] = themeFor(race.series);
+    card.type = "button"; card.className = "weekend-race";
+    if (race.date < today) card.classList.add("weekend-race-completed");
+    card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
+    const trackName = trackNameForRace(race);
+    card.innerHTML = `<span class="weekend-series">${escapeHtml(race.series)}</span><strong class="weekend-event">${escapeHtml(race.event)}</strong>${trackName ? `<span class="weekend-track">${escapeHtml(trackName)}</span>` : ""}<span class="weekend-time">${formatDate(race.date)} · ${escapeHtml(race.time || "Time TBD")}</span>`;
+    card.addEventListener("click", () => showRaceDetails(race));
+    container.appendChild(card);
+  });
+}
+
 function renderHome() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const container = document.getElementById("schedule"); container.innerHTML = "";
+  renderWeekendRaces();
   seriesSettings.order.forEach(series => {
     if (seriesSettings.hidden.includes(series)) return;
     const races = racesFor(series);
@@ -159,9 +231,9 @@ function trackMarkup(track, trackId) {
 
 function showRaceDetails(race) {
   const sessions = allSessions.filter(session => String(session.raceId) === String(race.raceId) && session.series === race.series).sort((a, b) => sessionTime(a) - sessionTime(b));
-  const source = formulaSeries.has(race.series) ? "formula" : "nascar";
+  const source = sourceForSeries(race.series);
   const track = allTracks.find(item => item.source === source && String(item.trackId) === String(race.trackId));
-  const detailedSeries = nascarSeries.has(race.series) || formulaSeries.has(race.series);
+  const detailedSeries = nascarSeries.has(race.series) || formulaSeries.has(race.series) || indySeries.has(race.series) || wecSeries.has(race.series) || formulaESeries.has(race.series);
   document.getElementById("event-details").innerHTML = `<p class="detail-series">${escapeHtml(race.series)}</p><h1>${escapeHtml(race.event)}</h1><p class="detail-meta">${formatDate(race.date)} · ${escapeHtml(race.time || "Time to be announced")}</p>${race.network ? `<p class="race-network">${escapeHtml(race.network)}</p>` : ""}${race.notes ? `<p class="race-notes">${escapeHtml(race.notes)}</p>` : ""}${detailedSeries ? sessionsMarkup(sessions) + trackMarkup(track, race.trackId) : "<section class=\"detail-section empty-details\"><h2>Weekend details coming soon</h2><p>Session and track information will be added for this series in a future update.</p></section>"}`;
   setView("event-view");
 }
@@ -198,15 +270,18 @@ document.getElementById("reset-series").addEventListener("click", () => { series
 loadSettings();
 Promise.all([
   fetchSheet(scheduleSources.main), fetchSheet(scheduleSources.sessions), fetchSheet(scheduleSources.tracks),
-  fetchSheet(formulaSources.main), fetchSheet(formulaSources.sessions), fetchSheet(formulaSources.tracks)
+  fetchSheet(formulaSources.main), fetchSheet(formulaSources.sessions), fetchSheet(formulaSources.tracks),
+  fetchSheet(indySources.main), fetchSheet(indySources.sessions), fetchSheet(indySources.tracks),
+  fetchSheet(wecSources.main), fetchSheet(wecSources.sessions), fetchSheet(wecSources.tracks),
+  fetchSheet(formulaESources.main), fetchSheet(formulaESources.sessions), fetchSheet(formulaESources.tracks)
 ])
-  .then(([nascarRaces, nascarSessions, nascarTracks, formulaRaces, formulaSessions, formulaTracks]) => {
-    const raceRows = nascarRaces.concat(formulaRaces);
-    const sessionRows = nascarSessions.concat(formulaSessions);
+  .then(([nascarRaces, nascarSessions, nascarTracks, formulaRaces, formulaSessions, formulaTracks, indyRaces, indySessions, indyTracks, wecRaces, wecSessions, wecTracks, formulaERaces, formulaESessions, formulaETracks]) => {
+    const raceRows = nascarRaces.concat(formulaRaces, indyRaces, wecRaces, formulaERaces);
+    const sessionRows = nascarSessions.concat(formulaSessions, indySessions, wecSessions, formulaESessions);
     allRaces = raceRows.map(row => ({ raceId: row["Race ID"], round: row.Round, event: row.Event, trackId: row["Track ID"], series: row.Series, date: row.Date, time: row.Time, network: row.Network, notes: row.Notes })).filter(race => race.series && race.event);
     allSessions = sessionRows.map(row => ({ raceId: row["Race ID"], trackId: row["Track ID"], series: row.Series, session: row.Session, type: row["Session Type"], date: row["Start Date"], time: row["Start Time"], notes: row.Notes })).filter(session => session.raceId && session.session);
     const toTrack = (row, source) => ({ trackId: row["Track ID"], name: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], description: row.Description, source });
-    allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula"))).filter(track => track.trackId);
+    allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula")), indyTracks.map(row => toTrack(row, "indy")), wecTracks.map(row => toTrack(row, "wec")), formulaETracks.map(row => toTrack(row, "formula-e"))).filter(track => track.trackId);
     renderHome();
   })
   .catch(error => { console.error("Error loading racing schedule:", error); document.getElementById("schedule").innerHTML = "<p>Unable to load the racing schedule. Please try again shortly.</p>"; });
