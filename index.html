@@ -9,6 +9,9 @@
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+    <meta name="theme-color" content="#090909">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <title>Race Control</title>
 
@@ -22,6 +25,13 @@
 
 <body>
 
+<div id="app-splash" role="status" aria-label="Opening Race Control">
+    <div class="splash-flag" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+    </div>
+    <p>RACE <em>CONTROL</em></p>
+</div>
+
 <header>
 
     <div class="header-content">
@@ -33,7 +43,6 @@
             </div>
 
             <div>
-                <p class="header-kicker">THE PADDOCK</p>
                 <h1>Race <em>Control</em></h1>
                 <p class="header-subtitle">Your racing weekend, in one place.</p>
             </div>

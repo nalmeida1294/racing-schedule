@@ -281,6 +281,9 @@ document.getElementById("event-back-button").addEventListener("click", () => act
 document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [] }; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();
+window.addEventListener("load", () => {
+  window.setTimeout(() => document.getElementById("app-splash")?.classList.add("is-hidden"), 700);
+});
 Promise.all([
   fetchSheet(scheduleSources.main), fetchSheet(scheduleSources.sessions), fetchSheet(scheduleSources.tracks),
   fetchSheet(formulaSources.main), fetchSheet(formulaSources.sessions), fetchSheet(formulaSources.tracks),
