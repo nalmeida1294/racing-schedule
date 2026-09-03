@@ -38,7 +38,7 @@ let allRaces = [];
 let allSessions = [];
 let allTracks = [];
 let activeSeriesName = null;
-let seriesSettings = { order: [...defaultSeriesOrder], hidden: [] };
+let seriesSettings = { order: [...defaultSeriesOrder], hidden: [], sortNextRace: false };
 
 function escapeHtml(value) {
   return String(value || "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#039;", '"': "&quot;" }[character]));
@@ -120,6 +120,7 @@ function loadSettings() {
     const saved = JSON.parse(localStorage.getItem("racingSeriesSettings"));
     if (Array.isArray(saved?.order)) seriesSettings.order = saved.order;
     if (Array.isArray(saved?.hidden)) seriesSettings.hidden = saved.hidden;
+    if (typeof saved?.sortNextRace === "boolean") seriesSettings.sortNextRace = saved.sortNextRace;
   } catch (_) { /* Default settings are already present. */ }
   defaultSeriesOrder.forEach(series => { if (!seriesSettings.order.includes(series)) seriesSettings.order.push(series); });
   seriesSettings.order = seriesSettings.order.filter(series => defaultSeriesOrder.includes(series));
@@ -176,7 +177,10 @@ function renderHome() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const container = document.getElementById("schedule"); container.innerHTML = "";
   renderWeekendRaces();
-  seriesSettings.order.forEach(series => {
+  const displayedOrder = seriesSettings.sortNextRace
+    ? [...seriesSettings.order].sort((first, second) => nextRaceSortTime(first) - nextRaceSortTime(second))
+    : seriesSettings.order;
+  displayedOrder.forEach(series => {
     if (seriesSettings.hidden.includes(series)) return;
     const races = racesFor(series);
     const thisYear = races.filter(race => new Date(`${race.date}T12:00:00`).getFullYear() === today.getFullYear());
@@ -198,6 +202,15 @@ function renderHome() {
     card.querySelector(".series-name-button").addEventListener("click", () => showSeries(series));
     container.appendChild(card);
   });
+}
+
+function nextRaceSortTime(series) {
+  const now = Date.now();
+  const nextRace = racesFor(series).find(race => {
+    const start = raceStartTime(race);
+    return Number.isFinite(start) ? start >= now : raceTime(race) >= now;
+  });
+  return nextRace ? (Number.isFinite(raceStartTime(nextRace)) ? raceStartTime(nextRace) : raceTime(nextRace)) : Number.POSITIVE_INFINITY;
 }
 
 function setView(id) {
@@ -253,14 +266,24 @@ function showRaceDetails(race) {
 
 function renderCustomizePanel() {
   const list = document.getElementById("customize-series-list"); list.innerHTML = "";
+  document.getElementById("sort-next-race").checked = seriesSettings.sortNextRace;
   seriesSettings.order.forEach(series => {
     const item = document.createElement("div"); item.className = "customize-series-item"; item.draggable = true; item.dataset.series = series;
-    item.innerHTML = `<div class="drag-handle">⠿</div><div class="customize-series-name">${escapeHtml(series)}</div><label class="series-toggle"><input type="checkbox" ${seriesSettings.hidden.includes(series) ? "" : "checked"}><span>Show</span></label>`;
+    item.innerHTML = `<div class="drag-handle" aria-hidden="true">⠿</div><div class="customize-series-name">${escapeHtml(series)}</div><div class="series-move-buttons"><button type="button" class="move-series" data-direction="-1" aria-label="Move ${escapeHtml(series)} up">↑</button><button type="button" class="move-series" data-direction="1" aria-label="Move ${escapeHtml(series)} down">↓</button></div><label class="series-toggle"><input type="checkbox" ${seriesSettings.hidden.includes(series) ? "" : "checked"}><span>Show</span></label>`;
     item.querySelector("input").addEventListener("change", event => { seriesSettings.hidden = event.target.checked ? seriesSettings.hidden.filter(value => value !== series) : [...new Set([...seriesSettings.hidden, series])]; saveSettings(); renderHome(); });
+    item.querySelectorAll(".move-series").forEach(button => button.addEventListener("click", () => moveSeries(series, Number(button.dataset.direction))));
     item.addEventListener("dragstart", () => item.classList.add("dragging"));
     item.addEventListener("dragend", () => { item.classList.remove("dragging"); seriesSettings.order = [...list.querySelectorAll(".customize-series-item")].map(element => element.dataset.series); saveSettings(); renderHome(); });
     list.appendChild(item);
   });
+}
+
+function moveSeries(series, direction) {
+  const currentIndex = seriesSettings.order.indexOf(series);
+  const nextIndex = currentIndex + direction;
+  if (nextIndex < 0 || nextIndex >= seriesSettings.order.length) return;
+  [seriesSettings.order[currentIndex], seriesSettings.order[nextIndex]] = [seriesSettings.order[nextIndex], seriesSettings.order[currentIndex]];
+  saveSettings(); renderCustomizePanel(); renderHome();
 }
 
 const overlay = document.getElementById("customize-overlay");
@@ -268,6 +291,9 @@ const customizeList = document.getElementById("customize-series-list");
 document.getElementById("customize-button").addEventListener("click", () => { renderCustomizePanel(); overlay.classList.add("active"); });
 document.getElementById("close-customize").addEventListener("click", () => overlay.classList.remove("active"));
 overlay.addEventListener("click", event => { if (event.target === overlay) overlay.classList.remove("active"); });
+document.getElementById("show-all-series").addEventListener("click", () => { seriesSettings.hidden = []; saveSettings(); renderCustomizePanel(); renderHome(); });
+document.getElementById("hide-all-series").addEventListener("click", () => { seriesSettings.hidden = [...defaultSeriesOrder]; saveSettings(); renderCustomizePanel(); renderHome(); });
+document.getElementById("sort-next-race").addEventListener("change", event => { seriesSettings.sortNextRace = event.target.checked; saveSettings(); renderHome(); });
 customizeList.addEventListener("dragover", event => {
   event.preventDefault();
   const dragging = customizeList.querySelector(".dragging");
@@ -278,7 +304,7 @@ customizeList.addEventListener("dragover", event => {
 });
 document.getElementById("back-button").addEventListener("click", () => setView("home-view"));
 document.getElementById("event-back-button").addEventListener("click", () => activeSeriesName ? showSeries(activeSeriesName) : setView("home-view"));
-document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [] }; saveSettings(); renderCustomizePanel(); renderHome(); });
+document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [], sortNextRace: false }; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();
 window.addEventListener("load", () => {

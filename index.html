@@ -55,8 +55,13 @@
 
         <button id="customize-button">
 
-            <span class="customize-icon">
-                ⚙
+            <span class="customize-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 6h16M4 12h16M4 18h16"></path>
+                    <circle cx="8" cy="6" r="2"></circle>
+                    <circle cx="16" cy="12" r="2"></circle>
+                    <circle cx="10" cy="18" r="2"></circle>
+                </svg>
             </span>
 
             <span>
@@ -174,6 +179,14 @@
 
             </div>
 
+            <div class="customize-tools">
+                <button id="show-all-series" type="button">Show all</button>
+                <button id="hide-all-series" type="button">Hide all</button>
+                <label class="sort-next-toggle">
+                    <input id="sort-next-race" type="checkbox">
+                    <span>Next race first</span>
+                </label>
+            </div>
 
             <div id="customize-series-list"></div>
 

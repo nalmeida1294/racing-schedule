@@ -301,6 +301,26 @@ main {
 
 }
 
+.customize-icon {
+    display: inline-flex;
+    width: 19px;
+    height: 19px;
+    margin-right: 7px;
+    vertical-align: -4px;
+    color: #ffbb00;
+}
+
+.customize-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.7;
+}
+
+.customize-icon circle { fill: #151515; }
+
 
 .weekend-heading-row {
 
@@ -1186,6 +1206,49 @@ main {
    CUSTOMIZE SERIES ITEM
 ========================================= */
 
+.customize-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: -8px 0 16px;
+}
+
+.customize-tools button,
+.sort-next-toggle {
+    min-height: 36px;
+    padding: 8px 11px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.055);
+    color: #dedede;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.customize-tools button {
+    cursor: pointer;
+}
+
+.customize-tools button:hover {
+    border-color: rgba(255, 187, 0, 0.7);
+    color: #ffcc3d;
+}
+
+.sort-next-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+}
+
+.sort-next-toggle input {
+    width: 15px;
+    height: 15px;
+    accent-color: #ffbb00;
+}
+
 .customize-series-item {
 
     display:
@@ -1452,7 +1515,72 @@ main {
     #weekend-races {
 
         grid-template-columns:
-            1fr;
+            repeat(2, minmax(0, 1fr));
+
+        gap:
+            8px;
+
+    }
+
+    .weekend-race {
+
+        min-height:
+            0;
+
+        aspect-ratio:
+            1 / 1;
+
+        padding:
+            11px;
+
+    }
+
+    .weekend-series {
+
+        margin-bottom:
+            5px;
+
+        font-size:
+            9px;
+
+        letter-spacing:
+            0.04em;
+
+    }
+
+    .weekend-event {
+
+        font-size:
+            13px;
+
+        line-height:
+            1.16;
+
+    }
+
+    .weekend-track {
+
+        margin-top:
+            4px;
+
+        font-size:
+            10px;
+
+        line-height:
+            1.2;
+
+    }
+
+    .weekend-time {
+
+        padding-top:
+            6px;
+
+        font-size:
+            10px;
+
+        line-height:
+            1.2;
 
     }
 
@@ -1472,6 +1600,60 @@ main {
 
     }
 
+    .customize-series-item {
+
+        gap:
+            9px;
+
+        padding:
+            11px;
+
+    }
+
+    .drag-handle {
+
+        display:
+            none;
+
+    }
+
+    .series-move-buttons {
+
+        order:
+            3;
+
+    }
+
+    .series-toggle {
+
+        order:
+            2;
+
+    }
+
+}
+
+.series-move-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.move-series {
+    width: 31px;
+    height: 31px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #d8d8d8;
+    cursor: pointer;
+    font-size: 17px;
+    line-height: 1;
+}
+
+.move-series:hover {
+    border-color: #ffbb00;
+    color: #ffbb00;
 }
 
 
