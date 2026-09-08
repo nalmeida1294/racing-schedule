@@ -242,6 +242,11 @@ function renderHome(now = new Date()) {
       summary.className = "f1-home-summary";
       summary.innerHTML = f1HomeSummary();
       card.appendChild(summary);
+    } else {
+      const hubNotice = document.createElement("p");
+      hubNotice.className = "series-hub-coming-soon";
+      hubNotice.textContent = "Full Series Hub Coming Soon";
+      card.appendChild(hubNotice);
     }
     container.appendChild(card);
   });
@@ -384,7 +389,42 @@ function moveSeries(series, direction) {
 
 const overlay = document.getElementById("customize-overlay");
 const customizeList = document.getElementById("customize-series-list");
-document.getElementById("customize-button").addEventListener("click", () => { renderCustomizePanel(); overlay.classList.add("active"); });
+const seriesMenu = document.getElementById("series-menu");
+function closeSeriesMenu() { seriesMenu.open = false; }
+function renderSeriesMenu() {
+  const list = document.getElementById("series-menu-list");
+  list.innerHTML = '<p class="series-menu-heading">All Racing Series</p>';
+  seriesSettings.order.forEach(series => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = series;
+    button.addEventListener("click", async () => {
+      closeSeriesMenu();
+      await showSeries(series);
+      document.getElementById("back-button").focus({ preventScroll: true });
+    });
+    list.appendChild(button);
+  });
+  const upcoming = document.createElement("div");
+  upcoming.className = "series-menu-upcoming";
+  upcoming.innerHTML = '<p class="series-menu-heading">Planned Additions</p><ul><li>Moto GP</li><li>Whelen Modified Tour</li><li>WRC</li></ul>';
+  list.appendChild(upcoming);
+}
+seriesMenu.addEventListener("toggle", () => { if (seriesMenu.open) renderSeriesMenu(); });
+document.addEventListener("click", event => { if (!seriesMenu.contains(event.target)) closeSeriesMenu(); });
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && seriesMenu.open) {
+    closeSeriesMenu();
+    seriesMenu.querySelector("summary").focus();
+  }
+});
+function showHome() {
+  closeSeriesMenu();
+  overlay.classList.remove("active");
+  return withLoading(() => { renderHome(); setView("home-view"); }, "Opening home…");
+}
+document.getElementById("home-button").addEventListener("click", event => { event.preventDefault(); showHome(); });
+document.getElementById("customize-button").addEventListener("click", () => { closeSeriesMenu(); renderCustomizePanel(); overlay.classList.add("active"); });
 document.getElementById("close-customize").addEventListener("click", () => overlay.classList.remove("active"));
 overlay.addEventListener("click", event => { if (event.target === overlay) overlay.classList.remove("active"); });
 document.getElementById("show-all-series").addEventListener("click", () => { seriesSettings.hidden = []; saveSettings(); renderCustomizePanel(); renderHome(); });
@@ -399,7 +439,7 @@ customizeList.addEventListener("dragover", event => {
   if (after) customizeList.insertBefore(dragging, after);
   else customizeList.appendChild(dragging);
 });
-document.getElementById("back-button").addEventListener("click", () => withLoading(() => { renderHome(); setView("home-view"); }, "Opening home…"));
+document.getElementById("back-button").addEventListener("click", showHome);
 document.getElementById("event-back-button").addEventListener("click", () => activeSeriesName === "Formula 1"
   ? withLoading(() => renderF1Hub("schedule"), "Opening Formula 1 schedule…")
   : activeSeriesName ? showSeries(activeSeriesName) : setView("home-view"));

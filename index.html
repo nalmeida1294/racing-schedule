@@ -41,7 +41,7 @@
 
     <div class="header-content">
 
-        <div class="header-title">
+        <a class="header-title" id="home-button" href="#home" aria-label="Race Control home">
 
             <div class="race-mark" aria-hidden="true">
                 <span></span><span></span><span></span><span></span>
@@ -52,10 +52,15 @@
                 <p class="header-subtitle">Every Lap, One App.</p>
             </div>
 
-        </div>
+        </a>
 
 
-        <button id="customize-button">
+        <div class="header-actions">
+        <details id="series-menu">
+            <summary aria-label="Racing series menu"><span aria-hidden="true">☰</span> Series Menu</summary>
+            <nav id="series-menu-list" aria-label="Racing series"></nav>
+        </details>
+        <button id="customize-button" type="button">
 
             <span class="customize-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -71,6 +76,7 @@
             </span>
 
         </button>
+        </div>
 
     </div>
 
