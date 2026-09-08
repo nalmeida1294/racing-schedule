@@ -62,7 +62,7 @@ body {
     justify-content: center;
     gap: 18px;
     background: #090909;
-    transition: opacity 340ms ease, visibility 340ms ease;
+    transition: none;
 }
 
 #app-splash.is-hidden {
@@ -82,7 +82,7 @@ body {
     border-radius: 8px 24px 8px 24px;
     transform: skewX(-8deg);
     box-shadow: 7px 7px 0 #ffbb00, 0 0 34px rgba(255, 187, 0, 0.16);
-    animation: splash-flag-in 680ms cubic-bezier(.16, .84, .35, 1) both;
+    animation: loader-pulse 1100ms ease-in-out infinite alternate;
 }
 
 .splash-flag span:nth-child(odd) { background: #f3f3f3; }
@@ -95,15 +95,13 @@ body {
     font-style: italic;
     font-weight: 800;
     letter-spacing: 0.10em;
-    animation: splash-copy-in 520ms 140ms both;
 }
 
 #app-splash em { color: #ffbb00; font-style: inherit; }
 
-@keyframes splash-flag-in {
-    from { opacity: 0; transform: skewX(-8deg) scale(0.38) rotate(-11deg); }
-    70% { opacity: 1; transform: skewX(-8deg) scale(1.07) rotate(2deg); }
-    to { opacity: 1; transform: skewX(-8deg) scale(1) rotate(0); }
+@keyframes loader-pulse {
+    from { transform: skewX(-8deg) scale(0.94); box-shadow: 5px 5px 0 #ffbb00; }
+    to { transform: skewX(-8deg) scale(1.04); box-shadow: 9px 9px 0 #ffbb00, 0 0 40px rgba(255, 187, 0, 0.3); }
 }
 
 @keyframes splash-copy-in {
@@ -534,18 +532,18 @@ main {
 }
 
 
-.weekend-race-started {
+.weekend-race-completed {
 
     opacity:
         0.62;
 
     filter:
-        saturate(0.82);
+        grayscale(1);
 
 }
 
 
-.weekend-race-started:hover {
+.weekend-race-completed:hover {
 
     opacity:
         0.8;
@@ -2086,4 +2084,78 @@ main {
 
     }
 
+}
+
+/* Shared loading, day groups, series status and persistent navigation. */
+#loader-message {
+    max-width: 340px;
+    padding: 0 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+#retry-load {
+    padding: 12px 22px;
+    border: 0;
+    border-radius: 10px;
+    background: #ffbb00;
+    color: #090909;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+#weekend-races { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.weekend-day { min-width: 0; }
+.weekend-day h3 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 14px;
+    margin: 0 0 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.weekend-day h3 span { color: #999; font-size: 11px; font-weight: 500; }
+.weekend-day-races { display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 11px; }
+.series-group-heading {
+    grid-column: 1 / -1;
+    margin: 16px 0 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+}
+.series-order-options { flex-basis: 100%; margin: 6px 0 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.future-series { grid-column: 1 / -1; min-width: 0; }
+.future-series ul {
+    columns: 3 200px;
+    column-gap: 32px;
+    padding-left: 20px;
+    margin: 18px 0 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+.future-series li { padding: 4px 0; break-inside: avoid; }
+.series-order-options legend { padding: 0 6px; font-weight: 700; }
+.series-order-options label { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; min-height: 44px; cursor: pointer; }
+.series-order-options input { accent-color: #ffbb00; }
+.series-order-options p { margin: 4px 0 0; color: #aaa; font-size: 12px; }
+#back-button, #event-back-button {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    z-index: 20;
+    min-height: 44px;
+    max-width: 100%;
+    box-shadow: 0 4px 22px #0009;
+    border-color: #555;
+}
+.calendar-race { scroll-margin-top: 78px; }
+button:focus-visible, input:focus-visible { outline: 2px solid #ffbb00; outline-offset: 4px; }
+@media (max-width: 600px) {
+    .weekend-day-races { grid-template-columns: minmax(0, 1fr); }
+    .series-order-options label { display: flex; }
 }

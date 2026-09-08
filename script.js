@@ -67,9 +67,13 @@ function csvObjects(text) {
 }
 
 async function fetchSheet(url) {
-  const response = await fetch(`${url}&cacheBust=${Date.now()}`);
-  if (!response.ok) throw new Error(`Feed returned ${response.status}`);
-  return csvObjects(await response.text());
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${url}&cacheBust=${Date.now()}`, { signal: controller.signal });
+    if (!response.ok) throw new Error(`Feed returned ${response.status}`);
+    return csvObjects(await response.text());
+  } finally { clearTimeout(timeout); }
 }
 
 function formatDate(date) {
@@ -101,7 +105,7 @@ function sessionTime(session) {
   if (/AM/i.test(match[3]) && hour === 12) hour = 0;
   return new Date(`${session.date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`).getTime();
 }
-function racesFor(series) { return allRaces.filter(race => race.series === series).sort((a, b) => raceTime(a) - raceTime(b)); }
+function racesFor(series) { return allRaces.filter(race => race.series === series).sort((a, b) => raceTime(a) - raceTime(b) || raceStartTime(a) - raceStartTime(b)); }
 function themeFor(series) { return seriesThemes[series] || ["#888", "rgba(255,255,255,.12)"]; }
 function trackNameForRace(race) {
   const source = sourceForSeries(race.series);
@@ -123,15 +127,22 @@ function loadSettings() {
     if (typeof saved?.sortNextRace === "boolean") seriesSettings.sortNextRace = saved.sortNextRace;
   } catch (_) { /* Default settings are already present. */ }
   defaultSeriesOrder.forEach(series => { if (!seriesSettings.order.includes(series)) seriesSettings.order.push(series); });
-  seriesSettings.order = seriesSettings.order.filter(series => defaultSeriesOrder.includes(series));
+  seriesSettings.order = [...new Set(seriesSettings.order.filter(series => defaultSeriesOrder.includes(series)))];
   seriesSettings.hidden = seriesSettings.hidden.filter(series => defaultSeriesOrder.includes(series));
 }
-function saveSettings() { localStorage.setItem("racingSeriesSettings", JSON.stringify(seriesSettings)); }
+function saveSettings() {
+  try { localStorage.setItem("racingSeriesSettings", JSON.stringify(seriesSettings)); }
+  catch (_) { /* Keep preferences usable in memory when browser storage is unavailable. */ }
+}
 
-function easternIsoDate(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
-  const values = Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
+function localIsoDate(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function usableRaceDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return false;
+  const date = new Date(`${value}T12:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function addDays(isoDate, days) {
@@ -139,11 +150,11 @@ function addDays(isoDate, days) {
   return date.toISOString().slice(0, 10);
 }
 
-function weekendWindow() {
-  const today = easternIsoDate();
+function weekendWindow(now = new Date()) {
+  const today = localIsoDate(now);
   const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
-  const start = weekday >= 4 ? today : addDays(today, (4 - weekday + 7) % 7);
-  return { start, end: addDays(start, 3) };
+  const start = addDays(today, -((weekday + 6) % 7));
+  return { start, end: addDays(start, 6) };
 }
 
 function weekendRangeLabel({ start, end }) {
@@ -151,40 +162,69 @@ function weekendRangeLabel({ start, end }) {
   return `${new Date(`${start}T12:00:00Z`).toLocaleDateString("en-US", options)} – ${new Date(`${end}T12:00:00Z`).toLocaleDateString("en-US", options)}`;
 }
 
-function renderWeekendRaces() {
-  const window = weekendWindow();
+function renderWeekendRaces(now = new Date()) {
+  const window = weekendWindow(now);
+  const today = localIsoDate(now);
   const container = document.getElementById("weekend-races");
   document.getElementById("weekend-date-range").textContent = weekendRangeLabel(window);
-  const races = allRaces.filter(race => !seriesSettings.hidden.includes(race.series) && race.date >= window.start && race.date <= window.end).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  const races = allRaces.filter(race => usableRaceDate(race.date) && !seriesSettings.hidden.includes(race.series) && race.date >= window.start && race.date <= window.end)
+    .sort((a, b) => a.date.localeCompare(b.date) || seriesSettings.order.indexOf(a.series) - seriesSettings.order.indexOf(b.series) || raceStartTime(a) - raceStartTime(b));
   container.innerHTML = "";
   if (!races.length) {
-    container.innerHTML = `<p class="weekend-empty">No races are scheduled for this weekend in your selected series.</p>`;
+    container.innerHTML = `<p class="weekend-empty">No races are scheduled this week in your selected series.</p>`;
     return;
   }
+  let day = null, dayCards = null;
   races.forEach(race => {
+    if (day !== race.date) {
+      day = race.date;
+      const group = document.createElement("section");
+      group.className = "weekend-day";
+      const label = new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long" });
+      group.innerHTML = `<h3>${label}<span>${formatDate(day)}</span></h3>`;
+      dayCards = document.createElement("div");
+      dayCards.className = "weekend-day-races";
+      group.appendChild(dayCards);
+      container.appendChild(group);
+    }
     const card = document.createElement("button"); const [color, glow] = themeFor(race.series);
     card.type = "button"; card.className = "weekend-race";
-    if (raceStartTime(race) <= Date.now()) card.classList.add("weekend-race-started");
+    if (race.date < today) card.classList.add("weekend-race-completed");
     card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const trackName = trackNameForRace(race);
     card.innerHTML = `<span class="weekend-series">${escapeHtml(race.series)}</span><strong class="weekend-event">${escapeHtml(race.event)}</strong>${trackName ? `<span class="weekend-track">${escapeHtml(trackName)}</span>` : ""}<span class="weekend-time">${formatDate(race.date)} · ${escapeHtml(race.time || "Time TBD")}</span>`;
     card.addEventListener("click", () => showRaceDetails(race));
-    container.appendChild(card);
+    dayCards.appendChild(card);
   });
 }
 
-function renderHome() {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+function seriesStatus(series, now = new Date()) {
+  const today = localIsoDate(now);
+  const races = racesFor(series).filter(race => usableRaceDate(race.date) && race.date.slice(0, 4) === String(now.getFullYear()));
+  const nextRace = races.find(race => race.date >= today);
+  return { series, nextRace, status: nextRace ? 0 : races.length ? 1 : 2 };
+}
+
+function displayedSeries(now = new Date()) {
+  return seriesSettings.order.filter(series => !seriesSettings.hidden.includes(series))
+    .map(series => seriesStatus(series, now))
+    .sort((a, b) => a.status - b.status || (a.status === 0 && seriesSettings.sortNextRace ? nextRaceSortTime(a.nextRace) - nextRaceSortTime(b.nextRace) : 0));
+}
+
+function renderHome(now = new Date()) {
+  const today = now;
   const container = document.getElementById("schedule"); container.innerHTML = "";
-  renderWeekendRaces();
-  const displayedOrder = seriesSettings.sortNextRace
-    ? [...seriesSettings.order].sort((first, second) => nextRaceSortTime(first) - nextRaceSortTime(second))
-    : seriesSettings.order;
-  displayedOrder.forEach(series => {
-    if (seriesSettings.hidden.includes(series)) return;
-    const races = racesFor(series);
-    const thisYear = races.filter(race => new Date(`${race.date}T12:00:00`).getFullYear() === today.getFullYear());
-    const nextRace = thisYear.find(race => raceTime(race) >= today.getTime());
+  renderWeekendRaces(now);
+  const visibleSeries = displayedSeries(now);
+  let previousStatus = null;
+  visibleSeries.filter(({ status }) => status !== 2).forEach(({ series, nextRace, status }) => {
+    if (status !== previousStatus) {
+      const heading = document.createElement("h2");
+      heading.className = "series-group-heading";
+      heading.textContent = ["Active Series", "Season Completed"][status];
+      container.appendChild(heading);
+      previousStatus = status;
+    }
     const card = document.createElement("div"); const [color, glow] = themeFor(series);
     card.className = "race-card"; card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const seriesButton = `<button class="series-name series-name-button">${escapeHtml(series)}</button>`;
@@ -192,33 +232,68 @@ function renderHome() {
       const trackName = trackNameForRace(nextRace);
       card.innerHTML = `${seriesButton}<div class="next-race-label">NEXT RACE</div><button class="event-name event-button">${escapeHtml(nextRace.event)}</button>${trackName ? `<p class="race-track">${escapeHtml(trackName)}</p>` : ""}<p class="race-info">${formatDate(nextRace.date)}</p><p class="race-info">${escapeHtml(nextRace.time || "Time to be announced")}</p>${nextRace.network ? `<p class="race-network">${escapeHtml(nextRace.network)}</p>` : ""}${nextRace.notes ? `<p class="race-notes">${escapeHtml(nextRace.notes)}</p>` : ""}`;
       card.querySelector(".event-button").addEventListener("click", () => showRaceDetails(nextRace));
-    } else if (thisYear.length) {
+    } else if (status === 1) {
       card.classList.add("season-completed");
       card.innerHTML = `${seriesButton}<div class="next-race-label">SEASON STATUS</div><h2 class="event-name">🏁 Season Completed</h2><p class="race-info">No more races scheduled for ${today.getFullYear()}</p>`;
-    } else {
-      card.classList.add("schedule-unavailable");
-      card.innerHTML = `${seriesButton}<div class="next-race-label">SCHEDULE STATUS</div><h2 class="event-name">Schedule coming soon</h2><p class="race-info">This series will be added in a future update.</p>`;
     }
     card.querySelector(".series-name-button").addEventListener("click", () => showSeries(series));
     container.appendChild(card);
   });
+  const futureSeries = [...new Set([
+    ...visibleSeries.filter(({ status }) => status === 2).map(({ series }) => series),
+    "Moto GP", "Whelen Modified Tour", "WRC"
+  ])];
+  const futureSection = document.createElement("section");
+  futureSection.className = "future-series";
+  futureSection.setAttribute("aria-labelledby", "future-series-heading");
+  futureSection.innerHTML = `<h2 id="future-series-heading" class="series-group-heading">Future Series to Be Added</h2><ul>${futureSeries.map(series => `<li>${escapeHtml(series)}</li>`).join("")}</ul>`;
+  container.appendChild(futureSection);
 }
 
-function nextRaceSortTime(series) {
-  const now = Date.now();
-  const nextRace = racesFor(series).find(race => {
-    const start = raceStartTime(race);
-    return Number.isFinite(start) ? start >= now : raceTime(race) >= now;
-  });
-  return nextRace ? (Number.isFinite(raceStartTime(nextRace)) ? raceStartTime(nextRace) : raceTime(nextRace)) : Number.POSITIVE_INFINITY;
+function nextRaceSortTime(race) {
+  // Dates lead; unknown start times sort last within their own calendar day.
+  const match = String(race.time || "").match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  const minutes = match ? (Number(match[1]) % 12 + (/PM/i.test(match[3]) ? 12 : 0)) * 60 + Number(match[2]) : 1440;
+  return Number(race.date.replaceAll("-", "")) * 1500 + minutes;
 }
 
 function setView(id) {
   ["home-view", "series-view", "event-view"].forEach(view => { document.getElementById(view).style.display = view === id ? "block" : "none"; });
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+let loading = false;
+let dataReady = false;
+function setLoading(visible, message = "Loading Race Control…") {
+  const loader = document.getElementById("app-splash");
+  loader.classList.toggle("is-hidden", !visible);
+  loader.setAttribute("aria-hidden", String(!visible));
+  document.getElementById("loader-message").textContent = message;
+  document.getElementById("retry-load").hidden = true;
+  document.getElementById("app").setAttribute("aria-busy", String(visible));
+  document.querySelector("header").inert = visible;
+  document.querySelector("main").inert = visible;
+}
+
+async function withLoading(prepare, message) {
+  if (loading) return;
+  loading = true;
+  setLoading(true, message);
+  try {
+    // Allow the shared loader to paint before preparing the next view.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await prepare();
+  } finally {
+    setLoading(false);
+    loading = false;
+  }
 }
 
 function showSeries(series) {
+  return withLoading(() => renderSeries(series), `Opening ${series}…`);
+}
+
+function renderSeries(series, focusCurrent = true) {
   activeSeriesName = series;
   const races = racesFor(series), container = document.getElementById("series-calendar");
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -240,8 +315,10 @@ function showSeries(series) {
     item.innerHTML = `<div class="calendar-date">${formatDate(race.date)}</div><div class="calendar-event">${escapeHtml(race.event)}</div><div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
     item.addEventListener("click", () => showRaceDetails(race)); container.appendChild(item);
   });
-  setView("series-view");
-  if (nextRaceElement) requestAnimationFrame(() => nextRaceElement.scrollIntoView({ behavior: "smooth", block: "center" }));
+  if (focusCurrent) {
+    setView("series-view");
+    if (nextRaceElement) requestAnimationFrame(() => nextRaceElement.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
 }
 
 function sessionsMarkup(sessions) {
@@ -256,6 +333,11 @@ function trackMarkup(track, trackId) {
 }
 
 function showRaceDetails(race) {
+  return withLoading(() => renderRaceDetails(race), "Opening event…");
+}
+
+function renderRaceDetails(race) {
+  activeSeriesName = race.series;
   const sessions = allSessions.filter(session => String(session.raceId) === String(race.raceId) && session.series === race.series).sort((a, b) => sessionTime(a) - sessionTime(b));
   const source = sourceForSeries(race.series);
   const track = allTracks.find(item => item.source === source && String(item.trackId) === String(race.trackId));
@@ -267,6 +349,7 @@ function showRaceDetails(race) {
 function renderCustomizePanel() {
   const list = document.getElementById("customize-series-list"); list.innerHTML = "";
   document.getElementById("sort-next-race").checked = seriesSettings.sortNextRace;
+  document.getElementById("sort-custom").checked = !seriesSettings.sortNextRace;
   seriesSettings.order.forEach(series => {
     const item = document.createElement("div"); item.className = "customize-series-item"; item.draggable = true; item.dataset.series = series;
     item.innerHTML = `<div class="drag-handle" aria-hidden="true">⠿</div><div class="customize-series-name">${escapeHtml(series)}</div><div class="series-move-buttons"><button type="button" class="move-series" data-direction="-1" aria-label="Move ${escapeHtml(series)} up">↑</button><button type="button" class="move-series" data-direction="1" aria-label="Move ${escapeHtml(series)} down">↓</button></div><label class="series-toggle"><input type="checkbox" ${seriesSettings.hidden.includes(series) ? "" : "checked"}><span>Show</span></label>`;
@@ -294,6 +377,7 @@ overlay.addEventListener("click", event => { if (event.target === overlay) overl
 document.getElementById("show-all-series").addEventListener("click", () => { seriesSettings.hidden = []; saveSettings(); renderCustomizePanel(); renderHome(); });
 document.getElementById("hide-all-series").addEventListener("click", () => { seriesSettings.hidden = [...defaultSeriesOrder]; saveSettings(); renderCustomizePanel(); renderHome(); });
 document.getElementById("sort-next-race").addEventListener("change", event => { seriesSettings.sortNextRace = event.target.checked; saveSettings(); renderHome(); });
+document.getElementById("sort-custom").addEventListener("change", () => { seriesSettings.sortNextRace = false; saveSettings(); renderHome(); });
 customizeList.addEventListener("dragover", event => {
   event.preventDefault();
   const dragging = customizeList.querySelector(".dragging");
@@ -302,15 +386,17 @@ customizeList.addEventListener("dragover", event => {
   if (after) customizeList.insertBefore(dragging, after);
   else customizeList.appendChild(dragging);
 });
-document.getElementById("back-button").addEventListener("click", () => setView("home-view"));
+document.getElementById("back-button").addEventListener("click", () => withLoading(() => { renderHome(); setView("home-view"); }, "Opening home…"));
 document.getElementById("event-back-button").addEventListener("click", () => activeSeriesName ? showSeries(activeSeriesName) : setView("home-view"));
 document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [], sortNextRace: false }; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();
-window.addEventListener("load", () => {
-  window.setTimeout(() => document.getElementById("app-splash")?.classList.add("is-hidden"), 700);
-});
-Promise.all([
+async function loadData() {
+  if (loading) return;
+  loading = true;
+  setLoading(true, "Loading racing schedules…");
+  try {
+    await Promise.all([
   fetchSheet(scheduleSources.main), fetchSheet(scheduleSources.sessions), fetchSheet(scheduleSources.tracks),
   fetchSheet(formulaSources.main), fetchSheet(formulaSources.sessions), fetchSheet(formulaSources.tracks),
   fetchSheet(indySources.main), fetchSheet(indySources.sessions), fetchSheet(indySources.tracks),
@@ -325,5 +411,36 @@ Promise.all([
     const toTrack = (row, source) => ({ trackId: row["Track ID"], name: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], description: row.Description, source });
     allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula")), indyTracks.map(row => toTrack(row, "indy")), wecTracks.map(row => toTrack(row, "wec")), formulaETracks.map(row => toTrack(row, "formula-e"))).filter(track => track.trackId);
     renderHome();
-  })
-  .catch(error => { console.error("Error loading racing schedule:", error); document.getElementById("schedule").innerHTML = "<p>Unable to load the racing schedule. Please try again shortly.</p>"; });
+    dataReady = true;
+  });
+    setLoading(false);
+  } catch (error) {
+    console.error("Error loading racing schedule:", error);
+    document.getElementById("loader-message").textContent = "Unable to load schedules. Check your connection and try again.";
+    document.getElementById("retry-load").hidden = false;
+  } finally { loading = false; }
+}
+document.getElementById("retry-load").addEventListener("click", loadData);
+
+// Re-evaluate the local calendar at midnight, including after a sleeping tab resumes.
+let renderedDate = localIsoDate();
+function refreshCalendar() {
+  const today = localIsoDate();
+  if (!dataReady || loading || today === renderedDate) return;
+  renderedDate = today;
+  renderHome();
+  if (document.getElementById("series-view").style.display === "block" && activeSeriesName) {
+    const scroll = window.scrollY;
+    renderSeries(activeSeriesName, false);
+    window.scrollTo({ top: scroll, behavior: "instant" });
+  }
+}
+function scheduleMidnightRefresh() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  setTimeout(() => { refreshCalendar(); scheduleMidnightRefresh(); }, midnight - now + 50);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshCalendar(); });
+window.addEventListener("focus", refreshCalendar);
+scheduleMidnightRefresh();
+loadData();
