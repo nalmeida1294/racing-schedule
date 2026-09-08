@@ -1,6 +1,7 @@
 /* Formula 1 hub. Reads published sheets only; never writes to Google Sheets. */
 const f1FeedBase = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub";
 const f1Feeds = {
+  trackScores: { gid: "346108435", manual: true, required: ["Circuit ID", "Circuit", "Rain Samples", "Rain Score /10", "Chaos Samples", "Chaos Score /10"] },
   ratings: { gid: "670395553", manual: true, required: ["Session Key", "Season", "Session", "Driver ID", "Driver", "Rating"] },
   reviews: { gid: "978263985", manual: true, required: ["Session Key", "Round", "Session", "Event"] },
   standings: { gid: "2073835947", dataset: "Formula Driver Standings", required: ["Driver ID", "Position", "Points"] },
@@ -14,7 +15,7 @@ const f1Store = Object.fromEntries(Object.keys(f1Feeds).map(key => [key, { rows:
 let f1Tab = "overview";
 let f1SelectedRace = "";
 let f1RatingSeason = "", f1RatingSession = "all";
-const f1Tabs = { overview: "Overview", schedule: "Schedule", standings: "Standings", teams: "Teams & Drivers", results: "Results", rankings: "Driver Rankings" };
+const f1Tabs = { overview: "Overview", schedule: "Schedule", standings: "Standings", teams: "Teams & Drivers", results: "Results", rankings: "Driver Rankings", tracks: "Tracks" };
 
 function brandedLoaderMarkup(message) {
   return `<div class="splash-flag" aria-hidden="true"><span></span><span></span><span></span><span></span></div><p>RACE <em>CONTROL</em></p><span>${escapeHtml(message)}</span>`;
@@ -46,6 +47,7 @@ function loadF1Feed(key, force = false) {
       entry.promise = null;
       updateF1HomeSummary();
       refreshF1Hub();
+      if (typeof refreshF1EventRatings === "function") refreshF1EventRatings();
     }
   })();
   return entry.promise;
@@ -137,7 +139,8 @@ function refreshF1Hub() {
 }
 function renderF1Content() {
   const panel = document.getElementById("f1-content");
-  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup }[f1Tab] || f1OverviewMarkup)();
+  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup, tracks: () => f1TracksMarkup() }[f1Tab] || f1OverviewMarkup)();
+  if (typeof bindF1Insights === "function") bindF1Insights(panel);
   ["season", "session"].forEach(kind => {
     const control = panel.querySelector(`#f1-rating-${kind}`);
     if (control) control.addEventListener("change", event => {
@@ -168,7 +171,7 @@ function f1OverviewMarkup() {
       : f1Pending("results", "Race results")}</section>
     <section class="f1-feature"><p class="f1-kicker">DRIVERS’ CHAMPIONSHIP LEADER</p>${leader ? `<h2>${escapeHtml(f1DriverName(leader))}</h2><p class="f1-points">${f1Number(leader.Points)} <small>points</small></p><p>${f1Number(leader.Wins)} Grand Prix wins</p>${f1FeedNote("standings")}` : f1Pending("standings", "Driver standings")}</section>
     <section class="f1-feature"><p class="f1-kicker">CONSTRUCTORS’ CHAMPIONSHIP LEADER</p>${team ? `<h2>${escapeHtml(f1TeamName(team))}</h2><p class="f1-points">${f1Number(team.Points)} <small>points</small></p><p>${f1Number(team.Wins)} Grand Prix wins</p>${f1FeedNote("constructorStandings")}` : f1Pending("constructorStandings", "Constructor standings")}</section></div>
-    <p class="f1-data-note">Championships and results: Jolpica-F1. Schedule and event details use your existing feeds.</p>`;
+    <p class="f1-data-note">Championships and results: Jolpica-F1. Schedule and event details use your existing feeds.</p>${typeof f1InsightsMarkup === "function" ? f1InsightsMarkup() : ""}`;
 }
 
 function f1Table(headers, rows, caption) {

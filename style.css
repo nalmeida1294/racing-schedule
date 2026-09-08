@@ -2219,6 +2219,19 @@ button:focus-visible, input:focus-visible { outline: 2px solid #ffbb00; outline-
 .f1-other-drivers { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
 .f1-select-label { display: block; font-size: 13px; margin: 20px 0 8px; }
 .f1-rating-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.f1-rating-controls label { display: block; margin: 10px 0; }
+.f1-track-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 16px; align-items: start; }
+.f1-track-grid summary { cursor: pointer; font-size: 20px; font-weight: 700; padding: 8px 0; }
+.f1-track-scores small { display: block; color: #aaa; font-size: 12px; font-weight: 400; }
+.f1-donut { width: 220px; height: 220px; border-radius: 50%; margin: 24px auto; display: grid; place-items: center; }
+.f1-donut > span { width: 108px; height: 108px; border-radius: 50%; background: #181818; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 30px; font-weight: 700; }
+.f1-donut small { font-size: 13px; color: #bbb; }
+.f1-chart-legend { list-style: none; padding: 0; }
+.f1-chart-legend li { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 13px; }
+.f1-chart-legend i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.f1-chart-legend strong { margin-left: auto; white-space: nowrap; }
+.f1-gap-chart { display: block; width: 100%; max-height: 380px; margin: 20px 0; }
+.f1-gap-chart text { fill: #bbb; font-size: 12px; }
 .f1-rating-controls > div { min-width: 0; max-width: 100%; }
 .f1-rating-controls select { max-width: 100%; min-height: 44px; background: #252525; color: #eee; border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; }
 #f1-race-select { max-width: 100%; width: 440px; min-height: 44px; color: #eee; background: #252525; border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; font-size: 14px; }
