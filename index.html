@@ -29,10 +29,10 @@
 <body>
 
 <div id="app-splash" role="status" aria-label="Opening Race Control">
-    <div class="splash-flag" aria-hidden="true">
+    <div id="loader-brand" class="brand-loader"><div class="splash-flag" aria-hidden="true">
         <span></span><span></span><span></span><span></span>
     </div>
-    <p>RACE <em>CONTROL</em></p>
+    <p>RACE <em>CONTROL</em></p></div>
     <span id="loader-message">Opening Race Control…</span>
     <button id="retry-load" type="button" hidden>Try again</button>
 </div>
@@ -119,6 +119,7 @@
                     ← Back to All Series
                 </button>
 
+                <section id="f1-hub" hidden aria-label="Formula 1 hub"></section>
                 <div id="series-calendar"></div>
 
             </div>
@@ -206,6 +207,7 @@
     </div>
 
 
+    <script src="f1-hub.js"></script>
     <script src="script.js"></script>
 
 </body>

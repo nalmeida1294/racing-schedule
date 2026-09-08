@@ -237,6 +237,12 @@ function renderHome(now = new Date()) {
       card.innerHTML = `${seriesButton}<div class="next-race-label">SEASON STATUS</div><h2 class="event-name">🏁 Season Completed</h2><p class="race-info">No more races scheduled for ${today.getFullYear()}</p>`;
     }
     card.querySelector(".series-name-button").addEventListener("click", () => showSeries(series));
+    if (series === "Formula 1") {
+      const summary = document.createElement("div");
+      summary.className = "f1-home-summary";
+      summary.innerHTML = f1HomeSummary();
+      card.appendChild(summary);
+    }
     container.appendChild(card);
   });
   const futureSeries = [...new Set([
@@ -269,6 +275,7 @@ function setLoading(visible, message = "Loading Race Control…") {
   loader.classList.toggle("is-hidden", !visible);
   loader.setAttribute("aria-hidden", String(!visible));
   document.getElementById("loader-message").textContent = message;
+  document.getElementById("loader-brand").innerHTML = brandedLoaderMarkup("");
   document.getElementById("retry-load").hidden = true;
   document.getElementById("app").setAttribute("aria-busy", String(visible));
   document.querySelector("header").inert = visible;
@@ -290,11 +297,17 @@ async function withLoading(prepare, message) {
 }
 
 function showSeries(series) {
-  return withLoading(() => renderSeries(series), `Opening ${series}…`);
+  return withLoading(() => series === "Formula 1" ? renderF1Hub("overview") : renderSeries(series), `Opening ${series}…`);
 }
 
 function renderSeries(series, focusCurrent = true) {
   activeSeriesName = series;
+  if (series !== "Formula 1") document.getElementById("f1-hub").hidden = true;
+  if (series !== "Formula 1") {
+    document.getElementById("series-calendar").removeAttribute("role");
+    document.getElementById("series-calendar").removeAttribute("aria-labelledby");
+  }
+  document.getElementById("series-calendar").hidden = false;
   const races = racesFor(series), container = document.getElementById("series-calendar");
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const nextRace = races.find(race => raceTime(race) >= today.getTime());
@@ -387,7 +400,9 @@ customizeList.addEventListener("dragover", event => {
   else customizeList.appendChild(dragging);
 });
 document.getElementById("back-button").addEventListener("click", () => withLoading(() => { renderHome(); setView("home-view"); }, "Opening home…"));
-document.getElementById("event-back-button").addEventListener("click", () => activeSeriesName ? showSeries(activeSeriesName) : setView("home-view"));
+document.getElementById("event-back-button").addEventListener("click", () => activeSeriesName === "Formula 1"
+  ? withLoading(() => renderF1Hub("schedule"), "Opening Formula 1 schedule…")
+  : activeSeriesName ? showSeries(activeSeriesName) : setView("home-view"));
 document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [], sortNextRace: false }; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();
@@ -412,6 +427,7 @@ async function loadData() {
     allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula")), indyTracks.map(row => toTrack(row, "indy")), wecTracks.map(row => toTrack(row, "wec")), formulaETracks.map(row => toTrack(row, "formula-e"))).filter(track => track.trackId);
     renderHome();
     dataReady = true;
+    loadF1Feeds();
   });
     setLoading(false);
   } catch (error) {
@@ -431,7 +447,8 @@ function refreshCalendar() {
   renderHome();
   if (document.getElementById("series-view").style.display === "block" && activeSeriesName) {
     const scroll = window.scrollY;
-    renderSeries(activeSeriesName, false);
+    if (activeSeriesName === "Formula 1" && f1Tab !== "schedule") refreshF1Hub();
+    else renderSeries(activeSeriesName, false);
     window.scrollTo({ top: scroll, behavior: "instant" });
   }
 }
