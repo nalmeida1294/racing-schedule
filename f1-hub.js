@@ -1,6 +1,8 @@
 /* Formula 1 hub. Reads published sheets only; never writes to Google Sheets. */
 const f1FeedBase = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub";
 const f1Feeds = {
+  ratings: { gid: "670395553", manual: true, required: ["Session Key", "Season", "Session", "Driver ID", "Driver", "Rating"] },
+  reviews: { gid: "978263985", manual: true, required: ["Session Key", "Round", "Session", "Event"] },
   standings: { gid: "2073835947", dataset: "Formula Driver Standings", required: ["Driver ID", "Position", "Points"] },
   constructorStandings: { gid: "2056363639", dataset: "Formula Constructor Standings", required: ["Constructor ID", "Position", "Points"] },
   drivers: { gid: "1203747234", dataset: "Formula Drivers", required: ["Driver ID", "Driver"] },
@@ -11,7 +13,8 @@ const f1Feeds = {
 const f1Store = Object.fromEntries(Object.keys(f1Feeds).map(key => [key, { rows: [], state: "idle", loadedAt: 0, promise: null }]));
 let f1Tab = "overview";
 let f1SelectedRace = "";
-const f1Tabs = { overview: "Overview", schedule: "Schedule", standings: "Standings", teams: "Teams & Drivers", results: "Results" };
+let f1RatingSeason = "", f1RatingSession = "all";
+const f1Tabs = { overview: "Overview", schedule: "Schedule", standings: "Standings", teams: "Teams & Drivers", results: "Results", rankings: "Driver Rankings" };
 
 function brandedLoaderMarkup(message) {
   return `<div class="splash-flag" aria-hidden="true"><span></span><span></span><span></span><span></span></div><p>RACE <em>CONTROL</em></p><span>${escapeHtml(message)}</span>`;
@@ -23,13 +26,14 @@ function loadF1Feeds(force = false) {
 
 function loadF1Feed(key, force = false) {
   const entry = f1Store[key];
+  if (!f1Feeds[key].gid) { entry.state = "unconfigured"; return Promise.resolve(); }
   if (entry.promise) return entry.promise;
   if (!force && entry.state === "ready" && entry.loadedAt && Date.now() - entry.loadedAt < 5 * 60 * 1000) return Promise.resolve();
   entry.state = "loading";
   entry.promise = (async () => {
     try {
       const rows = await fetchSheet(`${f1FeedBase}?gid=${f1Feeds[key].gid}&single=true&output=csv`);
-      const required = f1Feeds[key].required.concat(key === "status" ? ["Season"] : ["Season", "In Latest Feed", "Updated UTC"]);
+      const required = f1Feeds[key].required.concat(f1Feeds[key].manual ? [] : key === "status" ? ["Season"] : ["Season", "In Latest Feed", "Updated UTC"]);
       // A correctly published empty data tab may have no rows yet.
       if (rows.length && required.some(column => !(column in rows[0]))) throw new Error("Unexpected feed columns");
       entry.rows = rows;
@@ -133,8 +137,16 @@ function refreshF1Hub() {
 }
 function renderF1Content() {
   const panel = document.getElementById("f1-content");
-  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup }[f1Tab] || f1OverviewMarkup)();
-  panel.querySelectorAll("[data-f1-retry]").forEach(button => button.addEventListener("click", () => { loadF1Feed(button.dataset.f1Retry, true); renderF1Content(); }));
+  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup }[f1Tab] || f1OverviewMarkup)();
+  ["season", "session"].forEach(kind => {
+    const control = panel.querySelector(`#f1-rating-${kind}`);
+    if (control) control.addEventListener("change", event => {
+      if (kind === "season") { f1RatingSeason = event.target.value; f1RatingSession = "all"; }
+      else f1RatingSession = event.target.value;
+      renderF1Content(); document.getElementById(`f1-rating-${kind}`).focus({ preventScroll: true });
+    });
+  });
+  panel.querySelectorAll("[data-f1-retry]").forEach(button => button.addEventListener("click", () => { loadF1Feed(button.dataset.f1Retry, true); if (button.dataset.f1Retry === "ratings") loadF1Feed("reviews", true); renderF1Content(); }));
   panel.querySelectorAll("[data-f1-next]").forEach(button => button.addEventListener("click", () => {
     const race = seriesStatus("Formula 1").nextRace;
     if (race) showRaceDetails(race);
@@ -192,6 +204,51 @@ function f1TeamsMarkup() {
   }).join("");
   const other = drivers.filter(row => !grouped.has(row["Driver ID"]));
   return `<h2>Teams & Drivers</h2><p class="f1-data-note">Team assignments reflect the latest published race, with any manual team overrides applied. Other season participants are listed separately.</p>${f1FeedNote("drivers")}${!drivers.length ? f1Pending("drivers", "Drivers") : ""}<div class="f1-team-grid">${cards}</div>${other.length ? `<section class="f1-section"><h3>Other Season Participants</h3><p class="f1-data-note">No confirmed team assignment for the latest race.</p><div class="f1-other-drivers">${other.map(f1DriverMarkup).join("")}</div></section>` : ""}`;
+}
+
+function f1ValidRatings() {
+  const seen = new Set();
+  return f1Store.ratings.rows.filter(row => {
+    const key = `${row["Session Key"]}|${row["Driver ID"]}`;
+    const score = String(row.Rating ?? "").trim();
+    if (!row["Driver ID"] || !/^\d{4}$/.test(row.Season) || !String(row["Session Key"]).startsWith(row.Season + ":") || !["Grand Prix", "Sprint"].includes(row.Session) || !score || !Number.isFinite(Number(score)) || Number(score) < 0 || Number(score) > 10 || seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+function f1RatingRanks(rows) {
+  const drivers = new Map();
+  rows.forEach(row => {
+    const id = row["Driver ID"], driver = drivers.get(id) || { id, name: row.Driver || id, total: 0, weight: 0, gp: 0, sprint: 0 };
+    const weight = row.Session === "Grand Prix" ? 3 : 1;
+    driver.total += Number(row.Rating) * weight; driver.weight += weight;
+    driver[row.Session === "Grand Prix" ? "gp" : "sprint"]++;
+    drivers.set(id, driver);
+  });
+  return [...drivers.values()].map(driver => ({ ...driver, average: driver.total / driver.weight }))
+    .sort((a,b) => b.average - a.average || a.name.localeCompare(b.name));
+}
+function f1RatingLabel(key) {
+  const race = f1Store.reviews.rows.find(row => row["Session Key"] === key);
+  if (race) return `Round ${race.Round} · ${race.Event} · ${race.Session}`;
+  const parts = key.split(":");
+  return `Round ${parts[1]} · ${parts[2] === "SPRINT" ? "Sprint" : "Grand Prix"}`;
+}
+function f1RankingsMarkup() {
+  const title = '<h2>Driver Rankings</h2><p class="f1-data-note">Personal driver ratings out of 10. Season averages weight each Grand Prix three times as much as a sprint. Unrated sessions are excluded.</p>';
+  const entry = f1Store.ratings;
+  if (entry.state === "unconfigured" || !f1Feeds.ratings.gid) return title + '<p class="f1-empty">Driver ratings are coming soon.</p>';
+  if (!entry.rows.length && entry.state !== "ready") return title + f1Pending("ratings", "Driver ratings");
+  const valid = f1ValidRatings();
+  const years = [...new Set(f1Store.ratings.rows.map(row => row.Season).filter(year => /^\d{4}$/.test(year)))].sort((a,b) => Number(b)-Number(a));
+  if (!years.length) return title + '<p class="f1-empty">No driver ratings published yet.</p>';
+  if (!years.includes(f1RatingSeason)) f1RatingSeason = years[0];
+  const seasonRows = valid.filter(row => row.Season === f1RatingSeason);
+  const sessions = [...new Set(seasonRows.map(row => row["Session Key"]))].sort((a,b) => Number(a.split(":")[1])-Number(b.split(":")[1]) || (a.endsWith("SPRINT") ? -1 : 1));
+  if (f1RatingSession !== "all" && !sessions.includes(f1RatingSession)) f1RatingSession = "all";
+  const ranks = f1RatingRanks(seasonRows.filter(row => f1RatingSession === "all" || row["Session Key"] === f1RatingSession));
+  const controls = `<div class="f1-rating-controls"><div><label class="f1-select-label" for="f1-rating-season">Season</label><select id="f1-rating-season">${years.map(year => `<option ${year === f1RatingSeason ? "selected" : ""}>${year}</option>`).join("")}</select></div><div><label class="f1-select-label" for="f1-rating-session">Ratings</label><select id="f1-rating-session"><option value="all">Full season average</option>${sessions.map(key => `<option value="${escapeHtml(key)}" ${key === f1RatingSession ? "selected" : ""}>${escapeHtml(f1RatingLabel(key))}</option>`).join("")}</select></div></div>`;
+  const note = entry.state === "error" ? '<p class="f1-data-note f1-warning">Update unavailable · showing previously loaded ratings.</p>' : '<p class="f1-data-note">Ratings reflect the latest loaded spreadsheet data.</p>';
+  return title + controls + note + '<button type="button" data-f1-retry="ratings">Refresh ratings</button>' + (ranks.length ? f1Table(["Rank", "Driver", "Rating /10", "GP rated", "Sprints rated"], ranks.map((driver,i) => `<tr><td>${i && driver.average === ranks[i-1].average ? ranks.findIndex(other => other.average === driver.average)+1 : i+1}</td><th scope="row">${escapeHtml(driver.name)}</th><td class="f1-table-points">${driver.average.toFixed(2)}</td><td>${driver.gp}</td><td>${driver.sprint}</td></tr>`), f1RatingSession === "all" ? `${f1RatingSeason} driver rankings` : f1RatingLabel(f1RatingSession)) : '<p class="f1-empty">No rated sessions for this season yet.</p>');
 }
 
 function f1ResultsMarkup() {

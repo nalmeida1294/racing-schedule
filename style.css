@@ -2218,6 +2218,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid #ffbb00; outline-
 .f1-team-logo { width: 70px; max-height: 55px; object-fit: contain; margin-bottom: 12px; }
 .f1-other-drivers { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
 .f1-select-label { display: block; font-size: 13px; margin: 20px 0 8px; }
+.f1-rating-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.f1-rating-controls > div { min-width: 0; max-width: 100%; }
+.f1-rating-controls select { max-width: 100%; min-height: 44px; background: #252525; color: #eee; border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; }
 #f1-race-select { max-width: 100%; width: 440px; min-height: 44px; color: #eee; background: #252525; border: 1px solid #555; border-radius: 8px; padding: 12px; font: inherit; font-size: 14px; }
 @media (max-width: 600px) {
     .f1-overview-grid, .f1-team-grid { grid-template-columns: minmax(0, 1fr); }
