@@ -257,7 +257,7 @@ function renderHome(now = new Date()) {
   const futureSection = document.createElement("section");
   futureSection.className = "future-series";
   futureSection.setAttribute("aria-labelledby", "future-series-heading");
-  futureSection.innerHTML = `<h2 id="future-series-heading" class="series-group-heading">Future Series to Be Added</h2><ul>${futureSeries.map(series => `<li>${escapeHtml(series)}</li>`).join("")}</ul>`;
+  futureSection.innerHTML = `<h2 id="future-series-heading" class="series-group-heading">Future Series to Be Added</h2><ul>${futureSeries.map(series => `<li>${escapeHtml(series)}</li>`).join("")}<li class="future-more">and more!</li></ul>`;
   container.appendChild(futureSection);
 }
 
@@ -269,6 +269,7 @@ function nextRaceSortTime(race) {
 }
 
 function setView(id) {
+  document.getElementById("back-to-top").hidden = true;
   ["home-view", "series-view", "event-view"].forEach(view => { document.getElementById(view).style.display = view === id ? "block" : "none"; });
   window.scrollTo({ top: 0, behavior: "instant" });
 }
@@ -302,10 +303,22 @@ async function withLoading(prepare, message) {
 }
 
 function showSeries(series) {
-  return withLoading(() => series === "Formula 1" ? renderF1Hub("overview") : renderSeries(series), `Opening ${series}…`);
+  return withLoading(() => series === "Formula 1" ? renderF1Hub("overview") : renderSeriesHub(series), `Opening ${series}…`);
+}
+
+function renderSeriesHub(series) {
+  activeSeriesName = series;
+  document.getElementById("f1-hub").hidden = true;
+  document.getElementById("series-calendar").hidden = true;
+  const hub = document.getElementById("series-hub");
+  hub.hidden = false;
+  hub.innerHTML = `<div class="series-hub-hero"><p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT</span><h2>Full Series Hub coming soon.</h2><p>Your home for schedules, race information, and more.</p><button id="hub-schedule-button">View Series Schedule →</button></div>`;
+  hub.querySelector("#hub-schedule-button").addEventListener("click", () => withLoading(() => renderSeries(series), "Opening schedule…"));
+  setView("series-view");
 }
 
 function renderSeries(series, focusCurrent = true) {
+  document.getElementById("series-hub").hidden = true;
   activeSeriesName = series;
   if (series !== "Formula 1") document.getElementById("f1-hub").hidden = true;
   if (series !== "Formula 1") {
@@ -344,10 +357,13 @@ function sessionsMarkup(sessions) {
   return `<section class="detail-section"><h2>Weekend Schedule</h2><div class="session-list">${sessions.map(session => `<div class="session-item"><span class="session-type">${escapeHtml(session.type || "Session")}</span><div><strong>${escapeHtml(session.session)}</strong><br><span>${formatDate(session.date)} · ${escapeHtml(session.time || "TBD")}</span>${session.notes ? `<br><span>${escapeHtml(session.notes)}</span>` : ""}</div></div>`).join("")}</div></section>`;
 }
 
+function trackFactsMarkup(track) {
+  const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt]].filter(([, value]) => value);
+  return `${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}`;
+}
 function trackMarkup(track, trackId) {
   if (!track) return `<section class="detail-section"><h2>Track</h2><p class="empty-details">Track information has not been added yet.</p></section>`;
-  const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt]].filter(([, value]) => value);
-  return `<section class="detail-section"><h2>Track</h2><h3>${escapeHtml(track.name || "Track to be announced")}</h3><p class="track-id">Track ID: ${escapeHtml(trackId)}</p>${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : "<p class=\"empty-details\">More track details will be added soon.</p>"}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}</section>`;
+  return `<section class="detail-section"><h2>Track</h2><h3>${escapeHtml(track.name || "Track to be announced")}</h3>${trackFactsMarkup(track)}</section>`;
 }
 
 function showRaceDetails(race) {
@@ -408,7 +424,12 @@ function renderSeriesMenu() {
   });
   const upcoming = document.createElement("div");
   upcoming.className = "series-menu-upcoming";
-  upcoming.innerHTML = '<p class="series-menu-heading">Planned Additions</p><ul><li>Moto GP</li><li>Whelen Modified Tour</li><li>WRC</li></ul>';
+  upcoming.innerHTML = '<p class="series-menu-heading">Planned Additions</p>';
+  ["Moto GP", "Whelen Modified Tour", "WRC"].forEach(series => {
+    const button = document.createElement("button"); button.type = "button"; button.textContent = series;
+    button.addEventListener("click", () => { closeSeriesMenu(); showSeries(series); });
+    upcoming.appendChild(button);
+  });
   list.appendChild(upcoming);
 }
 seriesMenu.addEventListener("toggle", () => { if (seriesMenu.open) renderSeriesMenu(); });
@@ -443,7 +464,15 @@ customizeList.addEventListener("dragover", event => {
 document.getElementById("back-button").addEventListener("click", showHome);
 document.getElementById("event-back-button").addEventListener("click", () => activeSeriesName === "Formula 1"
   ? withLoading(() => renderF1Hub("schedule"), "Opening Formula 1 schedule…")
-  : activeSeriesName ? showSeries(activeSeriesName) : setView("home-view"));
+  : activeSeriesName ? withLoading(() => renderSeries(activeSeriesName), "Opening schedule…") : setView("home-view"));
+document.getElementById("event-hub-button").addEventListener("click", () => showSeries(activeSeriesName));
+window.addEventListener("scroll", () => {
+  document.getElementById("back-to-top").hidden = !(window.scrollY > 350 && document.getElementById("series-view").style.display === "block" && !document.getElementById("series-calendar").hidden);
+}, { passive: true });
+document.getElementById("back-to-top").addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  document.getElementById("back-button").focus({ preventScroll: true });
+});
 document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [], sortNextRace: false }; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();

@@ -24,8 +24,8 @@ function f1TracksMarkup() {
   const tracks=allTracks.filter(t=>t.source==='formula');
   const known=new Set(tracks.map(f1CircuitFor).filter(Boolean));
   const extra=[...new Map(f1Store.reviews.rows.filter(r=>r['Circuit ID']&&!known.has(r['Circuit ID'])).map(r=>[r['Circuit ID'],r])).values()];
-  const cards=tracks.map(t=>({name:t.name,id:f1CircuitFor(t),description:t.description,location:[t.city,t.state].filter(Boolean).join(', '),type:t.type})).concat(extra.map(r=>({name:r.Circuit,id:r['Circuit ID']}))).sort((a,b)=>a.name.localeCompare(b.name));
-  return `<h2>Tracks</h2><p class="f1-data-note">All Formula 1 circuits in the track database and published race reviews. Expand a circuit for its ratings.</p><div class="f1-track-grid">${cards.map(t=>`<details class="f1-feature"><summary>${escapeHtml(t.name)}</summary><p>${escapeHtml([t.location,t.type].filter(Boolean).join(' · '))}</p>${t.description?`<p>${escapeHtml(t.description)}</p>`:''}${f1TrackScoreMarkup(t.id)}</details>`).join('')}</div>`;
+  const cards=tracks.map(t=>({...t,id:f1CircuitFor(t)})).concat(extra.map(r=>({name:r.Circuit,id:r['Circuit ID']}))).sort((a,b)=>a.name.localeCompare(b.name));
+  return `<div class="tracks-heading"><p class="weekend-eyebrow">THE CIRCUIT COLLECTION</p><h2>Iconic venues. Every turn.</h2><p class="f1-data-note">Explore ${cards.length} circuits, track details, and your race ratings.</p></div><div class="f1-track-grid">${cards.map((t,i)=>`<details class="f1-feature circuit-card"><summary><span class="circuit-number" aria-hidden="true">${String(i+1).padStart(2,'0')}</span><span><small>${escapeHtml(t.type||'FORMULA 1 CIRCUIT')}</small><strong>${escapeHtml(t.name)}</strong><span class="circuit-location">${escapeHtml([t.city,t.state].filter(Boolean).join(', ')||'Explore circuit')}</span></span><span class="circuit-expand" aria-hidden="true">+</span></summary><div class="circuit-body">${typeof trackFactsMarkup==='function'?trackFactsMarkup(t):''}${f1TrackScoreMarkup(t.id)}</div></details>`).join('')}</div>`;
 }
 function showF1EventRatings(race) {
   f1EventForScores=race.series==='Formula 1'?race:null;

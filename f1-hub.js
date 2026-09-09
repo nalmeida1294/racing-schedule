@@ -101,6 +101,7 @@ function updateF1HomeSummary() {
 }
 
 function renderF1Hub(tab = "overview") {
+  document.getElementById("series-hub").hidden = true;
   activeSeriesName = "Formula 1";
   f1Tab = f1Tabs[tab] ? tab : "overview";
   const hub = document.getElementById("f1-hub");

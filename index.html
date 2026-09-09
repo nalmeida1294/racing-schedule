@@ -22,6 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile-polish.css">
 
 </head>
 
@@ -96,8 +97,7 @@
 
                     <div class="weekend-heading-row">
                         <div>
-                            <p class="weekend-eyebrow">THIS RACING WEEK</p>
-                            <h2 id="weekend-heading">Races this weekend</h2>
+                            <h2 id="weekend-heading"><span class="week-flag" aria-hidden="true"></span>This Racing Week</h2>
                         </div>
                         <p id="weekend-date-range" class="weekend-date-range"></p>
                     </div>
@@ -126,6 +126,7 @@
                 </button>
 
                 <section id="f1-hub" hidden aria-label="Formula 1 hub"></section>
+                <section id="series-hub" hidden aria-label="Series hub"></section>
                 <div id="series-calendar"></div>
 
             </div>
@@ -136,9 +137,10 @@
                 style="display: none;"
             >
 
-                <button id="event-back-button">
+                <div class="event-navigation"><button id="event-back-button">
                     ← Back to Series Schedule
                 </button>
+                <button id="event-hub-button">Series Hub →</button></div>
 
                 <div id="event-details"></div>
 
@@ -148,6 +150,7 @@
         </div>
 
     </main>
+    <button id="back-to-top" hidden aria-label="Back to top of schedule">↑ <span>Back to Top</span></button>
 
 
     <!-- CUSTOMIZE SERIES PANEL -->

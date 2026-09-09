@@ -1,0 +1,60 @@
+/* Shared finish: graphite surfaces, warm gold, compact mobile layouts. */
+:root { --panel-edge: rgba(255,255,255,.09); }
+body { background: radial-gradient(ellipse at 0 0, #242116 0, transparent 440px), #0c0e10; }
+button, summary, a { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid #ffd259; outline-offset: 4px; }
+.series-card, .f1-feature, .detail-section { border-color: var(--panel-edge); box-shadow: 0 8px 30px #0002; }
+#weekend-section { padding: 26px; border: 1px solid #f3c44926; background: linear-gradient(125deg,#29261b 0,#17191b 45%,#131517 100%); border-radius: 22px; overflow: hidden; }
+.weekend-heading-row { align-items: center; gap: 12px; margin-bottom: 20px; }
+#weekend-heading { display: flex; align-items: center; gap: 12px; font-size: clamp(24px,4vw,34px); letter-spacing: -.7px; line-height: 1.1; margin: 0; }
+.week-flag { display: inline-block; width: 32px; height: 26px; flex-shrink: 0; transform: skew(-12deg); background: conic-gradient(#ffcc42 25%,transparent 0 50%,#ffcc42 0 75%,transparent 0) 0 0/13px 13px; border-bottom: 2px solid #ffcc42; }
+.weekend-date-range { color: #d2c9ae; font-size: 12px; }
+.weekend-day h3 { letter-spacing: 1.5px; font-size: 12px; margin: 0 0 10px; }
+.weekend-day-races { grid-template-columns: repeat(auto-fill,minmax(175px,1fr)); }
+.weekend-race { min-height: 142px; padding: 14px; border-radius: 13px; border-top: 2px solid var(--series-color,#e7be50); }
+.weekend-event { font-size: 17px; line-height: 1.2; }
+.weekend-series { font-size: 10px; letter-spacing: .8px; }
+.weekend-time { margin-top: auto; padding-top: 8px; font-size: 11px; }
+.weekend-track { font-size: 11px; }
+.future-more { color: #ffcd45; font-style: italic; }
+.event-navigation { position: sticky; top: 12px; z-index: 15; display: flex; flex-wrap: wrap; gap: 8px; width: fit-content; padding: 6px; margin-bottom: 22px; border-radius: 14px; background: #111315ed; border: 1px solid var(--panel-edge); backdrop-filter: blur(14px); }
+.event-navigation #event-back-button { position: static; margin: 0; }
+#event-hub-button, #hub-schedule-button { border: 1px solid #c49b3e60; border-radius: 9px; padding: 12px 16px; background: #ffcb4018; color: #ffda78; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.series-hub-hero { padding: clamp(24px,6vw,64px); margin-top: 24px; border: 1px solid #efc74d30; border-radius: 24px; background: repeating-linear-gradient(120deg,transparent 0 85px,#ffc83d04 85px 110px),linear-gradient(145deg,#29251a,#151719 60%); }
+.series-hub-hero h1 { font-size: clamp(30px,6vw,56px); letter-spacing: -1px; margin: 14px 0 32px; }
+.series-hub-hero h2 { font-size: clamp(23px,4vw,34px); }
+.series-hub-hero p:not(.weekend-eyebrow) { color: #bcbfc3; line-height: 1.6; }
+.hub-status { display: inline-block; font-size: 10px; letter-spacing: 2px; border: 1px solid #c8a14955; border-radius: 30px; color: #ffd468; padding: 8px 12px; }
+#back-to-top { position: fixed; right: max(18px,env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 25; border: 1px solid #ffe49c55; border-radius: 30px; padding: 13px 18px; min-height: 46px; background: #f4c84d; color: #171717; box-shadow: 0 6px 24px #0008; cursor: pointer; font-weight: 700; }
+#back-to-top[hidden] { display: none; }
+.tracks-heading h2 { font-size: clamp(27px,4vw,40px); letter-spacing: -1px; margin: 8px 0; }
+.circuit-card.f1-feature { padding: 0; background: linear-gradient(125deg,#25282b,#17191b); border-radius: 17px; overflow: hidden; }
+.circuit-card summary { display: flex; align-items: center; gap: 14px; padding: 22px; list-style: none; }
+.circuit-card summary::-webkit-details-marker { display: none; }
+.circuit-number { font-size: 32px; font-weight: 800; font-style: italic; letter-spacing: -2px; color: #ffca4638; }
+.circuit-card summary small { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 1.4px; color: #e1bf70; margin-bottom: 6px; }
+.circuit-card summary strong { display: block; font-family: 'Barlow Condensed',sans-serif; font-size: 28px; letter-spacing: -.3px; line-height: 1.15; }
+.circuit-location { display: block; color: #a6abb0; font-size: 12px; font-weight: 400; margin-top: 7px; }
+.circuit-expand { margin-left: auto; color: #ffcb4e; font-size: 24px; font-weight: 400; }
+.circuit-card[open] .circuit-expand { transform: rotate(45deg); }
+.circuit-card[open] summary { border-bottom: 1px solid var(--panel-edge); background: #ffcb4706; }
+.circuit-body { padding: 4px 22px 22px; }
+.track-description { line-height: 1.65; color: #bcc0c4; }
+@media (max-width:600px) {
+  #weekend-section { padding: 16px 12px; border-radius: 17px; margin-bottom: 26px; }
+  .weekend-heading-row { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 18px; }
+  #weekend-heading { font-size: 25px; }
+  .weekend-date-range { margin: 0 0 0 42px; font-size: 11px; }
+  #weekend-races { gap: 18px; }
+  .weekend-day-races { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .weekend-race { padding: 11px 10px; min-height: 148px; height: auto; gap: 5px; }
+  .weekend-series { font-size: 9px; line-height: 1.3; margin: 0; }
+  .weekend-event { font-size: 15px; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+  .weekend-track { display: none; }
+  .weekend-time { font-size: 10px; line-height: 1.35; padding-top: 4px; }
+  .event-navigation { top: 6px; gap: 5px; }
+  .event-navigation button, .event-navigation #event-back-button { font-size: 11px; padding: 11px 10px; min-height: 44px; }
+  .circuit-card summary { padding: 18px; }
+  .circuit-card summary strong { font-size: 24px; }
+  .f1-tabs { scrollbar-width: thin; scrollbar-color: #806c33 transparent; }
+}
