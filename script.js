@@ -34,6 +34,27 @@ const seriesThemes = {
   "Formula 1": ["#e10600", "rgba(225,6,0,.22)"], "INDYCAR": ["#c8102e", "rgba(200,16,46,.2)"], "NASCAR Cup Series": ["#f5c518", "rgba(245,197,24,.2)"], "WEC": ["#d8b24c", "rgba(216,178,76,.18)"], "IMSA": ["#e53935", "rgba(229,57,53,.2)"], "Formula E": ["#00a8e8", "rgba(0,168,232,.2)"], "O'Reilly Auto Parts Series": ["#00a651", "rgba(0,166,81,.2)"], "Craftsman Truck Series": ["#ff6b00", "rgba(255,107,0,.2)"], "ARCA Menards Series": ["#d71920", "rgba(215,25,32,.2)"], "Indy NXT": ["#0072ce", "rgba(0,114,206,.2)"], "Formula 2": ["#ff2b2b", "rgba(255,43,43,.2)"], "Formula 3": ["#7d4cff", "rgba(125,76,255,.2)"], "F1 Academy": ["#ff5ca8", "rgba(255,92,168,.2)"], "Formula Regional": ["#ff8c42", "rgba(255,140,66,.2)"], "CARS Tour LMSC": ["#00a6a6", "rgba(0,166,166,.2)"], "Dirt Sprint Cars": ["#b87333", "rgba(184,115,51,.2)"], "Special Event": ["#d8d8d8", "rgba(255,255,255,.16)"]
 };
 
+const seriesLogos = {
+  "Formula 1": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Formula_One_logo.svg",
+  "Formula 2": "https://upload.wikimedia.org/wikipedia/commons/6/64/FIA_Formula_2_Championship_logo_%282026%29.svg",
+  "Formula 3": "https://upload.wikimedia.org/wikipedia/commons/d/d9/FIA_Formula_3_Championship_logo_%282026%29.svg",
+  "F1 Academy": "https://upload.wikimedia.org/wikipedia/commons/a/a9/F1_Academy_logo_%282026%29.svg",
+  "NASCAR Cup Series": "https://upload.wikimedia.org/wikipedia/commons/c/cb/NASCAR_Cup_Series_logo.svg",
+  "O'Reilly Auto Parts Series": "https://upload.wikimedia.org/wikipedia/commons/4/4f/NASCAR_OAP_SERIES_Logo.svg",
+  "Craftsman Truck Series": "https://upload.wikimedia.org/wikipedia/commons/2/22/NASCAR_Craftsman_Truck_Series_logo.svg",
+  "WEC": "https://upload.wikimedia.org/wikipedia/commons/4/44/WEC_Logo.svg",
+  "Formula E": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Formula-e-logo-championship_2023.svg",
+  "INDYCAR": "https://upload.wikimedia.org/wikipedia/en/8/80/INDYCAR_NTT_series_logo.png",
+  "Indy NXT": "https://upload.wikimedia.org/wikipedia/en/a/a8/IndyNXTLogo.png"
+};
+function seriesLogoMarkup(series, hub = false) {
+  const src = seriesLogos[series];
+  return src ? `<img class="series-brand-logo${hub ? ' series-brand-logo-hub' : ''}" src="${escapeHtml(src)}" alt="" aria-hidden="true" referrerpolicy="no-referrer">` : '';
+}
+document.addEventListener('error', event => {
+  if (event.target.classList?.contains('series-brand-logo')) event.target.hidden = true;
+}, true);
+
 let allRaces = [];
 let allSessions = [];
 let allTracks = [];
@@ -73,6 +94,9 @@ async function fetchSheet(url) {
     const response = await fetch(`${url}&cacheBust=${Date.now()}`, { signal: controller.signal });
     if (!response.ok) throw new Error(`Feed returned ${response.status}`);
     return csvObjects(await response.text());
+  } catch(error) {
+    if(typeof window.rcRecordIssue==='function')window.rcRecordIssue('feed','Published racing feed could not load');
+    throw error;
   } finally { clearTimeout(timeout); }
 }
 
@@ -227,16 +251,16 @@ function renderHome(now = new Date()) {
     }
     const card = document.createElement("div"); const [color, glow] = themeFor(series);
     card.className = "race-card"; card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
-    const seriesButton = `<button class="series-name series-name-button">${escapeHtml(series)}</button>`;
+    const seriesButton = `<button class="series-name series-name-button series-brand-heading">${seriesLogoMarkup(series)}<span>${escapeHtml(series)}</span></button>`;
     if (nextRace) {
       const trackName = trackNameForRace(nextRace);
       card.innerHTML = `${seriesButton}<div class="next-race-label">NEXT RACE</div><button class="event-name event-button">${escapeHtml(nextRace.event)}</button>${trackName ? `<p class="race-track">${escapeHtml(trackName)}</p>` : ""}<p class="race-info">${formatDate(nextRace.date)}</p><p class="race-info">${escapeHtml(nextRace.time || "Time to be announced")}</p>${nextRace.network ? `<p class="race-network">${escapeHtml(nextRace.network)}</p>` : ""}${nextRace.notes ? `<p class="race-notes">${escapeHtml(nextRace.notes)}</p>` : ""}`;
-      card.querySelector(".event-button").addEventListener("click", () => showRaceDetails(nextRace));
+      card.querySelector(".event-button").addEventListener("click", event => { event.stopPropagation(); showRaceDetails(nextRace); });
     } else if (status === 1) {
       card.classList.add("season-completed");
       card.innerHTML = `${seriesButton}<div class="next-race-label">SEASON STATUS</div><h2 class="event-name">🏁 Season Completed</h2><p class="race-info">No more races scheduled for ${today.getFullYear()}</p>`;
     }
-    card.querySelector(".series-name-button").addEventListener("click", () => showSeries(series));
+    card.addEventListener("click", () => showSeries(series));
     if (series === "Formula 1") {
       const summary = document.createElement("div");
       summary.className = "f1-home-summary";
@@ -251,7 +275,7 @@ function renderHome(now = new Date()) {
     container.appendChild(card);
   });
   const futureSeries = [...new Set([
-    ...visibleSeries.filter(({ status }) => status === 2).map(({ series }) => series),
+    ...seriesSettings.order.filter(series => seriesStatus(series, now).status === 2),
     "Moto GP", "Whelen Modified Tour", "WRC"
   ])];
   const futureSection = document.createElement("section");
@@ -312,7 +336,7 @@ function renderSeriesHub(series) {
   document.getElementById("series-calendar").hidden = true;
   const hub = document.getElementById("series-hub");
   hub.hidden = false;
-  hub.innerHTML = `<div class="series-hub-hero"><p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT</span><h2>Full Series Hub coming soon.</h2><p>Your home for schedules, race information, and more.</p><button id="hub-schedule-button">View Series Schedule →</button></div>`;
+  hub.innerHTML = `<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT</span><h2>Full Series Hub coming soon.</h2><p>Your home for schedules, race information, and more.</p><button id="hub-schedule-button">View Series Schedule →</button></div>`;
   hub.querySelector("#hub-schedule-button").addEventListener("click", () => withLoading(() => renderSeries(series), "Opening schedule…"));
   setView("series-view");
 }
@@ -385,20 +409,22 @@ function renderCustomizePanel() {
   const list = document.getElementById("customize-series-list"); list.innerHTML = "";
   document.getElementById("sort-next-race").checked = seriesSettings.sortNextRace;
   document.getElementById("sort-custom").checked = !seriesSettings.sortNextRace;
-  seriesSettings.order.forEach(series => {
+  seriesSettings.order.filter(series => seriesStatus(series).status !== 2).forEach(series => {
     const item = document.createElement("div"); item.className = "customize-series-item"; item.draggable = true; item.dataset.series = series;
     item.innerHTML = `<div class="drag-handle" aria-hidden="true">⠿</div><div class="customize-series-name">${escapeHtml(series)}</div><div class="series-move-buttons"><button type="button" class="move-series" data-direction="-1" aria-label="Move ${escapeHtml(series)} up">↑</button><button type="button" class="move-series" data-direction="1" aria-label="Move ${escapeHtml(series)} down">↓</button></div><label class="series-toggle"><input type="checkbox" ${seriesSettings.hidden.includes(series) ? "" : "checked"}><span>Show</span></label>`;
     item.querySelector("input").addEventListener("change", event => { seriesSettings.hidden = event.target.checked ? seriesSettings.hidden.filter(value => value !== series) : [...new Set([...seriesSettings.hidden, series])]; saveSettings(); renderHome(); });
     item.querySelectorAll(".move-series").forEach(button => button.addEventListener("click", () => moveSeries(series, Number(button.dataset.direction))));
     item.addEventListener("dragstart", () => item.classList.add("dragging"));
-    item.addEventListener("dragend", () => { item.classList.remove("dragging"); seriesSettings.order = [...list.querySelectorAll(".customize-series-item")].map(element => element.dataset.series); saveSettings(); renderHome(); });
+    item.addEventListener("dragend", () => { item.classList.remove("dragging"); seriesSettings.order = [...list.querySelectorAll(".customize-series-item")].map(element => element.dataset.series).concat(seriesSettings.order.filter(series => seriesStatus(series).status === 2)); saveSettings(); renderHome(); });
     list.appendChild(item);
   });
 }
 
 function moveSeries(series, direction) {
   const currentIndex = seriesSettings.order.indexOf(series);
-  const nextIndex = currentIndex + direction;
+  const available = seriesSettings.order.filter(value => seriesStatus(value).status !== 2);
+  const neighbor = available[available.indexOf(series) + direction];
+  const nextIndex = seriesSettings.order.indexOf(neighbor);
   if (nextIndex < 0 || nextIndex >= seriesSettings.order.length) return;
   [seriesSettings.order[currentIndex], seriesSettings.order[nextIndex]] = [seriesSettings.order[nextIndex], seriesSettings.order[currentIndex]];
   saveSettings(); renderCustomizePanel(); renderHome();

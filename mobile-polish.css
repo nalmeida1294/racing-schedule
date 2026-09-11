@@ -12,9 +12,9 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .weekend-day h3 { letter-spacing: 1.5px; font-size: 12px; margin: 0 0 10px; }
 .weekend-day-races { grid-template-columns: repeat(auto-fill,minmax(175px,1fr)); }
 .weekend-race { min-height: 142px; padding: 14px; border-radius: 13px; border-top: 2px solid var(--series-color,#e7be50); }
-.weekend-event { font-size: 17px; line-height: 1.2; }
+.weekend-event { font-size: 21px; line-height: 1.2; }
 .weekend-series { font-size: 10px; letter-spacing: .8px; }
-.weekend-time { margin-top: auto; padding-top: 8px; font-size: 11px; }
+.weekend-time { margin-top: auto; padding-top: 8px; font-size: 13px; font-weight: 650; }
 .weekend-track { font-size: 11px; }
 .future-more { color: #ffcd45; font-style: italic; }
 .event-navigation { position: sticky; top: 12px; z-index: 15; display: flex; flex-wrap: wrap; gap: 8px; width: fit-content; padding: 6px; margin-bottom: 22px; border-radius: 14px; background: #111315ed; border: 1px solid var(--panel-edge); backdrop-filter: blur(14px); }
@@ -48,13 +48,58 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
   #weekend-races { gap: 18px; }
   .weekend-day-races { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .weekend-race { padding: 11px 10px; min-height: 148px; height: auto; gap: 5px; }
-  .weekend-series { font-size: 9px; line-height: 1.3; margin: 0; }
-  .weekend-event { font-size: 15px; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+  .weekend-series { font-size: 10px; line-height: 1.3; margin: 0; }
+  .weekend-event { font-size: 20px; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
   .weekend-track { display: none; }
-  .weekend-time { font-size: 10px; line-height: 1.35; padding-top: 4px; }
+  .weekend-time { font-size: 13px; line-height: 1.35; padding-top: 4px; }
   .event-navigation { top: 6px; gap: 5px; }
   .event-navigation button, .event-navigation #event-back-button { font-size: 11px; padding: 11px 10px; min-height: 44px; }
   .circuit-card summary { padding: 18px; }
   .circuit-card summary strong { font-size: 24px; }
   .f1-tabs { scrollbar-width: thin; scrollbar-color: #806c33 transparent; }
 }
+/* Rollout: navigable summaries and uncropped driver portraits. */
+.race-card { cursor: pointer; }
+.race-card:focus-within { outline: 2px solid var(--series-color); outline-offset: 3px; }
+.f1-linked-feature { position: relative; }
+.f1-card-link { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent !important; border: 0; border-radius: inherit; cursor: pointer; z-index: 1; }
+.f1-card-link:hover { box-shadow: inset 0 0 0 1px #eac151; }
+.f1-card-link:focus-visible { outline: 2px solid #eac151; outline-offset: 3px; }
+.f1-linked-feature [data-f1-retry] { position: relative; z-index: 2; }
+.f1-standing-name { display: inline-flex; align-items: center; gap: 9px; border-left: 3px solid var(--team-color); padding-left: 9px; }
+.f1-standing-logo { width: 30px; height: 25px; object-fit: contain; }
+.f1-top-three { padding-left: 23px; margin: 12px 0; }
+.f1-top-three li { padding: 12px 0; border-bottom: 1px solid #ffffff12; }
+.f1-top-three li > span { display: block; margin: 8px 0 0 12px; font-variant-numeric: tabular-nums; }
+.f1-top-three small { color: #acb4be; margin-left: 8px; }
+.f1-headshot { width: 90px; height: 160px; object-fit: contain; object-position: center; flex-shrink: 0; }
+#f1-constructor-standings { scroll-margin-top: 24px; }
+.f1-battle-drivers { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:22px 0; }
+.f1-battle-driver { display:flex; align-items:center; gap:16px; padding:18px; border:1px solid #ffffff12; border-top:3px solid var(--battle-driver-color); border-radius:14px; background:linear-gradient(145deg,#252c34,#171b20); min-width:0; }
+.f1-battle-portrait { width:100px; height:180px; object-fit:contain; object-position:center; flex-shrink:0; }
+.f1-battle-driver h3 { font-size:20px; margin:6px 0; overflow-wrap:anywhere; }
+.f1-battle-driver p,.f1-battle-driver small { font-size:12px; color:#aeb8c4; }
+.f1-battle-driver strong { font-size:22px; font-variant-numeric:tabular-nums; }
+.f1-battle-lead { border-left:3px solid var(--battle-color); padding:10px 16px; font-size:18px; }
+.f1-battle-lead small { display:block; color:#aeb8c4; font-size:11px; margin-top:7px; }
+.f1-battle-chart { background:#11161b; border:1px solid #ffffff10; border-radius:14px; margin:18px 0; overflow-x:auto; }
+.f1-battle-chart .f1-gap-chart { min-width:480px; margin:12px 0; max-height:none; }
+.f1-battle-data { margin:18px 0; }
+.f1-battle-data summary { cursor:pointer; color:#bfc8d2; padding:8px 0; }
+@media(max-width:600px) {
+ .f1-battle-drivers { gap:8px; }
+ .f1-battle-driver { flex-direction:column; align-items:flex-start; gap:8px; padding:12px; }
+ .f1-battle-portrait { width:100%; height:155px; }
+ .f1-battle-driver h3 { font-size:17px; }
+ .f1-battle-driver strong { font-size:20px; }
+ .f1-battle-lead { font-size:16px; }
+}
+.f1-donut { position:relative; }
+.f1-slice-logo { position:absolute; width:32px; height:32px; object-fit:contain; transform:translate(-50%,-50%); padding:3px; border-radius:7px; background:#161b22dc; box-shadow:0 1px 5px #0003; }
+.f1-legend-logo { width:28px; height:24px; object-fit:contain; flex-shrink:0; }
+.f1-slice-driver { width:30px; height:44px; padding:2px; object-fit:contain; }
+.f1-legend-driver { height:44px; object-fit:contain; }
+.series-brand-heading { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.series-brand-logo { display:block; width:64px; height:30px; object-fit:contain; }
+.series-brand-logo-hub { width:140px; height:65px; margin-bottom:18px; }
+.series-brand-logo[hidden] { display:none; }
