@@ -23,6 +23,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="mobile-polish.css">
+    <link rel="stylesheet" href="support.css">
 
 </head>
 
@@ -216,6 +217,16 @@
     </div>
 
 
+    <footer class="site-footer"><div><strong>Race Control</strong><span>Every Lap, One App. Help us make it better.</span></div><nav aria-label="Site support"><button type="button" id="feedback-open">Send feedback</button><a href="admin.html">Admin</a></nav></footer>
+    <dialog class="support-dialog" id="feedback-dialog" aria-labelledby="feedback-title">
+      <button type="button" class="support-close" id="feedback-close" aria-label="Close feedback">×</button>
+      <h2 id="feedback-title">Have a suggestion?</h2><p>Report a problem, request a feature, or tell us what you think.</p>
+      <iframe id="feedback-frame" class="service-frame feedback-service-frame" title="Race Control feedback form" hidden></iframe>
+      <p id="feedback-status" class="support-status" role="status"></p>
+      <a id="feedback-direct" target="_blank" rel="noopener noreferrer" hidden>Open feedback form directly ↗</a>
+    </dialog>
+    <script src="support-config.js"></script>
+    <script src="support.js"></script>
     <script src="f1-hub.js"></script>
     <script src="f1-insights.js"></script>
     <script src="script.js"></script>
