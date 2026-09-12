@@ -52,14 +52,19 @@ function seriesLogoMarkup(series, hub = false) {
   return src ? `<img class="series-brand-logo${hub ? ' series-brand-logo-hub' : ''}" src="${escapeHtml(src)}" alt="" aria-hidden="true" referrerpolicy="no-referrer">` : '';
 }
 document.addEventListener('error', event => {
-  if (event.target.classList?.contains('series-brand-logo')) event.target.hidden = true;
+  if(event.target.classList?.contains('f1-home-portrait')||event.target.classList?.contains('f1-home-team-logo'))event.target.hidden=true;
+  if (event.target.classList?.contains('series-brand-logo')) {
+    event.target.hidden = true;
+    const fallback=event.target.parentElement?.querySelector('.weekend-logo-fallback');
+    if(fallback)fallback.hidden=false;
+  }
 }, true);
 
 let allRaces = [];
 let allSessions = [];
 let allTracks = [];
 let activeSeriesName = null;
-let seriesSettings = { order: [...defaultSeriesOrder], hidden: [], sortNextRace: false };
+let seriesSettings = { order: [...defaultSeriesOrder], hidden: [] };
 
 function escapeHtml(value) {
   return String(value || "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#039;", '"': "&quot;" }[character]));
@@ -148,7 +153,7 @@ function loadSettings() {
     const saved = JSON.parse(localStorage.getItem("racingSeriesSettings"));
     if (Array.isArray(saved?.order)) seriesSettings.order = saved.order;
     if (Array.isArray(saved?.hidden)) seriesSettings.hidden = saved.hidden;
-    if (typeof saved?.sortNextRace === "boolean") seriesSettings.sortNextRace = saved.sortNextRace;
+    // Legacy next-race sorting is ignored; keep the saved order and visibility.
   } catch (_) { /* Default settings are already present. */ }
   defaultSeriesOrder.forEach(series => { if (!seriesSettings.order.includes(series)) seriesSettings.order.push(series); });
   seriesSettings.order = [...new Set(seriesSettings.order.filter(series => defaultSeriesOrder.includes(series)))];
@@ -196,7 +201,6 @@ function renderWeekendRaces(now = new Date()) {
   container.innerHTML = "";
   if (!races.length) {
     container.innerHTML = `<p class="weekend-empty">No races are scheduled this week in your selected series.</p>`;
-    return;
   }
   let day = null, dayCards = null;
   races.forEach(race => {
@@ -216,10 +220,32 @@ function renderWeekendRaces(now = new Date()) {
     if (race.date < today) card.classList.add("weekend-race-completed");
     card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const trackName = trackNameForRace(race);
-    card.innerHTML = `<span class="weekend-series">${escapeHtml(race.series)}</span><strong class="weekend-event">${escapeHtml(race.event)}</strong>${trackName ? `<span class="weekend-track">${escapeHtml(trackName)}</span>` : ""}<span class="weekend-time">${formatDate(race.date)} · ${escapeHtml(race.time || "Time TBD")}</span>`;
+    const weekday = new Date(`${race.date}T12:00:00Z`).toLocaleDateString('en-US', {timeZone:'UTC',weekday:'short'});
+    card.setAttribute('aria-label', `${race.series}: ${race.event}, ${weekday}, ${race.time || 'Time TBD'}`);
+    card.innerHTML = `${weekLogoMarkup(race.series)}<span class="weekend-copy"><strong class="weekend-event">${escapeHtml(race.event)}</strong><span class="weekend-track">${escapeHtml(trackName || 'Track to be announced')}</span><span class="weekend-time">${weekday} · ${escapeHtml(race.time || "Time TBD")}</span></span>`;
     card.addEventListener("click", () => showRaceDetails(race));
     dayCards.appendChild(card);
   });
+  const racing = new Set(races.map(race => race.series));
+  const off = seriesSettings.order.filter(series => !seriesSettings.hidden.includes(series) && !racing.has(series) && seriesStatus(series,now).status !== 2);
+  if (off.length) {
+    const group = document.createElement('section'); group.className='weekend-day weekend-off-group';
+    group.innerHTML='<h3>No Race This Week</h3>';
+    const cards=document.createElement('div'); cards.className='weekend-day-races';
+    off.forEach(series=>{
+      const card=document.createElement('button'),[color,glow]=themeFor(series);
+      const label=seriesStatus(series,now).status===1?'Season Completed':'Off Week';
+      card.type='button';card.className='weekend-race weekend-off';card.style.setProperty('--series-color',color);card.style.setProperty('--series-glow',glow);
+      card.setAttribute('aria-label',`${series}: ${label}. Open series hub`);
+      card.innerHTML=`${weekLogoMarkup(series)}<span class="weekend-copy"><span class="weekend-event" aria-hidden="true">&nbsp;</span><span class="weekend-track">${label}</span><span class="weekend-time" aria-hidden="true">&nbsp;</span></span>`;
+      card.addEventListener('click',()=>showSeries(series));cards.appendChild(card);
+    });
+    group.appendChild(cards);container.appendChild(group);
+  }
+}
+
+function weekLogoMarkup(series) {
+  return `<span class="weekend-logo">${seriesLogoMarkup(series)}<span class="weekend-logo-fallback" ${seriesLogos[series]?'hidden':''}>${escapeHtml(series)}</span></span>`;
 }
 
 function seriesStatus(series, now = new Date()) {
@@ -232,7 +258,7 @@ function seriesStatus(series, now = new Date()) {
 function displayedSeries(now = new Date()) {
   return seriesSettings.order.filter(series => !seriesSettings.hidden.includes(series))
     .map(series => seriesStatus(series, now))
-    .sort((a, b) => a.status - b.status || (a.status === 0 && seriesSettings.sortNextRace ? nextRaceSortTime(a.nextRace) - nextRaceSortTime(b.nextRace) : 0));
+    .sort((a, b) => a.status - b.status);
 }
 
 function renderHome(now = new Date()) {
@@ -292,8 +318,23 @@ function nextRaceSortTime(race) {
   return Number(race.date.replaceAll("-", "")) * 1500 + minutes;
 }
 
+let eventReturnScreen = null;
+function captureReturnScreen() {
+  return {view:document.getElementById('home-view').style.display!=='none'?'home-view':'series-view',series:activeSeriesName,scroll:window.scrollY,focus:document.activeElement,backHidden:document.getElementById('back-button').hidden};
+}
+function returnFromEvent() {
+  const target=eventReturnScreen;
+  if(!target){showHome();return;}
+  activeSeriesName=target.series;
+  setView(target.view);
+  document.getElementById('back-button').hidden=target.backHidden;
+  target.focus?.focus?.({preventScroll:true});
+  window.scrollTo({top:target.scroll,behavior:'instant'});
+  eventReturnScreen=null;
+}
 function setView(id) {
   document.getElementById("back-to-top").hidden = true;
+  document.getElementById('back-button').hidden = id!=='series-view'||!document.getElementById('f1-hub').hidden||document.getElementById('series-calendar').hidden;
   ["home-view", "series-view", "event-view"].forEach(view => { document.getElementById(view).style.display = view === id ? "block" : "none"; });
   window.scrollTo({ top: 0, behavior: "instant" });
 }
@@ -391,6 +432,7 @@ function trackMarkup(track, trackId) {
 }
 
 function showRaceDetails(race) {
+  eventReturnScreen=captureReturnScreen();
   return withLoading(() => renderRaceDetails(race), "Opening event…");
 }
 
@@ -407,8 +449,6 @@ function renderRaceDetails(race) {
 
 function renderCustomizePanel() {
   const list = document.getElementById("customize-series-list"); list.innerHTML = "";
-  document.getElementById("sort-next-race").checked = seriesSettings.sortNextRace;
-  document.getElementById("sort-custom").checked = !seriesSettings.sortNextRace;
   seriesSettings.order.filter(series => seriesStatus(series).status !== 2).forEach(series => {
     const item = document.createElement("div"); item.className = "customize-series-item"; item.draggable = true; item.dataset.series = series;
     item.innerHTML = `<div class="drag-handle" aria-hidden="true">⠿</div><div class="customize-series-name">${escapeHtml(series)}</div><div class="series-move-buttons"><button type="button" class="move-series" data-direction="-1" aria-label="Move ${escapeHtml(series)} up">↑</button><button type="button" class="move-series" data-direction="1" aria-label="Move ${escapeHtml(series)} down">↓</button></div><label class="series-toggle"><input type="checkbox" ${seriesSettings.hidden.includes(series) ? "" : "checked"}><span>Show</span></label>`;
@@ -437,25 +477,24 @@ function closeSeriesMenu() { seriesMenu.open = false; }
 function renderSeriesMenu() {
   const list = document.getElementById("series-menu-list");
   list.innerHTML = '<p class="series-menu-heading">All Racing Series</p>';
-  seriesSettings.order.forEach(series => {
+  const available=seriesSettings.order.filter(series=>seriesStatus(series).status!==2);
+  available.forEach(series => {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = series;
+    button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'?'':'<small>Series Hub coming soon</small>'}`;
     button.addEventListener("click", async () => {
       closeSeriesMenu();
-      await showSeries(series);
-      document.getElementById("back-button").focus({ preventScroll: true });
+      if(series==='Formula 1')await showSeries(series);
+      else await withLoading(()=>{renderSeries(series);document.getElementById('back-button').hidden=true;},'Opening schedule…');
+      const hub=document.getElementById(series==='Formula 1'?'f1-hub':'series-calendar');
+      hub.setAttribute('tabindex','-1');hub.focus({preventScroll:true});
     });
     list.appendChild(button);
   });
   const upcoming = document.createElement("div");
   upcoming.className = "series-menu-upcoming";
-  upcoming.innerHTML = '<p class="series-menu-heading">Planned Additions</p>';
-  ["Moto GP", "Whelen Modified Tour", "WRC"].forEach(series => {
-    const button = document.createElement("button"); button.type = "button"; button.textContent = series;
-    button.addEventListener("click", () => { closeSeriesMenu(); showSeries(series); });
-    upcoming.appendChild(button);
-  });
+  const planned=[...new Set([...seriesSettings.order.filter(series=>!available.includes(series)),"Moto GP", "Whelen Modified Tour", "WRC"])];
+  upcoming.innerHTML = `<p class="series-menu-heading">Series Coming Soon</p><ul>${planned.map(series=>`<li>${escapeHtml(series)}</li>`).join('')}</ul>`;
   list.appendChild(upcoming);
 }
 seriesMenu.addEventListener("toggle", () => { if (seriesMenu.open) renderSeriesMenu(); });
@@ -477,8 +516,6 @@ document.getElementById("close-customize").addEventListener("click", () => overl
 overlay.addEventListener("click", event => { if (event.target === overlay) overlay.classList.remove("active"); });
 document.getElementById("show-all-series").addEventListener("click", () => { seriesSettings.hidden = []; saveSettings(); renderCustomizePanel(); renderHome(); });
 document.getElementById("hide-all-series").addEventListener("click", () => { seriesSettings.hidden = [...defaultSeriesOrder]; saveSettings(); renderCustomizePanel(); renderHome(); });
-document.getElementById("sort-next-race").addEventListener("change", event => { seriesSettings.sortNextRace = event.target.checked; saveSettings(); renderHome(); });
-document.getElementById("sort-custom").addEventListener("change", () => { seriesSettings.sortNextRace = false; saveSettings(); renderHome(); });
 customizeList.addEventListener("dragover", event => {
   event.preventDefault();
   const dragging = customizeList.querySelector(".dragging");
@@ -487,19 +524,18 @@ customizeList.addEventListener("dragover", event => {
   if (after) customizeList.insertBefore(dragging, after);
   else customizeList.appendChild(dragging);
 });
-document.getElementById("back-button").addEventListener("click", showHome);
-document.getElementById("event-back-button").addEventListener("click", () => activeSeriesName === "Formula 1"
-  ? withLoading(() => renderF1Hub("schedule"), "Opening Formula 1 schedule…")
-  : activeSeriesName ? withLoading(() => renderSeries(activeSeriesName), "Opening schedule…") : setView("home-view"));
+document.getElementById("back-button").addEventListener("click", () => showSeries(activeSeriesName));
+document.getElementById("event-back-button").addEventListener("click", returnFromEvent);
 document.getElementById("event-hub-button").addEventListener("click", () => showSeries(activeSeriesName));
 window.addEventListener("scroll", () => {
   document.getElementById("back-to-top").hidden = !(window.scrollY > 350 && document.getElementById("series-view").style.display === "block" && !document.getElementById("series-calendar").hidden);
 }, { passive: true });
 document.getElementById("back-to-top").addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-  document.getElementById("back-button").focus({ preventScroll: true });
+  document.getElementById("series-calendar").setAttribute('tabindex','-1');
+  document.getElementById("series-calendar").focus({ preventScroll: true });
 });
-document.getElementById("reset-series").addEventListener("click", () => { seriesSettings = { order: [...defaultSeriesOrder], hidden: [], sortNextRace: false }; saveSettings(); renderCustomizePanel(); renderHome(); });
+document.getElementById("reset-series").addEventListener("click", () => { seriesSettings.order = [...defaultSeriesOrder]; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();
 async function loadData() {

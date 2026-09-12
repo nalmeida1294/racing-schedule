@@ -122,8 +122,8 @@
                 style="display: none;"
             >
 
-                <button id="back-button">
-                    ← Back to All Series
+                <button id="back-button" hidden>
+                    ← Back
                 </button>
 
                 <section id="f1-hub" hidden aria-label="Formula 1 hub"></section>
@@ -139,7 +139,7 @@
             >
 
                 <div class="event-navigation"><button id="event-back-button">
-                    ← Back to Series Schedule
+                    ← Back
                 </button>
                 <button id="event-hub-button">Series Hub →</button></div>
 
@@ -192,12 +192,7 @@
             <div class="customize-tools">
                 <button id="show-all-series" type="button">Show all</button>
                 <button id="hide-all-series" type="button">Hide all</button>
-                <fieldset class="series-order-options">
-                    <legend>Series Order</legend>
-                    <label><input id="sort-custom" name="series-sort" type="radio" value="custom" checked> Custom Order</label>
-                    <label><input id="sort-next-race" name="series-sort" type="radio" value="next"> Next Race First</label>
-                    <p>Drag or use the arrows to edit your saved custom order.</p>
-                </fieldset>
+                <p>Drag or use the arrows to set your custom order, or restore the default order below.</p>
             </div>
 
             <div id="customize-series-list"></div>
@@ -206,7 +201,7 @@
             <div class="customize-footer">
 
                 <button id="reset-series">
-                    Reset to Default
+                    Restore Default Order
                 </button>
 
             </div>
