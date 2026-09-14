@@ -82,11 +82,12 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .f1-battle-driver strong { font-size:22px; font-variant-numeric:tabular-nums; }
 .f1-battle-lead { border-left:3px solid var(--battle-color); padding:10px 16px; font-size:18px; }
 .f1-battle-lead small { display:block; color:#aeb8c4; font-size:11px; margin-top:7px; }
-.f1-battle-chart { background:#11161b; border:1px solid #ffffff10; border-radius:14px; margin:18px 0; overflow-x:auto; }
-.f1-battle-chart .f1-gap-chart { min-width:480px; margin:12px 0; max-height:none; }
+.f1-battle-chart { background:#11161b; border:1px solid #ffffff10; border-radius:14px; margin:18px 0; min-width:0; }
+.f1-battle-chart .f1-gap-chart { width:100%; min-width:0; height:auto; margin:12px 0; max-height:none; }
 .f1-battle-data { margin:18px 0; }
 .f1-battle-data summary { cursor:pointer; color:#bfc8d2; padding:8px 0; }
 @media(max-width:600px) {
+ .f1-battle-chart .f1-gap-chart text { font-size:24px; }
  .f1-battle-drivers { gap:8px; }
  .f1-battle-driver { flex-direction:column; align-items:flex-start; gap:8px; padding:12px; }
  .f1-battle-portrait { width:100%; height:155px; }
@@ -144,3 +145,26 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .f1-home-portrait[hidden],.f1-home-team-logo[hidden] { display:none; }
 #series-menu-list > button { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 #series-menu-list > button small { max-width:105px; color:#9fa7b0; font-size:10px; line-height:1.35; text-align:right; flex-shrink:0; }
+.f1-team-drivers { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.f1-team-drivers .f1-driver { flex-direction:column; align-items:stretch; gap:10px; }
+.f1-team-drivers .f1-headshot { width:100%; height:180px; object-fit:contain; }
+.f1-team-drivers .f1-driver h4,.f1-team-drivers .f1-biography { overflow-wrap:anywhere; }
+@media(max-width:600px) {
+ .f1-team-drivers { gap:12px; }
+ .f1-team-drivers .f1-headshot { height:150px; }
+ .f1-team-drivers .f1-driver h4 { font-size:16px; }
+}
+/* Keep non-racing series compact, including on phones. */
+.weekend-off-group .weekend-day-races { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.weekend-off { gap:8px; padding:8px; min-height:68px; }
+.weekend-off .weekend-logo { width:50px; flex-basis:50px; min-height:44px; padding-right:7px; }
+.weekend-off .weekend-logo .series-brand-logo { height:35px; }
+.weekend-off .weekend-track { font-size:12px; line-height:1.25; }
+.weekend-off .weekend-copy { gap:0; }
+.weekend-off .weekend-event,.weekend-off .weekend-time { font-size:6px; line-height:1; }
+@media(max-width:360px) {
+ .weekend-off { gap:5px; padding:7px 5px; }
+ .weekend-off .weekend-logo { width:40px; flex-basis:40px; padding-right:5px; }
+ .weekend-off .weekend-logo-fallback { font-size:9px; }
+ .weekend-off .weekend-track { font-size:11px; }
+}

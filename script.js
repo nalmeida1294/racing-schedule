@@ -30,8 +30,25 @@ const formulaSeries = new Set(["Formula 1", "Formula 2", "Formula 3", "F1 Academ
 const indySeries = new Set(["INDYCAR", "Indy NXT"]);
 const wecSeries = new Set(["WEC"]);
 const formulaESeries = new Set(["Formula E"]);
+// Logo-inspired accents with subdued tints to keep the dark theme cohesive.
 const seriesThemes = {
-  "Formula 1": ["#e10600", "rgba(225,6,0,.22)"], "INDYCAR": ["#c8102e", "rgba(200,16,46,.2)"], "NASCAR Cup Series": ["#f5c518", "rgba(245,197,24,.2)"], "WEC": ["#d8b24c", "rgba(216,178,76,.18)"], "IMSA": ["#e53935", "rgba(229,57,53,.2)"], "Formula E": ["#00a8e8", "rgba(0,168,232,.2)"], "O'Reilly Auto Parts Series": ["#00a651", "rgba(0,166,81,.2)"], "Craftsman Truck Series": ["#ff6b00", "rgba(255,107,0,.2)"], "ARCA Menards Series": ["#d71920", "rgba(215,25,32,.2)"], "Indy NXT": ["#0072ce", "rgba(0,114,206,.2)"], "Formula 2": ["#ff2b2b", "rgba(255,43,43,.2)"], "Formula 3": ["#7d4cff", "rgba(125,76,255,.2)"], "F1 Academy": ["#ff5ca8", "rgba(255,92,168,.2)"], "Formula Regional": ["#ff8c42", "rgba(255,140,66,.2)"], "CARS Tour LMSC": ["#00a6a6", "rgba(0,166,166,.2)"], "Dirt Sprint Cars": ["#b87333", "rgba(184,115,51,.2)"], "Special Event": ["#d8d8d8", "rgba(255,255,255,.16)"]
+  "Formula 1": ["#e10600", "rgba(225,6,0,.22)"],
+  "INDYCAR": ["#c8102e", "rgba(200,16,46,.2)"],
+  "NASCAR Cup Series": ["#f5c518", "rgba(245,197,24,.2)"],
+  "WEC": ["#397bb5", "rgba(57,123,181,.16)"],
+  "IMSA": ["#c8383d", "rgba(200,56,61,.16)"],
+  "Formula E": ["#00a8e8", "rgba(0,168,232,.16)"],
+  "O'Reilly Auto Parts Series": ["#00a651", "rgba(0,166,81,.2)"],
+  "Craftsman Truck Series": ["#cf3038", "rgba(207,48,56,.16)"],
+  "ARCA Menards Series": ["#c5ac4b", "rgba(197,172,75,.16)"],
+  "Indy NXT": ["#8195a9", "rgba(129,149,169,.14)"],
+  "Formula 2": ["#438cbd", "rgba(67,140,189,.16)"],
+  "Formula 3": ["#a0a8b2", "rgba(160,168,178,.14)"],
+  "F1 Academy": ["#9570cd", "rgba(149,112,205,.16)"],
+  "Formula Regional": ["#8195a9", "rgba(129,149,169,.14)"],
+  "CARS Tour LMSC": ["#397bb5", "rgba(57,123,181,.16)"],
+  "Dirt Sprint Cars": ["#a0a8b2", "rgba(160,168,178,.14)"],
+  "Special Event": ["#d8d8d8", "rgba(255,255,255,.16)"]
 };
 
 const seriesLogos = {
@@ -227,7 +244,8 @@ function renderWeekendRaces(now = new Date()) {
     dayCards.appendChild(card);
   });
   const racing = new Set(races.map(race => race.series));
-  const off = seriesSettings.order.filter(series => !seriesSettings.hidden.includes(series) && !racing.has(series) && seriesStatus(series,now).status !== 2);
+  const off = seriesSettings.order.filter(series => !seriesSettings.hidden.includes(series) && !racing.has(series) && seriesStatus(series,now).status !== 2)
+    .sort((a,b)=>seriesStatus(a,now).status-seriesStatus(b,now).status);
   if (off.length) {
     const group = document.createElement('section'); group.className='weekend-day weekend-off-group';
     group.innerHTML='<h3>No Race This Week</h3>';
@@ -423,7 +441,7 @@ function sessionsMarkup(sessions) {
 }
 
 function trackFactsMarkup(track) {
-  const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt]].filter(([, value]) => value);
+  const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt], ["First Grand Prix", track.firstGrandPrix]].filter(([, value]) => value);
   return `${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}`;
 }
 function trackMarkup(track, trackId) {
@@ -555,7 +573,7 @@ async function loadData() {
     const sessionRows = nascarSessions.concat(formulaSessions, indySessions, wecSessions, formulaESessions);
     allRaces = raceRows.map(row => ({ raceId: row["Race ID"], round: row.Round, event: row.Event, trackId: row["Track ID"], series: row.Series, date: row.Date, time: row.Time, network: row.Network, notes: row.Notes })).filter(race => race.series && race.event);
     allSessions = sessionRows.map(row => ({ raceId: row["Race ID"], trackId: row["Track ID"], series: row.Series, session: row.Session, type: row["Session Type"], date: row["Start Date"], time: row["Start Time"], notes: row.Notes })).filter(session => session.raceId && session.session);
-    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], description: row.Description, source });
+    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: String(row["Track Name Override"] || "").trim() || row["Track Name"], apiName: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], firstGrandPrix: row["First Grand Prix"], description: row.Description, source });
     allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula")), indyTracks.map(row => toTrack(row, "indy")), wecTracks.map(row => toTrack(row, "wec")), formulaETracks.map(row => toTrack(row, "formula-e"))).filter(track => track.trackId);
     renderHome();
     dataReady = true;
