@@ -184,3 +184,6 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .f1-table .f1-change-heading { text-align:center; padding:10px 12px 5px; background:#ffcb4710; border-left:1px solid #ffcb4730; }
 .f1-change-heading span { display:inline-block; padding:6px 10px; border:1px solid #ffcb4745; border-radius:7px; color:#f5cf75; white-space:normal; }
 .f1-table .f1-change-column { background:#ffcb4710; text-align:center; }
+.nascar-hub-tabs { display:flex; gap:8px; overflow-x:auto; padding:12px 0; margin-bottom:16px; }
+.nascar-hub-tabs button { flex-shrink:0; padding:10px 14px; border:1px solid #ffffff25; border-radius:8px; background:#20252b; color:#eee; cursor:pointer; }
+.nascar-hub-tabs button[aria-pressed="true"] { background:#e5b637; color:#171717; border-color:#e5b637; }
