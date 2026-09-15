@@ -314,7 +314,7 @@ function renderHome(now = new Date()) {
     } else {
       const hubNotice = document.createElement("p");
       hubNotice.className = "series-hub-coming-soon";
-      hubNotice.textContent = "Currently under development";
+      hubNotice.textContent = nascarHubSeries.has(series) ? "In development · Next to launch" : "Full Series Hub Coming Soon";
       card.appendChild(hubNotice);
     }
     container.appendChild(card);
@@ -417,7 +417,7 @@ function renderNascarHub(series,tab='schedule') {
   document.getElementById('f1-hub').hidden=true;
   const hub=document.getElementById('series-hub'),calendar=document.getElementById('series-calendar');
   const tabs={overview:'Overview',schedule:'Schedule',standings:'Standings',teams:'Teams & Drivers',results:'Results',tracks:'Tracks'};
-  hub.innerHTML=`<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">CURRENTLY UNDER DEVELOPMENT</span></div><nav class="nascar-hub-tabs" aria-label="Series sections">${Object.entries(tabs).map(([key,label])=>`<button type="button" data-nascar-tab="${key}" aria-pressed="${key===tab}">${label}</button>`).join('')}</nav><div id="nascar-hub-content"></div>`;
+  hub.innerHTML=`<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT · NEXT TO LAUNCH</span></div><nav class="nascar-hub-tabs" aria-label="Series sections">${Object.entries(tabs).map(([key,label])=>`<button type="button" data-nascar-tab="${key}" aria-pressed="${key===tab}">${label}</button>`).join('')}</nav><div id="nascar-hub-content"></div>`;
   if(tab==='schedule')renderSeries(series,false);
   else {
     calendar.hidden=true;
@@ -440,7 +440,7 @@ function renderSeriesHub(series) {
   document.getElementById("series-calendar").hidden = true;
   const hub = document.getElementById("series-hub");
   hub.hidden = false;
-  hub.innerHTML = `<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT</span><h2>Full Series Hub coming soon.</h2><p>Your home for schedules, race information, and more.</p><button id="hub-schedule-button">View Series Schedule →</button></div>`;
+  hub.innerHTML = `<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">COMING SOON</span><h2>Full Series Hub coming soon.</h2><p>Your home for schedules, race information, and more.</p><button id="hub-schedule-button">View Series Schedule →</button></div>`;
   hub.querySelector("#hub-schedule-button").addEventListener("click", () => withLoading(() => renderSeries(series), "Opening schedule…"));
   setView("series-view");
 }
@@ -574,7 +574,7 @@ function renderSeriesMenu() {
   available.forEach(series => {
     const button = document.createElement("button");
     button.type = "button";
-    button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'?'':'<small>Currently under development</small>'}`;
+    button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'?'':`<small>${nascarHubSeries.has(series)?'In development · Next to launch':'Series Hub coming soon'}</small>`}`;
     button.addEventListener("click", async () => {
       closeSeriesMenu();
       if(series==='Formula 1')await showSeries(series);
