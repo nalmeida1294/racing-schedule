@@ -17,7 +17,7 @@ let f1Tab = "overview";
 let f1SelectedRace = "";
 let f1ResultSession = 'results';
 let f1RatingSeason = "", f1RatingSession = "all";
-const f1Tabs = { overview: "Overview", schedule: "Schedule", standings: "Standings", teams: "Teams & Drivers", results: "Results", rankings: "Driver Rankings", tracks: "Tracks" };
+const f1Tabs = { overview: "Overview", schedule: "Schedule", standings: "Standings", teams: "Teams & Drivers", results: "Results", rankings: "Driver Rankings", tracks: "Tracks", records: "Career Records" };
 
 function brandedLoaderMarkup(message) {
   return `<div class="splash-flag" aria-hidden="true"><span></span><span></span><span></span><span></span></div><p>RACE <em>CONTROL</em></p><span>${escapeHtml(message)}</span>`;
@@ -143,7 +143,7 @@ function refreshF1Hub() {
 }
 function renderF1Content() {
   const panel = document.getElementById("f1-content");
-  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup, tracks: () => f1TracksMarkup() }[f1Tab] || f1OverviewMarkup)();
+  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup, tracks: () => f1TracksMarkup(), records: () => '<h2>Career Records</h2><p class="f1-empty">Coming soon.</p>' }[f1Tab] || f1OverviewMarkup)();
   panel.querySelectorAll('[data-f1-open]').forEach(button => button.addEventListener('click', () => {
     const target = button.dataset.f1Open;
     if (target === 'results') { f1SelectedRace = f1LatestResults()[0]?.['Jolpica Race Key'] || ''; f1ResultSession='results'; }
