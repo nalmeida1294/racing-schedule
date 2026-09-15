@@ -88,7 +88,9 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .f1-battle-drivers { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:22px 0; }
 .f1-battle-driver { display:flex; align-items:center; gap:16px; padding:18px; border:1px solid #ffffff12; border-top:3px solid var(--battle-driver-color); border-radius:14px; background:linear-gradient(145deg,#252c34,#171b20); min-width:0; }
 .f1-battle-portrait { width:100px; height:180px; object-fit:contain; object-position:center; flex-shrink:0; }
-.f1-battle-driver h3 { font-size:20px; margin:6px 0; overflow-wrap:anywhere; }
+.f1-battle-driver h3 { font-size:20px; margin:6px 0; overflow-wrap:anywhere; line-height:1.25; min-height:2.5em; }
+.f1-battle-driver > div { min-width:0; width:100%; }
+.f1-battle-driver .f1-peak-note { padding-top:8px; border-top:1px solid #ffffff15; line-height:1.5; }
 .f1-battle-driver p,.f1-battle-driver small { font-size:12px; color:#aeb8c4; }
 .f1-battle-driver strong { font-size:22px; font-variant-numeric:tabular-nums; }
 .f1-battle-lead { border-left:3px solid var(--battle-color); padding:10px 16px; font-size:18px; }
@@ -179,3 +181,6 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
  .weekend-off .weekend-logo-fallback { font-size:9px; }
  .weekend-off .weekend-track { font-size:11px; }
 }
+.f1-table .f1-change-heading { text-align:center; padding:10px 12px 5px; background:#ffcb4710; border-left:1px solid #ffcb4730; }
+.f1-change-heading span { display:inline-block; padding:6px 10px; border:1px solid #ffcb4745; border-radius:7px; color:#f5cf75; white-space:normal; }
+.f1-table .f1-change-column { background:#ffcb4710; text-align:center; }

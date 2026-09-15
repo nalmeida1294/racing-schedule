@@ -1,5 +1,5 @@
 /* F1 editorial scores and season charts. Published sheets are read only. */
-const f1CircuitNames = { Austin:'americas', Baku:'baku', Catalunya:'catalunya', Hungaroring:'hungaroring', Interlagos:'interlagos', 'Kuala Lumpur':'sepang', 'Las Vegas':'vegas', Lusail:'losail', Melbourne:'albert_park', 'Mexico City':'rodriguez', Miami:'miami', 'Monte Carlo':'monaco', Montreal:'villeneuve', Monza:'monza', Shanghai:'shanghai', Silverstone:'silverstone', Singapore:'marina_bay', 'Spa-Francorchamps':'spa', Spielberg:'red_bull_ring', Suzuka:'suzuka', 'Yas Marina Circuit':'yas_marina', Zandvoort:'zandvoort' };
+const f1CircuitNames = { Austin:'americas', Baku:'baku', Catalunya:'catalunya', Hungaroring:'hungaroring', Interlagos:'interlagos', 'Kuala Lumpur':'sepang', 'Las Vegas':'vegas', Lusail:'losail', Madring:'madring', Melbourne:'albert_park', 'Mexico City':'rodriguez', Miami:'miami', 'Monte Carlo':'monaco', Montreal:'villeneuve', Monza:'monza', Shanghai:'shanghai', Silverstone:'silverstone', Singapore:'marina_bay', 'Spa-Francorchamps':'spa', Spielberg:'red_bull_ring', Suzuka:'suzuka', 'Yas Marina Circuit':'yas_marina', Zandvoort:'zandvoort' };
 let f1EventForScores = null;
 const f1History = { state:'idle', rows:[], promise:null, key:'', a:'', b:'' };
 function f1Score(value,max=10) {
@@ -23,12 +23,13 @@ function f1TrackScoreMarkup(id) {
     return `<div><dt>${label}</dt><dd>${value===null?'Not rated':value.toFixed(2)+' /10'}</dd>${value===null?'':`<small>${escapeHtml(row[count])} rated sessions</small>`}</div>`;
   };
   const reviews=f1Store.reviews.rows.filter(r=>r['Circuit ID']===id);
-  const average=session=>{
-    const values=reviews.filter(r=>r.Session===session).map(r=>f1Score(r['Race Rating (1-5)']??r['Race Rating'],5)).filter(v=>v!==null&&v>=1);
-    return values.length?`${(values.reduce((a,b)=>a+b,0)/values.length).toFixed(2)} /5 <small>(${values.length} rated)</small>`:'Not rated';
+  const average=key=>{
+    const values=reviews.filter(r=>['Grand Prix','Sprint'].includes(r.Session)).map(r=>f1Score(r[key],Infinity)).filter(v=>v!==null&&Number.isInteger(v));
+    return {value:values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(2):'—',count:values.length};
   };
   const combined=f1CombinedRaceRating(reviews);
-  return `<dl class="track-facts f1-track-scores">${metric('Rain','Rain Score /10','Rain Samples')}${metric('Chaos','Chaos Score /10','Chaos Samples')}<div><dt>Overall race rating</dt><dd>${combined.value===null?'Not rated':combined.value.toFixed(2)+' /5'}</dd><small>GP weight 3 · sprint weight 1</small></div><div><dt>Grand Prix rating</dt><dd>${average('Grand Prix')}</dd></div><div><dt>Sprint rating</dt><dd>${average('Sprint')}</dd></div></dl><p class="f1-data-note">Personal ratings · across published seasons. Overall race rating includes GP and sprint scores; blank scores are excluded.</p>${f1Store.trackScores.state==='error'?'<p class="f1-warning">Track score update unavailable.</p><button data-f1-retry="trackScores">Retry track scores</button>':''}`;
+  const vsc=average('VSC'),sc=average('SC');
+  return `<dl class="track-facts f1-track-scores">${metric('Rain','Rain Score /10','Rain Samples')}${metric('Chaos','Chaos Score /10','Chaos Samples')}<div><dt>Overall race rating</dt><dd>${combined.value===null?'Not rated':combined.value.toFixed(2)+' /5'}</dd><small>${combined.count} rated sessions</small></div><div><dt>Average per race</dt><dd>VSC ${vsc.value} · SC ${sc.value}</dd><small>${vsc.count===sc.count?`${vsc.count} rated sessions`:`VSC: ${vsc.count} rated sessions · SC: ${sc.count} rated sessions`}</small></div></dl><p class="f1-data-note">Personal ratings · across published seasons. Blank scores are excluded.</p>${f1Store.trackScores.state==='error'?'<p class="f1-warning">Track score update unavailable.</p><button data-f1-retry="trackScores">Retry track scores</button>':''}`;
 }
 function f1TrackFlagMarkup(country) {
   const key=String(country||'').trim().toLowerCase();
@@ -44,11 +45,14 @@ function f1TrackFullPhotoMarkup(track) {
   } catch { return ''; }
 }
 function f1TracksMarkup() {
-  const tracks=allTracks.filter(t=>t.source==='formula');
+  // Temporarily hidden from the collection; retain the underlying history and scores.
+  const hiddenCircuits=new Set(['imola','jeddah','bahrain','sakhir','autodromo enzo e dino ferrari','autodromo internazionale enzo e dino ferrari']);
+  const hidden=t=>[t.id,t.apiName,t.name].some(value=>hiddenCircuits.has(String(value||'').trim().toLowerCase()));
+  const tracks=allTracks.filter(t=>t.source==='formula'&&!hidden(t));
   const known=new Set(tracks.map(f1CircuitFor).filter(Boolean));
   const extra=[...new Map(f1Store.reviews.rows.filter(r=>r['Circuit ID']&&!known.has(r['Circuit ID'])).map(r=>[r['Circuit ID'],r])).values()];
-  const cards=tracks.map(t=>({...t,id:f1CircuitFor(t)})).concat(extra.map(r=>({name:r.Circuit,id:r['Circuit ID']}))).sort((a,b)=>a.name.localeCompare(b.name));
-  return `<div class="tracks-heading"><p class="weekend-eyebrow">THE CIRCUIT COLLECTION</p><h2>Iconic venues. Every turn.</h2><p class="f1-data-note">Explore ${cards.length} circuits, track details, and your race ratings.</p></div><div class="f1-track-grid">${cards.map(t=>`<details class="f1-feature circuit-card"><summary class="event-photo-tile">${typeof trackPhotoMarkup==='function'?trackPhotoMarkup(t):''}${f1TrackFlagMarkup(t.state)}<span><strong>${escapeHtml(t.name)}</strong><span class="circuit-location">${escapeHtml([t.city,t.state].filter(Boolean).join(', ')||'Explore circuit')}</span></span><span class="circuit-expand" aria-hidden="true">+</span></summary><div class="circuit-body">${f1TrackFullPhotoMarkup(t)}<h3>${escapeHtml(t.name)}</h3>${typeof trackFactsMarkup==='function'?trackFactsMarkup(t):''}${f1TrackScoreMarkup(t.id)}</div></details>`).join('')}</div>`;
+  const cards=tracks.map(t=>({...t,id:f1CircuitFor(t)})).concat(extra.map(r=>({name:r.Circuit,id:r['Circuit ID']}))).filter(t=>!hidden(t)).sort((a,b)=>a.name.localeCompare(b.name));
+  return `<div class="tracks-heading"><p class="weekend-eyebrow">THE CIRCUIT COLLECTION</p><h2>Iconic venues. Every turn.</h2><p class="f1-data-note">Explore ${cards.length} circuits, track details, and race ratings.</p></div><div class="f1-track-grid">${cards.map(t=>`<details class="f1-feature circuit-card"><summary class="event-photo-tile">${typeof trackPhotoMarkup==='function'?trackPhotoMarkup(t):''}${f1TrackFlagMarkup(t.state)}<span><strong>${escapeHtml(t.name)}</strong><span class="circuit-location">${escapeHtml([t.city,t.state].filter(Boolean).join(', ')||'Explore circuit')}</span></span><span class="circuit-expand" aria-hidden="true">+</span></summary><div class="circuit-body">${f1TrackFullPhotoMarkup(t)}<h3>${escapeHtml(t.name)}</h3>${typeof trackFactsMarkup==='function'?trackFactsMarkup(t):''}${f1TrackScoreMarkup(t.id)}</div></details>`).join('')}</div>`;
 }
 function showF1EventRatings(race) {
   f1EventForScores=race.series==='Formula 1'?race:null;
@@ -60,12 +64,7 @@ function refreshF1EventRatings() {
   const target=document.getElementById('f1-event-scores');
   if(!target||!f1EventForScores)return;
   const race=f1EventForScores,track=allTracks.find(t=>t.source==='formula'&&String(t.trackId)===String(race.trackId)),id=f1CircuitFor(track);
-  const year=String(race.date).slice(0,4);
-  const reviews=f1Store.reviews.rows.filter(r=>id&&r['Circuit ID']===id&&r.Season===year&&String(r.Round)===String(race.round));
-  target.innerHTML='<h2>Track & race ratings</h2>'+f1TrackScoreMarkup(id)+reviews.map(r=>{
-    const score=f1Score(r['Race Rating (1-5)']??r['Race Rating'],5);
-    return score===null||score<1?'':`<p><strong>${escapeHtml(r.Event)} · ${escapeHtml(r.Session)}:</strong> ${score.toFixed(1)} /5</p>`;
-  }).join('');
+  target.innerHTML='<h2>Track ratings</h2>'+f1TrackScoreMarkup(id);
   target.querySelectorAll('[data-f1-retry]').forEach(b=>b.addEventListener('click',()=>loadF1Feed(b.dataset.f1Retry,true)));
 }
 function f1Distribution(kind) {
@@ -143,11 +142,12 @@ function f1BattleMarkup() {
   const colorFor=row=>{const color=teamFor(row)?.['Team Color Hex'];return /^#[0-9a-f]{6}$/i.test(color||'')?color:'#f0c44f';};
   const leader=Number(selected[0].Points)>=Number(selected[1].Points)?selected[0]:selected[1],color=colorFor(leader);
   const gap=Math.abs(Number(selected[0].Points)-Number(selected[1].Points));
-  const portraits=selected.map((row,i)=>`<article class="f1-battle-driver" style="--battle-driver-color:${colorFor(row)}">${f1Image(f1Driver(row['Driver ID'])?.['Headshot URL'],f1DriverName(row),'f1-battle-portrait')}<div><span class="f1-kicker">DRIVER ${i+1}</span><h3>${escapeHtml(f1DriverName(row))}</h3><p>${escapeHtml(teamFor(row)?.['Display Name Override']||teamFor(row)?.Constructor||'')}</p><strong>${f1Number(row.Points)} <small>points</small></strong></div></article>`).join('');
+  const peaks=[1,-1].map(sign=>valid.filter(p=>p.gap*sign>0).reduce((best,p)=>!best||p.gap*sign>best.gap*sign?p:best,null));
+  const portraits=selected.map((row,i)=>`<article class="f1-battle-driver" style="--battle-driver-color:${colorFor(row)}">${f1Image(f1Driver(row['Driver ID'])?.['Headshot URL'],f1DriverName(row),'f1-battle-portrait')}<div><span class="f1-kicker">DRIVER ${i+1}</span><h3>${escapeHtml(f1DriverName(row))}</h3><p>${escapeHtml(teamFor(row)?.['Display Name Override']||teamFor(row)?.Constructor||'')}</p><strong>${f1Number(row.Points)} <small>points</small></strong><p class="f1-peak-note">Largest lead: ${peaks[i]?`${Number(Math.abs(peaks[i].gap).toFixed(2))} pts · Round ${peaks[i].round}`:valid.length?'No lead recorded':'History unavailable'}</p></div></article>`).join('');
   const x=r=>55+(r-(points[0]?.round||1))/Math.max(1,(points.at(-1)?.round||1)-(points[0]?.round||1))*600,y=g=>130-g/max*95;
   let path='',previous=false;
   points.forEach(p=>{if(p.gap===null){previous=false;return;}path+=`${previous?'L':'M'}${x(p.round)},${y(p.gap)} `;previous=true;});
-  const chart=valid.length?`<div class="f1-battle-chart"><svg class="f1-gap-chart" viewBox="-35 0 750 295" role="img" aria-label="Championship points gap by round; each point includes its round and gap">${[-max,-max/2,0,max/2,max].map(t=>`<line x1="55" y1="${y(t)}" x2="655" y2="${y(t)}" stroke="${t===0?'#89929e':'#ffffff12'}" stroke-dasharray="${t===0?'0':'3 6'}"/><text x="43" y="${y(t)+4}" text-anchor="end">${t>0?'+':''}${Number(t.toFixed(1))}</text>`).join('')}<path d="${path}" fill="none" stroke="${color}" stroke-opacity=".1" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>${valid.map(p=>`<circle cx="${x(p.round)}" cy="${y(p.gap)}" r="3.5" fill="${color}" stroke="#151a20" stroke-width="2"><title>Round ${p.round}: ${p.gap} points</title></circle>`).join('')}${points.filter((p,i)=>i===0||i===points.length-1||i%Math.ceil(points.length/4)===0).map(p=>`<text x="${x(p.round)}" y="251" text-anchor="middle">${p.round}</text>`).join('')}<text x="355" y="275" text-anchor="middle">ROUND</text></svg></div>`:'';
+  const chart=valid.length?`<div class="f1-battle-chart"><svg class="f1-gap-chart" viewBox="-35 0 750 295" role="img" aria-label="Championship points gap by round; each point includes its round and gap">${[-max,-max/2,0,max/2,max].map(t=>`<line x1="55" y1="${y(t)}" x2="655" y2="${y(t)}" stroke="${t===0?'#89929e':'#ffffff12'}" stroke-dasharray="${t===0?'0':'3 6'}"/><text x="43" y="${y(t)+4}" text-anchor="end">${t>0?'+':''}${Number(t.toFixed(1))}</text>`).join('')}<path d="${path}" fill="none" stroke="${color}" stroke-opacity=".1" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>${valid.map(p=>`<circle cx="${x(p.round)}" cy="${y(p.gap)}" r="3.5" fill="${color}" stroke="#151a20" stroke-width="2"><title>Round ${p.round}: ${p.gap} points</title></circle>`).join('')}${peaks.map((p,i)=>p?`<g><circle cx="${x(p.round)}" cy="${y(p.gap)}" r="9" fill="${colorFor(selected[i])}" stroke="#fff" stroke-width="2"><title>${escapeHtml(f1DriverName(selected[i]))}: largest lead ${Math.abs(p.gap)} points, round ${p.round}</title></circle></g>`:'').join('')}${points.filter((p,i)=>i===0||i===points.length-1||i%Math.ceil(points.length/4)===0).map(p=>`<text x="${x(p.round)}" y="251" text-anchor="middle">${p.round}</text>`).join('')}<text x="355" y="275" text-anchor="middle">ROUND</text></svg></div>`:'';
   return `<div class="f1-battle"><div class="f1-rating-controls">${selects}</div><div class="f1-battle-drivers">${portraits}</div><p class="f1-battle-lead" style="--battle-color:${color}">${gap===0?'Level on points':`${escapeHtml(f1DriverName(leader))} leads by <strong>${Number(gap.toFixed(2))} points</strong>`}<small>Current published standings · selected drivers</small></p><p class="f1-data-note">${escapeHtml(name(f1History.a))} minus ${escapeHtml(name(f1History.b))}. Above zero: Driver 1 leads. Below zero: Driver 2 leads.</p>${chart}${f1History.state==='loading'||f1History.state==='idle'?'<p role="status">Loading championship history…</p>':''}${f1History.state==='error'?'<p class="f1-warning">History update unavailable. Any graph shown is the last successful load.</p>':''}<button type="button" id="f1-history-retry">Refresh championship history</button><p class="f1-data-note">After each Grand Prix, including sprint points. Line color follows the current leader of this comparison. Source: Jolpica-F1 standings.</p></div>`;
 }
 function bindF1Insights(panel) {

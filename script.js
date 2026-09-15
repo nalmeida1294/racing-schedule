@@ -420,7 +420,7 @@ function renderSeries(series, focusCurrent = true) {
   container.innerHTML = `<h1>${escapeHtml(series)}</h1><p class="calendar-subtitle">Full Season Calendar</p>`;
   if (!races.length) container.innerHTML += "<p class=\"no-races-message\">No schedule is available for this series yet.</p>";
   races.forEach(race => {
-    const item = document.createElement("button"); item.className = "calendar-race calendar-race-button";
+    const item = document.createElement("button"); item.className = "calendar-race calendar-race-button event-photo-tile";
     const isNextRace = nextRace === race;
     if (raceTime(race) < today.getTime()) item.classList.add("calendar-race-completed");
     if (isNextRace) {
@@ -430,7 +430,7 @@ function renderSeries(series, focusCurrent = true) {
       item.style.setProperty("--series-glow", glow);
       nextRaceElement = item;
     }
-    item.innerHTML = `<div class="calendar-date">${formatDate(race.date)}</div><div class="calendar-event">${escapeHtml(race.event)}</div><div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
+    item.innerHTML = `${racePhotoMarkup(race)}<div class="calendar-date">${formatDate(race.date)}</div><div class="calendar-event">${escapeHtml(race.event)}</div><div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
     item.addEventListener("click", () => showRaceDetails(race)); container.appendChild(item);
   });
   if (focusCurrent) {
@@ -449,7 +449,7 @@ function trackMediaMarkup(track) {
     try {
       const url=new URL(String(value||'').trim());
       if(url.protocol!=='https:' || url.username || url.password)return [];
-      return [`<figure><img class="track-media-image" src="${escapeHtml(url.href)}" alt="${escapeHtml(label+' — '+(track.name||'circuit'))}" loading="lazy" referrerpolicy="no-referrer"><figcaption>${label}</figcaption></figure>`];
+      return [`<figure><img class="track-media-image" src="${escapeHtml(url.href)}" alt="${escapeHtml(label+' — '+(track.name||'circuit'))}" loading="lazy" referrerpolicy="no-referrer"></figure>`];
     } catch { return []; }
   });
   return media.length?`<div class="track-media">${media.join('')}</div>`:'';
@@ -470,12 +470,12 @@ document.addEventListener('error',event=>{
   if(event.target.classList?.contains('track-media-image')){const figure=event.target.closest('figure');if(figure)figure.hidden=true;else event.target.hidden=true;}
 },true);
 function trackFactsMarkup(track) {
-  const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt], ["First Grand Prix", track.firstGrandPrix]].filter(([, value]) => value);
+  const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt], ["First Grand Prix", track.firstGrandPrix], ["Track Length", track.length || ""]].filter(([label, value]) => value || (label === "Track Length" && track.source === "formula"));
   return `${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}${trackMediaMarkup(track)}`;
 }
 function trackMarkup(track, trackId) {
   if (!track) return `<section class="detail-section"><h2>Track</h2><p class="empty-details">Track information has not been added yet.</p></section>`;
-  return `<section class="detail-section"><h2>Track</h2><h3>${escapeHtml(track.name || "Track to be announced")}</h3>${trackFactsMarkup(track)}</section>`;
+  return `<section class="detail-section"><h2>Track</h2>${typeof f1TrackFullPhotoMarkup==='function'?f1TrackFullPhotoMarkup(track):''}<h3>${escapeHtml(track.name || "Track to be announced")}</h3>${trackFactsMarkup(track)}</section>`;
 }
 
 function showRaceDetails(race) {
@@ -602,7 +602,7 @@ async function loadData() {
     const sessionRows = nascarSessions.concat(formulaSessions, indySessions, wecSessions, formulaESessions);
     allRaces = raceRows.map(row => ({ raceId: row["Race ID"], round: row.Round, event: row.Event, trackId: row["Track ID"], series: row.Series, date: row.Date, time: row.Time, network: row.Network, notes: row.Notes })).filter(race => race.series && race.event);
     allSessions = sessionRows.map(row => ({ raceId: row["Race ID"], trackId: row["Track ID"], series: row.Series, session: row.Session, type: row["Session Type"], date: row["Start Date"], time: row["Start Time"], notes: row.Notes })).filter(session => session.raceId && session.session);
-    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: String(row["Track Name Override"] || "").trim() || row["Track Name"], apiName: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], firstGrandPrix: row["First Grand Prix"], mapUrl: row["Track Map URL"], imageUrl: row["Track Image URL"], description: row.Description, source });
+    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: String(row["Track Name Override"] || "").trim() || row["Track Name"], apiName: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], firstGrandPrix: row["First Grand Prix"], length: row["Track Length"], mapUrl: row["Track Map URL"], imageUrl: row["Track Image URL"], description: row.Description, source });
     allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula")), indyTracks.map(row => toTrack(row, "indy")), wecTracks.map(row => toTrack(row, "wec")), formulaETracks.map(row => toTrack(row, "formula-e"))).filter(track => track.trackId);
     renderHome();
     dataReady = true;
