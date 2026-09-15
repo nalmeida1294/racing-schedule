@@ -1,0 +1,55 @@
+#live-view { max-width:960px; margin:0 auto; min-width:0; }
+.live-back { padding:11px 16px; border:1px solid #ffffff25; border-radius:10px; background:#202327; color:#eee; font:inherit; cursor:pointer; margin-bottom:16px; }
+.live-header { display:flex; gap:14px; align-items:center; justify-content:space-between; }
+.live-header:focus { outline:none; }
+.live-header h1 { font-family:'Barlow Condensed',sans-serif; font-size:clamp(28px,5vw,40px); line-height:1.1; margin:8px 0; }
+.live-header p { color:#bfc5cc; margin:6px 0; }
+.live-outline { width:90px; height:60px; object-fit:contain; border-radius:8px; background:#eee; }
+.live-connection { color:#d1be84; font-size:12px; line-height:1.6; }
+.live-connection span { display:block; color:#9da5af; font-size:11px; }
+.live-race-status { padding:12px; border-radius:12px; border:1px solid #ffffff1c; background:#1a1d21; }
+.live-laps { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:9px; }
+.live-laps strong { font-variant-numeric:tabular-nums; font-size:18px; }
+.live-laps span,.live-laps small { color:#aeb7c2; }
+.live-status-bar { width:100%; padding:5px; box-sizing:border-box; border-radius:6px; background:#46505b; color:#fff; text-align:center; font-size:11px; font-weight:800; letter-spacing:.8px; }
+.live-status-bar[data-status=green] { background:#15984b; }
+.live-status-bar[data-status=yellow],.live-status-bar[data-status=vsc],.live-status-bar[data-status=safety_car] { background:#f1cc24; color:#151515; }
+.live-status-bar[data-status=red_flag],.live-status-bar[data-status=suspended] { background:#d71920; }
+.live-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin:14px 0; }
+.live-tabs button { font:inherit; font-size:12px; background:#1c2024; border:1px solid #ffffff20; color:#cbd0d6; border-radius:8px; padding:12px 3px; cursor:pointer; }
+.live-tabs button[aria-selected=true] { background:#ce171b; color:#fff; border-color:#e6272b; }
+.live-timing-scroll { overflow-x:auto; border:1px solid #ffffff15; border-radius:12px; }
+.live-timing { border-collapse:collapse; width:100%; font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.live-timing thead { color:#9ba5b1; background:#14171b; font-size:10px; }
+.live-timing th,.live-timing td { padding:10px 7px; text-align:right; border-bottom:1px solid #ffffff0c; line-height:1.4; }
+.live-timing th[scope=row] { text-align:left; border-left:3px solid var(--driver-color); font-weight:800; }
+.live-timing th small { font-size:9px; color:#aeb7c2; margin-left:4px; }
+.live-timing tr:nth-child(even) { background:#ffffff03; }
+.live-tyre { display:inline-grid; place-items:center; width:21px; height:21px; border:2px solid #ccc; border-radius:50%; font-size:10px; font-weight:bold; box-sizing:border-box; }
+.live-tyre[data-compound=SOFT] { border-color:#ef4444; }
+.live-tyre[data-compound=MEDIUM] { border-color:#f4ce24; }
+.live-tyre[data-compound=INTERMEDIATE] { border-color:#2bc675; }
+.live-tyre[data-compound=WET] { border-color:#438fff; }
+.live-change.gain { color:#45d487; }.live-change.loss { color:#ff6268; }
+.live-help,.live-source { font-size:11px; color:#9fa9b5; line-height:1.6; }.live-source { margin-top:22px; }
+.live-fastest { border:1px solid #ab5cfb45; border-left:3px solid #b268e9; background:#a55bdb0b; border-radius:12px; padding:15px; margin-top:16px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.live-fastest p { color:#bf82f2; font-size:10px; letter-spacing:1px; margin:0 0 5px; }.live-fastest small { display:block; color:#9fa9b5; margin-top:5px; }
+.live-weather-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.live-weather-grid div { border:1px solid #ffffff15; border-radius:12px; padding:16px; background:#1b1f24; }.live-weather-grid dt { color:#aeb7c2; font-size:12px; }.live-weather-grid dd { font-size:24px; margin:7px 0 0; }
+.live-weather-title h2 { font-size:22px; margin-bottom:5px; }.live-weather-title p { color:#aeb7c2; font-size:12px; }
+.live-events { list-style:none; padding:0; }.live-events li { display:grid; grid-template-columns:44px 1fr; gap:12px; padding:15px 0; border-bottom:1px solid #ffffff18; }.live-events time,.live-events small { color:#9fa9b5; font-size:10px; }.live-events strong { font-size:12px; }.live-events p { font-size:12px; line-height:1.6; margin:5px 0; overflow-wrap:anywhere; }
+.live-events [data-tone=yellow] strong { color:#e5c540; }.live-events [data-tone=red] strong { color:#ff646a; }.live-events [data-tone=green] strong { color:#52d58f; }.live-events [data-tone=purple] strong { color:#c294ee; }
+#live-columns { border:1px solid #ffffff20; border-radius:12px; padding:16px; }#live-columns label { display:flex; justify-content:space-between; gap:12px; padding:12px 0; font-size:13px; }#live-columns input { width:20px; height:20px; accent-color:#e10600; }
+.live-empty { padding:22px 10px; color:#aeb7c2; }
+.live-entry { width:100%; display:flex; gap:12px; align-items:center; text-align:left; padding:15px; margin:12px 0; border:1px solid #bc25264d; border-left:3px solid #e10600; border-radius:12px; background:linear-gradient(115deg,#2b191b,#191c20); color:#fff; cursor:pointer; font:inherit; }
+.live-entry .series-brand-logo { width:56px; height:35px; object-fit:contain; }.live-entry>span:first-of-type { flex:1; }.live-entry strong { font-size:13px; }.live-entry small { display:block; font-size:11px; color:#b3bbc5; margin-top:5px; }
+.live-badge { display:inline-block; vertical-align:middle; color:#ff777b; background:#a511142b; border:1px solid #dc333366; font-size:9px; padding:2px 5px; border-radius:20px; white-space:nowrap; }
+.live-badge[data-phase=soon],.live-badge[data-phase=waiting] { color:#f4ce64; background:#c29a181a; border-color:#c29a1855; }
+.live-badge[data-phase=before],.live-badge[data-phase=concluded],.live-badge[data-phase=past],.live-badge[data-phase=unscheduled] { color:#b9c1cc; background:#ffffff08; border-color:#ffffff20; }
+.live-lobby { margin:20px 0; padding:24px; background:linear-gradient(135deg,#292228,#171b20); border:1px solid #ffffff20; border-left:3px solid #e10600; border-radius:16px; }
+.live-lobby h2 { font-family:'Barlow Condensed',sans-serif; font-size:32px; margin:10px 0; }
+.live-lobby p { color:#b6bec8; line-height:1.7; font-size:13px; }.live-lobby .live-start { color:#e8cb88; }.live-lobby .live-back { margin:12px 0 0; }
+.live-tabs[hidden],.live-race-status[hidden] { display:none; }
+.event-hero { padding:24px; margin-bottom:22px; border:1px solid #ffffff20; border-left:3px solid var(--series-color,#e10600); border-radius:16px; background:linear-gradient(135deg,#292c31,#17191d); }
+.event-hero h1 { font-family:'Barlow Condensed',sans-serif; font-size:clamp(30px,6vw,46px); line-height:1.1; margin:10px 0; }.event-hero .detail-meta { margin-bottom:0; }.event-hero-photo { width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin:0 0 16px; }
+@media(max-width:400px){.live-timing th,.live-timing td{padding:10px 5px;font-size:11px}.live-timing thead th{font-size:9px}.live-laps small{font-size:10px}.event-hero{padding:18px}.live-entry{padding:12px;gap:9px}}

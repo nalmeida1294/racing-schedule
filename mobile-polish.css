@@ -1,4 +1,8 @@
 /* Shared finish: graphite surfaces, warm gold, compact mobile layouts. */
+.track-media { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:14px; margin:18px 0; }
+.track-media figure { margin:0; min-width:0; }
+.track-media img { display:block; width:100%; height:240px; object-fit:contain; background:#eef0f2; border-radius:12px; }
+.track-media figcaption { color:#bfc8d2; font-size:12px; margin-top:6px; }
 :root { --panel-edge: rgba(255,255,255,.09); }
 body { background: radial-gradient(ellipse at 0 0, #242116 0, transparent 440px), #0c0e10; }
 button, summary, a { -webkit-tap-highlight-color: transparent; }

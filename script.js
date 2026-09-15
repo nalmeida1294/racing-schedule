@@ -234,6 +234,7 @@ function renderWeekendRaces(now = new Date()) {
     }
     const card = document.createElement("button"); const [color, glow] = themeFor(race.series);
     card.type = "button"; card.className = "weekend-race";
+    if(race.series==='Formula 1'){card.dataset.liveTrack=String(race.trackId||'');card.dataset.liveDate=race.date;}
     if (race.date < today) card.classList.add("weekend-race-completed");
     card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const trackName = trackNameForRace(race);
@@ -351,9 +352,12 @@ function returnFromEvent() {
   eventReturnScreen=null;
 }
 function setView(id) {
+  if(typeof liveViewChanged==='function')liveViewChanged(id);
   document.getElementById("back-to-top").hidden = true;
   document.getElementById('back-button').hidden = id!=='series-view'||!document.getElementById('f1-hub').hidden||document.getElementById('series-calendar').hidden;
   ["home-view", "series-view", "event-view"].forEach(view => { document.getElementById(view).style.display = view === id ? "block" : "none"; });
+  const liveView=document.getElementById('live-view');if(liveView)liveView.style.display=id==='live-view'?'block':'none';
+  if(typeof liveRefreshEntries==='function')liveRefreshEntries();
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 
@@ -440,9 +444,22 @@ function sessionsMarkup(sessions) {
   return `<section class="detail-section"><h2>Weekend Schedule</h2><div class="session-list">${sessions.map(session => `<div class="session-item"><span class="session-type">${escapeHtml(session.type || "Session")}</span><div><strong>${escapeHtml(session.session)}</strong><br><span>${formatDate(session.date)} · ${escapeHtml(session.time || "TBD")}</span>${session.notes ? `<br><span>${escapeHtml(session.notes)}</span>` : ""}</div></div>`).join("")}</div></section>`;
 }
 
+function trackMediaMarkup(track) {
+  const media = [['Track map',track.mapUrl],['Track image',track.imageUrl]].flatMap(([label,value])=>{
+    try {
+      const url=new URL(String(value||'').trim());
+      if(url.protocol!=='https:' || url.username || url.password)return [];
+      return [`<figure><img class="track-media-image" src="${escapeHtml(url.href)}" alt="${escapeHtml(label+' — '+(track.name||'circuit'))}" loading="lazy" referrerpolicy="no-referrer"><figcaption>${label}</figcaption></figure>`];
+    } catch { return []; }
+  });
+  return media.length?`<div class="track-media">${media.join('')}</div>`:'';
+}
+document.addEventListener('error',event=>{
+  if(event.target.classList?.contains('track-media-image')){const figure=event.target.closest('figure');if(figure)figure.hidden=true;else event.target.hidden=true;}
+},true);
 function trackFactsMarkup(track) {
   const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt], ["First Grand Prix", track.firstGrandPrix]].filter(([, value]) => value);
-  return `${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}`;
+  return `${trackMediaMarkup(track)}${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}`;
 }
 function trackMarkup(track, trackId) {
   if (!track) return `<section class="detail-section"><h2>Track</h2><p class="empty-details">Track information has not been added yet.</p></section>`;
@@ -460,7 +477,7 @@ function renderRaceDetails(race) {
   const source = sourceForSeries(race.series);
   const track = allTracks.find(item => item.source === source && String(item.trackId) === String(race.trackId));
   const detailedSeries = nascarSeries.has(race.series) || formulaSeries.has(race.series) || indySeries.has(race.series) || wecSeries.has(race.series) || formulaESeries.has(race.series);
-  document.getElementById("event-details").innerHTML = `<p class="detail-series">${escapeHtml(race.series)}</p><h1>${escapeHtml(race.event)}</h1><p class="detail-meta">${formatDate(race.date)} · ${escapeHtml(race.time || "Time to be announced")}</p>${race.network ? `<p class="race-network">${escapeHtml(race.network)}</p>` : ""}${race.notes ? `<p class="race-notes">${escapeHtml(race.notes)}</p>` : ""}${detailedSeries ? sessionsMarkup(sessions) + trackMarkup(track, race.trackId) : "<section class=\"detail-section empty-details\"><h2>Weekend details coming soon</h2><p>Session and track information will be added for this series in a future update.</p></section>"}`;
+  document.getElementById("event-details").innerHTML = `<section class="event-hero" style="--series-color:${themeFor(race.series)[0]}">${track?.imageUrl && /^https:\/\//i.test(track.imageUrl) ? `<img class="event-hero-photo track-media-image" src="${escapeHtml(track.imageUrl)}" alt="${escapeHtml(track.name || "Circuit")}" referrerpolicy="no-referrer">` : ""}<p class="detail-series">${escapeHtml(race.series)}</p><h1>${escapeHtml(race.event)}</h1><p class="detail-meta">${formatDate(race.date)} · ${escapeHtml(race.time || "Time to be announced")}</p>${race.network ? `<p class="race-network">${escapeHtml(race.network)}</p>` : ""}${race.notes ? `<p class="race-notes">${escapeHtml(race.notes)}</p>` : ""}</section>${race.series === "Formula 1" ? `<div data-live-slot="event" data-race-id="${escapeHtml(race.raceId)}" data-track-id="${escapeHtml(race.trackId)}" data-event-date="${escapeHtml(race.date)}" hidden></div>` : ""}${detailedSeries ? sessionsMarkup(sessions) + trackMarkup(track, race.trackId) : "<section class=\"detail-section empty-details\"><h2>Weekend details coming soon</h2><p>Session and track information will be added for this series in a future update.</p></section>"}`;
   setView("event-view");
   if (typeof showF1EventRatings === "function") showF1EventRatings(race);
 }
@@ -573,7 +590,7 @@ async function loadData() {
     const sessionRows = nascarSessions.concat(formulaSessions, indySessions, wecSessions, formulaESessions);
     allRaces = raceRows.map(row => ({ raceId: row["Race ID"], round: row.Round, event: row.Event, trackId: row["Track ID"], series: row.Series, date: row.Date, time: row.Time, network: row.Network, notes: row.Notes })).filter(race => race.series && race.event);
     allSessions = sessionRows.map(row => ({ raceId: row["Race ID"], trackId: row["Track ID"], series: row.Series, session: row.Session, type: row["Session Type"], date: row["Start Date"], time: row["Start Time"], notes: row.Notes })).filter(session => session.raceId && session.session);
-    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: String(row["Track Name Override"] || "").trim() || row["Track Name"], apiName: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], firstGrandPrix: row["First Grand Prix"], description: row.Description, source });
+    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: String(row["Track Name Override"] || "").trim() || row["Track Name"], apiName: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], firstGrandPrix: row["First Grand Prix"], mapUrl: row["Track Map URL"], imageUrl: row["Track Image URL"], description: row.Description, source });
     allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula")), indyTracks.map(row => toTrack(row, "indy")), wecTracks.map(row => toTrack(row, "wec")), formulaETracks.map(row => toTrack(row, "formula-e"))).filter(track => track.trackId);
     renderHome();
     dataReady = true;
