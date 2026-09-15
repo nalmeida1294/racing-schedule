@@ -23,13 +23,13 @@ function f1TrackScoreMarkup(id) {
     return `<div><dt>${label}</dt><dd>${value===null?'Not rated':value.toFixed(2)+' /10'}</dd>${value===null?'':`<small>${escapeHtml(row[count])} rated sessions</small>`}</div>`;
   };
   const reviews=f1Store.reviews.rows.filter(r=>r['Circuit ID']===id);
-  const average=key=>{
-    const values=reviews.filter(r=>['Grand Prix','Sprint'].includes(r.Session)).map(r=>f1Score(r[key],Infinity)).filter(v=>v!==null&&Number.isInteger(v));
-    return {value:values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(2):'—',count:values.length};
-  };
+  const counts=reviews.filter(r=>['Grand Prix','Sprint'].includes(r.Session)).flatMap(r=>{
+    const vsc=f1Score(r.VSC,Infinity),sc=f1Score(r.SC,Infinity);
+    return vsc!==null&&sc!==null&&Number.isInteger(vsc)&&Number.isInteger(sc)?[vsc+sc]:[];
+  });
+  const average=counts.length?(counts.reduce((a,b)=>a+b,0)/counts.length).toFixed(2):'—';
   const combined=f1CombinedRaceRating(reviews);
-  const vsc=average('VSC'),sc=average('SC');
-  return `<dl class="track-facts f1-track-scores">${metric('Rain','Rain Score /10','Rain Samples')}${metric('Chaos','Chaos Score /10','Chaos Samples')}<div><dt>Overall race rating</dt><dd>${combined.value===null?'Not rated':combined.value.toFixed(2)+' /5'}</dd><small>${combined.count} rated sessions</small></div><div><dt>Average per race</dt><dd>VSC ${vsc.value} · SC ${sc.value}</dd><small>${vsc.count===sc.count?`${vsc.count} rated sessions`:`VSC: ${vsc.count} rated sessions · SC: ${sc.count} rated sessions`}</small></div></dl><p class="f1-data-note">Personal ratings · across published seasons. Blank scores are excluded.</p>${f1Store.trackScores.state==='error'?'<p class="f1-warning">Track score update unavailable.</p><button data-f1-retry="trackScores">Retry track scores</button>':''}`;
+  return `<dl class="track-facts f1-track-scores">${metric('Rain','Rain Score /10','Rain Samples')}${metric('Chaos','Chaos Score /10','Chaos Samples')}<div><dt>Overall race rating</dt><dd>${combined.value===null?'Not rated':combined.value.toFixed(2)+' /5'}</dd><small>${combined.count} rated sessions</small></div><div><dt>VSC or SC per race</dt><dd>${average}</dd><small>${counts.length} rated sessions</small></div></dl><p class="f1-data-note">Personal ratings · across published seasons. Blank scores are excluded.</p>${f1Store.trackScores.state==='error'?'<p class="f1-warning">Track score update unavailable.</p><button data-f1-retry="trackScores">Retry track scores</button>':''}`;
 }
 function f1TrackFlagMarkup(country) {
   const key=String(country||'').trim().toLowerCase();
