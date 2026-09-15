@@ -32,7 +32,7 @@
  function entry(race,p){
   const key=raceKey(race);entryRaces.set(key,race);
   const badge=p==='live'?'● LIVE':p==='soon'?'STARTING SOON':p==='waiting'?'AWAITING FEED':p==='concluded'?'RACE CONCLUDED':p==='past'?'RACE ENDED':'RACE HUB';
-  return `<button class="live-entry" type="button" data-open-live="${esc(key)}">${seriesLogoMarkup('Formula 1')}<span><strong>Race Hub <b class="live-badge" data-phase="${p}">${badge}</b></strong><small>${esc(race.event)} · ${esc(trackNameForRace(race)||'Event centre')}</small></span><span aria-hidden="true">→</span></button>`;
+  return `<button class="live-entry event-photo-tile" type="button" data-open-live="${esc(key)}">${racePhotoMarkup(race)}${seriesLogoMarkup('Formula 1')}<span><strong>Race Hub <b class="live-badge" data-phase="${p}">${badge}</b></strong><small>${esc(race.event)} · ${esc(trackNameForRace(race)||'Event centre')}</small></span><span aria-hidden="true">→</span></button>`;
  }
  function entries(){
   const active=live()?feedRace():null;

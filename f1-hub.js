@@ -178,7 +178,7 @@ function renderF1Content() {
 function f1OverviewMarkup() {
   const next = seriesStatus("Formula 1").nextRace, latest = f1LatestResults();
 
-  return `<div data-live-slot="overview" hidden></div><div class="f1-overview-grid"><section class="f1-feature"><p class="f1-kicker">NEXT GRAND PRIX</p>${next
+  return `<div data-live-slot="overview" hidden></div><div class="f1-overview-grid"><section class="f1-feature event-photo-tile">${racePhotoMarkup(next)}<p class="f1-kicker">NEXT GRAND PRIX</p>${next
     ? `<h2>${escapeHtml(next.event)}</h2><p>${escapeHtml(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${escapeHtml(next.time || "Time TBD")}</p><button type="button" data-f1-next>Event & weekend schedule →</button>`
     : `<h2>${seriesStatus("Formula 1").status === 1 ? "Season completed" : "Schedule coming soon"}</h2><p>The full calendar is available in Schedule.</p>`}</section>
     <section class="f1-feature f1-linked-feature"><button class="f1-card-link" data-f1-open="results" aria-label="View full results of the latest race"></button><p class="f1-kicker">LATEST RACE PODIUM</p>${latest.length

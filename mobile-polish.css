@@ -1,4 +1,8 @@
 /* Shared finish: graphite surfaces, warm gold, compact mobile layouts. */
+.event-photo-tile { position:relative; isolation:isolate; overflow:hidden; }
+.event-photo-tile > .event-background-photo { position:absolute; z-index:-2; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; pointer-events:none; }
+.event-photo-tile:has(> .event-background-photo:not([hidden]))::before { content:''; position:absolute; z-index:-1; inset:0; background:linear-gradient(90deg,rgba(9,12,16,.94) 0%,rgba(9,12,16,.78) 48%,rgba(9,12,16,.35) 100%); pointer-events:none; }
+.event-photo-tile:has(> .event-background-photo:not([hidden])) { color:#fff; }
 .track-media { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:14px; margin:18px 0; }
 .track-media figure { margin:0; min-width:0; }
 .track-media img { display:block; width:100%; height:240px; object-fit:contain; background:#eef0f2; border-radius:12px; }
@@ -35,7 +39,10 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .circuit-card.f1-feature { padding: 0; background: linear-gradient(125deg,#25282b,#17191b); border-radius: 17px; overflow: hidden; }
 .circuit-card summary { display: flex; align-items: center; gap: 14px; padding: 22px; list-style: none; }
 .circuit-card summary::-webkit-details-marker { display: none; }
-.circuit-number { font-size: 32px; font-weight: 800; font-style: italic; letter-spacing: -2px; color: #ffca4638; }
+.circuit-flag { width:32px; height:auto; flex-shrink:0; border-radius:3px; }
+.circuit-full-photo { margin:18px 0; }
+.circuit-full-photo img { display:block; width:100%; height:auto; border-radius:12px; }
+.circuit-body h3 { font-family:"Barlow Condensed",sans-serif; font-size:26px; margin:18px 0 10px; }
 .circuit-card summary small { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 1.4px; color: #e1bf70; margin-bottom: 6px; }
 .circuit-card summary strong { display: block; font-family: 'Barlow Condensed',sans-serif; font-size: 28px; letter-spacing: -.3px; line-height: 1.15; }
 .circuit-location { display: block; color: #a6abb0; font-size: 12px; font-weight: 400; margin-top: 7px; }
@@ -160,7 +167,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 }
 /* Keep non-racing series compact, including on phones. */
 .weekend-off-group .weekend-day-races { grid-template-columns:repeat(2,minmax(0,1fr)); }
-.weekend-off { gap:8px; padding:8px; min-height:68px; }
+.weekend-off,.weekend-off:hover { gap:8px; padding:8px; min-height:68px; cursor:default; filter:grayscale(.65); opacity:.7; transform:none; box-shadow:none; border-color:#ffffff15; border-left-color:var(--series-color); }
 .weekend-off .weekend-logo { width:50px; flex-basis:50px; min-height:44px; padding-right:7px; }
 .weekend-off .weekend-logo .series-brand-logo { height:35px; }
 .weekend-off .weekend-track { font-size:12px; line-height:1.25; }

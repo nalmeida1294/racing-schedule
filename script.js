@@ -233,14 +233,14 @@ function renderWeekendRaces(now = new Date()) {
       container.appendChild(group);
     }
     const card = document.createElement("button"); const [color, glow] = themeFor(race.series);
-    card.type = "button"; card.className = "weekend-race";
+    card.type = "button"; card.className = "weekend-race event-photo-tile";
     if(race.series==='Formula 1'){card.dataset.liveTrack=String(race.trackId||'');card.dataset.liveDate=race.date;}
     if (race.date < today) card.classList.add("weekend-race-completed");
     card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const trackName = trackNameForRace(race);
     const weekday = new Date(`${race.date}T12:00:00Z`).toLocaleDateString('en-US', {timeZone:'UTC',weekday:'short'});
     card.setAttribute('aria-label', `${race.series}: ${race.event}, ${weekday}, ${race.time || 'Time TBD'}`);
-    card.innerHTML = `${weekLogoMarkup(race.series)}<span class="weekend-copy"><strong class="weekend-event">${escapeHtml(race.event)}</strong><span class="weekend-track">${escapeHtml(trackName || 'Track to be announced')}</span><span class="weekend-time">${weekday} · ${escapeHtml(race.time || "Time TBD")}</span></span>`;
+    card.innerHTML = `${racePhotoMarkup(race)}${weekLogoMarkup(race.series)}<span class="weekend-copy"><strong class="weekend-event">${escapeHtml(race.event)}</strong><span class="weekend-track">${escapeHtml(trackName || 'Track to be announced')}</span><span class="weekend-time">${weekday} · ${escapeHtml(race.time || "Time TBD")}</span></span>`;
     card.addEventListener("click", () => showRaceDetails(race));
     dayCards.appendChild(card);
   });
@@ -252,12 +252,12 @@ function renderWeekendRaces(now = new Date()) {
     group.innerHTML='<h3>No Race This Week</h3>';
     const cards=document.createElement('div'); cards.className='weekend-day-races';
     off.forEach(series=>{
-      const card=document.createElement('button'),[color,glow]=themeFor(series);
+      const card=document.createElement('div'),[color,glow]=themeFor(series);
       const label=seriesStatus(series,now).status===1?'Season Completed':'Off Week';
-      card.type='button';card.className='weekend-race weekend-off';card.style.setProperty('--series-color',color);card.style.setProperty('--series-glow',glow);
-      card.setAttribute('aria-label',`${series}: ${label}. Open series hub`);
+      card.className='weekend-race weekend-off';card.style.setProperty('--series-color',color);card.style.setProperty('--series-glow',glow);
+      card.setAttribute('role','group');card.setAttribute('aria-label',`${series}: ${label}`);
       card.innerHTML=`${weekLogoMarkup(series)}<span class="weekend-copy"><span class="weekend-event" aria-hidden="true">&nbsp;</span><span class="weekend-track">${label}</span><span class="weekend-time" aria-hidden="true">&nbsp;</span></span>`;
-      card.addEventListener('click',()=>showSeries(series));cards.appendChild(card);
+      cards.appendChild(card);
     });
     group.appendChild(cards);container.appendChild(group);
   }
@@ -445,7 +445,7 @@ function sessionsMarkup(sessions) {
 }
 
 function trackMediaMarkup(track) {
-  const media = [['Track map',track.mapUrl],['Track image',track.imageUrl]].flatMap(([label,value])=>{
+  const media = [['Track map',track.mapUrl]].flatMap(([label,value])=>{
     try {
       const url=new URL(String(value||'').trim());
       if(url.protocol!=='https:' || url.username || url.password)return [];
@@ -454,12 +454,24 @@ function trackMediaMarkup(track) {
   });
   return media.length?`<div class="track-media">${media.join('')}</div>`:'';
 }
+function trackPhotoMarkup(track) {
+  try {
+    const url=new URL(String(track?.imageUrl||'').trim());
+    if(url.protocol!=='https:'||url.username||url.password)return '';
+    return `<img class="event-background-photo" src="${escapeHtml(url.href)}" alt="" aria-hidden="true" loading="lazy" referrerpolicy="no-referrer">`;
+  } catch { return ''; }
+}
+function racePhotoMarkup(race) {
+  return race?trackPhotoMarkup(allTracks.find(t=>t.source===sourceForSeries(race.series)&&String(t.trackId)===String(race.trackId))):'';
+}
 document.addEventListener('error',event=>{
+  if(event.target.classList?.contains('circuit-flag'))event.target.hidden=true;
+  if(event.target.classList?.contains('event-background-photo'))event.target.hidden=true;
   if(event.target.classList?.contains('track-media-image')){const figure=event.target.closest('figure');if(figure)figure.hidden=true;else event.target.hidden=true;}
 },true);
 function trackFactsMarkup(track) {
   const facts = [["Location", [track.city, track.state].filter(Boolean).join(", ")], ["Surface", track.surface], ["Track Type", track.type], ["Banking", track.banking], ["Year Built", track.yearBuilt], ["First Grand Prix", track.firstGrandPrix]].filter(([, value]) => value);
-  return `${trackMediaMarkup(track)}${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}`;
+  return `${facts.length ? `<dl class="track-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}${track.description ? `<p class="track-description">${escapeHtml(track.description)}</p>` : ""}${trackMediaMarkup(track)}`;
 }
 function trackMarkup(track, trackId) {
   if (!track) return `<section class="detail-section"><h2>Track</h2><p class="empty-details">Track information has not been added yet.</p></section>`;
@@ -477,7 +489,7 @@ function renderRaceDetails(race) {
   const source = sourceForSeries(race.series);
   const track = allTracks.find(item => item.source === source && String(item.trackId) === String(race.trackId));
   const detailedSeries = nascarSeries.has(race.series) || formulaSeries.has(race.series) || indySeries.has(race.series) || wecSeries.has(race.series) || formulaESeries.has(race.series);
-  document.getElementById("event-details").innerHTML = `<section class="event-hero" style="--series-color:${themeFor(race.series)[0]}">${track?.imageUrl && /^https:\/\//i.test(track.imageUrl) ? `<img class="event-hero-photo track-media-image" src="${escapeHtml(track.imageUrl)}" alt="${escapeHtml(track.name || "Circuit")}" referrerpolicy="no-referrer">` : ""}<p class="detail-series">${escapeHtml(race.series)}</p><h1>${escapeHtml(race.event)}</h1><p class="detail-meta">${formatDate(race.date)} · ${escapeHtml(race.time || "Time to be announced")}</p>${race.network ? `<p class="race-network">${escapeHtml(race.network)}</p>` : ""}${race.notes ? `<p class="race-notes">${escapeHtml(race.notes)}</p>` : ""}</section>${race.series === "Formula 1" ? `<div data-live-slot="event" data-race-id="${escapeHtml(race.raceId)}" data-track-id="${escapeHtml(race.trackId)}" data-event-date="${escapeHtml(race.date)}" hidden></div>` : ""}${detailedSeries ? sessionsMarkup(sessions) + trackMarkup(track, race.trackId) : "<section class=\"detail-section empty-details\"><h2>Weekend details coming soon</h2><p>Session and track information will be added for this series in a future update.</p></section>"}`;
+  document.getElementById("event-details").innerHTML = `<section class="event-hero event-photo-tile" style="--series-color:${themeFor(race.series)[0]}">${trackPhotoMarkup(track)}<p class="detail-series">${escapeHtml(race.series)}</p><h1>${escapeHtml(race.event)}</h1><p class="detail-meta">${formatDate(race.date)} · ${escapeHtml(race.time || "Time to be announced")}</p>${race.network ? `<p class="race-network">${escapeHtml(race.network)}</p>` : ""}${race.notes ? `<p class="race-notes">${escapeHtml(race.notes)}</p>` : ""}</section>${race.series === "Formula 1" ? `<div data-live-slot="event" data-race-id="${escapeHtml(race.raceId)}" data-track-id="${escapeHtml(race.trackId)}" data-event-date="${escapeHtml(race.date)}" hidden></div>` : ""}${detailedSeries ? sessionsMarkup(sessions) + trackMarkup(track, race.trackId) : "<section class=\"detail-section empty-details\"><h2>Weekend details coming soon</h2><p>Session and track information will be added for this series in a future update.</p></section>"}`;
   setView("event-view");
   if (typeof showF1EventRatings === "function") showF1EventRatings(race);
 }

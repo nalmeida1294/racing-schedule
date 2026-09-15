@@ -30,12 +30,25 @@ function f1TrackScoreMarkup(id) {
   const combined=f1CombinedRaceRating(reviews);
   return `<dl class="track-facts f1-track-scores">${metric('Rain','Rain Score /10','Rain Samples')}${metric('Chaos','Chaos Score /10','Chaos Samples')}<div><dt>Overall race rating</dt><dd>${combined.value===null?'Not rated':combined.value.toFixed(2)+' /5'}</dd><small>GP weight 3 · sprint weight 1</small></div><div><dt>Grand Prix rating</dt><dd>${average('Grand Prix')}</dd></div><div><dt>Sprint rating</dt><dd>${average('Sprint')}</dd></div></dl><p class="f1-data-note">Personal ratings · across published seasons. Overall race rating includes GP and sprint scores; blank scores are excluded.</p>${f1Store.trackScores.state==='error'?'<p class="f1-warning">Track score update unavailable.</p><button data-f1-retry="trackScores">Retry track scores</button>':''}`;
 }
+function f1TrackFlagMarkup(country) {
+  const key=String(country||'').trim().toLowerCase();
+  const codes={australia:'au',china:'cn',japan:'jp',bahrain:'bh','saudi arabia':'sa',usa:'us','united states':'us','united states of america':'us',us:'us',italy:'it',monaco:'mc',spain:'es',canada:'ca',austria:'at',uk:'gb','united kingdom':'gb','great britain':'gb',england:'gb',belgium:'be',hungary:'hu',netherlands:'nl',azerbaijan:'az',singapore:'sg',mexico:'mx',brazil:'br',qatar:'qa',uae:'ae','united arab emirates':'ae',france:'fr',germany:'de',portugal:'pt',turkey:'tr',malaysia:'my','south korea':'kr',argentina:'ar','south africa':'za',switzerland:'ch',sweden:'se',india:'in'};
+  const code=codes[key]||Object.values(codes).find(c=>c===key);
+  return code?`<img class="circuit-flag" src="https://flagcdn.com/w80/${code}.png" alt="${escapeHtml(country)} flag" loading="lazy" referrerpolicy="no-referrer">`:'';
+}
+function f1TrackFullPhotoMarkup(track) {
+  try {
+    const url=new URL(String(track.imageUrl||'').trim());
+    if(url.protocol!=='https:'||url.username||url.password)return '';
+    return `<figure class="circuit-full-photo"><img class="track-media-image" src="${escapeHtml(url.href)}" alt="${escapeHtml(track.name)}" loading="lazy" referrerpolicy="no-referrer"></figure>`;
+  } catch { return ''; }
+}
 function f1TracksMarkup() {
   const tracks=allTracks.filter(t=>t.source==='formula');
   const known=new Set(tracks.map(f1CircuitFor).filter(Boolean));
   const extra=[...new Map(f1Store.reviews.rows.filter(r=>r['Circuit ID']&&!known.has(r['Circuit ID'])).map(r=>[r['Circuit ID'],r])).values()];
   const cards=tracks.map(t=>({...t,id:f1CircuitFor(t)})).concat(extra.map(r=>({name:r.Circuit,id:r['Circuit ID']}))).sort((a,b)=>a.name.localeCompare(b.name));
-  return `<div class="tracks-heading"><p class="weekend-eyebrow">THE CIRCUIT COLLECTION</p><h2>Iconic venues. Every turn.</h2><p class="f1-data-note">Explore ${cards.length} circuits, track details, and your race ratings.</p></div><div class="f1-track-grid">${cards.map((t,i)=>`<details class="f1-feature circuit-card"><summary><span class="circuit-number" aria-hidden="true">${String(i+1).padStart(2,'0')}</span><span><small>${escapeHtml(t.type||'FORMULA 1 CIRCUIT')}</small><strong>${escapeHtml(t.name)}</strong><span class="circuit-location">${escapeHtml([t.city,t.state].filter(Boolean).join(', ')||'Explore circuit')}</span></span><span class="circuit-expand" aria-hidden="true">+</span></summary><div class="circuit-body">${typeof trackFactsMarkup==='function'?trackFactsMarkup(t):''}${f1TrackScoreMarkup(t.id)}</div></details>`).join('')}</div>`;
+  return `<div class="tracks-heading"><p class="weekend-eyebrow">THE CIRCUIT COLLECTION</p><h2>Iconic venues. Every turn.</h2><p class="f1-data-note">Explore ${cards.length} circuits, track details, and your race ratings.</p></div><div class="f1-track-grid">${cards.map(t=>`<details class="f1-feature circuit-card"><summary class="event-photo-tile">${typeof trackPhotoMarkup==='function'?trackPhotoMarkup(t):''}${f1TrackFlagMarkup(t.state)}<span><strong>${escapeHtml(t.name)}</strong><span class="circuit-location">${escapeHtml([t.city,t.state].filter(Boolean).join(', ')||'Explore circuit')}</span></span><span class="circuit-expand" aria-hidden="true">+</span></summary><div class="circuit-body">${f1TrackFullPhotoMarkup(t)}<h3>${escapeHtml(t.name)}</h3>${typeof trackFactsMarkup==='function'?trackFactsMarkup(t):''}${f1TrackScoreMarkup(t.id)}</div></details>`).join('')}</div>`;
 }
 function showF1EventRatings(race) {
   f1EventForScores=race.series==='Formula 1'?race:null;
