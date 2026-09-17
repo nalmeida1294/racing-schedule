@@ -356,6 +356,7 @@ function setView(id) {
   document.getElementById("back-to-top").hidden = true;
   document.getElementById('back-button').hidden = id!=='series-view'||!document.getElementById('f1-hub').hidden||document.getElementById('series-calendar').hidden;
   ["home-view", "series-view", "event-view"].forEach(view => { document.getElementById(view).style.display = view === id ? "block" : "none"; });
+  const cupView=document.getElementById('nascar-live-view');if(cupView)cupView.style.display=id==='nascar-live-view'?'block':'none';
   const liveView=document.getElementById('live-view');if(liveView)liveView.style.display=id==='live-view'?'block':'none';
   if(typeof liveRefreshEntries==='function')liveRefreshEntries();
   window.scrollTo({ top: 0, behavior: "instant" });
@@ -422,12 +423,15 @@ function renderNascarHub(series,tab='schedule') {
   else {
     calendar.hidden=true;
     const content=hub.querySelector('#nascar-hub-content');
-    if(tab==='tracks') {
+    if(tab==='teams') {
+      NascarProfiles.render(content,series);
+    } else if(tab==='tracks') {
       const ids=new Set(racesFor(series).map(r=>String(r.trackId)));
       const tracks=allTracks.filter(t=>t.source==='nascar'&&ids.has(String(t.trackId))).sort((a,b)=>a.name.localeCompare(b.name));
       content.innerHTML=`<h2>Tracks</h2><div class="f1-track-grid">${tracks.map(t=>`<details class="f1-feature circuit-card"><summary class="event-photo-tile">${trackPhotoMarkup(t)}<span><strong>${escapeHtml(t.name)}</strong><span class="circuit-location">${escapeHtml([t.city,t.state].filter(Boolean).join(', '))}</span></span><span class="circuit-expand" aria-hidden="true">+</span></summary><div class="circuit-body">${f1TrackFullPhotoMarkup(t)}<h3>${escapeHtml(t.name)}</h3>${trackFactsMarkup(t)}${series==='NASCAR Cup Series'?`<section data-cup-track="${escapeHtml(t.trackId)}">${nascarTrackRatings(t.trackId)}</section>`:''}</div></details>`).join('')}</div>`;
     } else content.innerHTML=`<section class="detail-section"><h2>${tabs[tab]}</h2><p>Still under development.</p></section>`;
   }
+  if(series==='NASCAR Cup Series'&&tab==='overview')hub.querySelector('#nascar-hub-content').insertAdjacentHTML('afterbegin','<div data-cup-live-slot="overview" hidden></div>');
   hub.hidden=false;
   hub.querySelectorAll('[data-nascar-tab]').forEach(button=>button.addEventListener('click',()=>renderNascarHub(series,button.dataset.nascarTab)));
   setView('series-view');document.getElementById('back-button').hidden=true;
@@ -535,6 +539,8 @@ function renderRaceDetails(race) {
   setView("event-view");
   if (typeof showF1EventRatings === "function") showF1EventRatings(race);
   if(race.series==='NASCAR Cup Series') {
+    document.querySelector('#event-details .event-hero').insertAdjacentHTML('afterend',`<div data-cup-live-slot="event" data-race-id="${escapeHtml(race.raceId)}" hidden></div>`);
+    if(typeof liveRefreshEntries==='function')liveRefreshEntries();
     document.getElementById('event-details').insertAdjacentHTML('beforeend',`<section class="detail-section" data-cup-track="${escapeHtml(race.trackId)}">${nascarTrackRatings(race.trackId)}</section>`);
     loadCupReviews();
   }

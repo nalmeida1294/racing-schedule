@@ -53,3 +53,16 @@
 .event-hero { padding:24px; margin-bottom:22px; border:1px solid #ffffff20; border-left:3px solid var(--series-color,#e10600); border-radius:16px; background:linear-gradient(135deg,#292c31,#17191d); }
 .event-hero h1 { font-family:'Barlow Condensed',sans-serif; font-size:clamp(30px,6vw,46px); line-height:1.1; margin:10px 0; }.event-hero .detail-meta { margin-bottom:0; }.event-hero-photo { width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin:0 0 16px; }
 @media(max-width:400px){.live-timing th,.live-timing td{padding:10px 5px;font-size:11px}.live-timing thead th{font-size:9px}.live-laps small{font-size:10px}.event-hero{padding:18px}.live-entry{padding:12px;gap:9px}}
+#nascar-live-view { max-width:960px; margin:0 auto; min-width:0; }
+.cup-live-hero { border-radius:14px; padding:18px; border-left:3px solid #f5c518; }
+.cup-live-hero .series-brand-logo { max-width:120px; max-height:65px; object-fit:contain; }
+.cup-live-entry { border-left-color:#f5c518; }
+#nascar-live-view .live-tabs [aria-selected="true"] { background:#f5c518; color:#171717; }
+#nascar-live-view .live-tabs[hidden],#nascar-live-view .live-race-status[hidden] { display:none; }
+#nascar-live-view .live-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); }
+#nascar-live-view .live-timing th[scope="row"] { white-space:normal; min-width:95px; max-width:210px; }
+.cup-car-number { color:#f5c518; font-weight:800; }
+.cup-stage { color:#d7c57b; font-size:13px; }
+#cup-live-columns { border:0; padding:0; }
+#cup-live-columns label { display:flex; justify-content:space-between; padding:14px 0; border-bottom:1px solid #ffffff15; }
+@media(max-width:480px) { .cup-live-hero { padding:12px; }.cup-live-hero .live-outline { width:65px; }.cup-live-hero h1 { font-size:27px; } }
