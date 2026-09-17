@@ -1,4 +1,7 @@
 (() => {
+  const patchNotes=document.getElementById('patch-notes-dialog');
+  document.getElementById('patch-notes-open')?.addEventListener('click',()=>patchNotes.showModal());
+  document.getElementById('patch-notes-close')?.addEventListener('click',()=>patchNotes.close());
   window.addEventListener('message',event=>{if(/^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/.test(event.origin)&&event.data==='rc-service-hello')event.source?.postMessage('rc-service-trusted',event.origin);});
   const dialog=document.getElementById('feedback-dialog'),frame=document.getElementById('feedback-frame'),status=document.getElementById('feedback-status');
   document.getElementById('feedback-open').addEventListener('click',()=>{

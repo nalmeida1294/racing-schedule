@@ -1,6 +1,14 @@
 .site-footer { max-width:1200px; margin:48px auto 0; padding:28px 22px calc(28px + env(safe-area-inset-bottom)); border-top:1px solid #ffffff16; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; color:#aab0b8; font-size:13px; }
 .site-footer strong { display:block; color:#e9edf1; font-size:18px; margin-bottom:6px; }
-.site-footer nav { display:flex; gap:18px; align-items:center; }
+.site-footer nav { display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
+.patch-notes-dialog { overflow-y:auto; }
+.patch-notes-intro { margin-bottom:24px; }
+.patch-release { border-top:1px solid #ffffff20; padding-top:20px; }
+.patch-release time { color:#ffcf61; font-size:13px; font-weight:700; letter-spacing:.4px; }
+.patch-release h3 { margin:10px 0 16px; font-size:21px; }
+.patch-release ul { padding-left:21px; line-height:1.6; color:#e0e5eb; }
+.patch-release li { margin-bottom:12px; }
+.patch-release-note { padding:12px 14px; background:#ffffff05; border-left:3px solid #ffcf61; border-radius:4px; font-size:13px; }
 .site-footer button,.site-footer a { color:#ffcf61; font:inherit; }
 .site-footer button { background:transparent; border:1px solid #ffcf6140; border-radius:9px; padding:12px 16px; cursor:pointer; }
 .support-dialog { width:min(560px,calc(100% - 28px)); max-height:90dvh; box-sizing:border-box; padding:26px; border:1px solid #ffd16a44; border-radius:20px; background:#171b20; color:#f1f3f5; box-shadow:0 24px 100px #000a; }

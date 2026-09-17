@@ -218,7 +218,25 @@
     </div>
 
 
-    <footer class="site-footer"><div><strong>Race Control</strong><span>Every Lap, One App. Help us make it better.</span></div><nav aria-label="Site support"><button type="button" id="feedback-open">Send feedback</button><a href="admin.html">Admin</a></nav></footer>
+    <footer class="site-footer"><div><strong>Race Control</strong><span>Every Lap, One App. Help us make it better.</span></div><nav aria-label="Site support"><button type="button" id="patch-notes-open">Patch notes</button><button type="button" id="feedback-open">Send feedback</button><a href="admin.html">Admin</a></nav></footer>
+    <dialog class="support-dialog patch-notes-dialog" id="patch-notes-dialog" aria-labelledby="patch-notes-title">
+      <button type="button" class="support-close" id="patch-notes-close" aria-label="Close patch notes">×</button>
+      <h2 id="patch-notes-title">Patch notes</h2>
+      <p class="patch-notes-intro">The latest additions and improvements to Race Control.</p>
+      <article class="patch-release">
+        <time datetime="2026-09-17">September 17, 2026</time>
+        <h3>NASCAR teams and race day</h3>
+        <ul>
+          <li>Added Teams &amp; Drivers to the Cup, O’Reilly Auto Parts, and Craftsman Truck Series hubs.</li>
+          <li>Team cards feature team colors, team and manufacturer logos, driver photos, car number graphics, and crew chiefs.</li>
+          <li>Drivers are grouped by team, with full photos displayed without cropping.</li>
+          <li>Added an experimental Cup Series live race hub with running order, timing, race status, stage information, and display settings.</li>
+          <li>Access the Cup live hub from the event schedule, with race-day entry points on the home page and Cup overview.</li>
+          <li>Added this dated patch history beside Send feedback.</li>
+        </ul>
+        <p class="patch-release-note">The Cup live hub is ready for its first live-race test. O’Reilly and Trucks live hubs, and NASCAR standings and results tabs, are still in development.</p>
+      </article>
+    </dialog>
     <dialog class="support-dialog" id="feedback-dialog" aria-labelledby="feedback-title">
       <button type="button" class="support-close" id="feedback-close" aria-label="Close feedback">×</button>
       <h2 id="feedback-title">Have a suggestion?</h2><p>Report a problem, request a feature, or tell us what you think.</p>
