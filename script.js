@@ -360,6 +360,7 @@ function setView(id) {
   const liveView=document.getElementById('live-view');if(liveView)liveView.style.display=id==='live-view'?'block':'none';
   if(typeof liveRefreshEntries==='function')liveRefreshEntries();
   window.scrollTo({ top: 0, behavior: "instant" });
+  updateScheduleTopButton();
 }
 
 let loading = false;
@@ -435,6 +436,7 @@ function renderNascarHub(series,tab='schedule') {
   hub.hidden=false;
   hub.querySelectorAll('[data-nascar-tab]').forEach(button=>button.addEventListener('click',()=>renderNascarHub(series,button.dataset.nascarTab)));
   setView('series-view');document.getElementById('back-button').hidden=true;
+  if(tab==='schedule')focusScheduleRace();
   if(series==='NASCAR Cup Series')loadCupReviews();
 }
 function renderSeriesHub(series) {
@@ -481,8 +483,21 @@ function renderSeries(series, focusCurrent = true) {
   });
   if (focusCurrent) {
     setView("series-view");
-    if (nextRaceElement) requestAnimationFrame(() => nextRaceElement.scrollIntoView({ behavior: "smooth", block: "center" }));
+    focusScheduleRace();
   }
+}
+
+function focusScheduleRace() {
+  const calendar=document.getElementById('series-calendar');
+  const target=calendar.querySelector('.calendar-race-next')||calendar.querySelector('.calendar-race:last-child');
+  requestAnimationFrame(()=>{
+    if(calendar.hidden||document.getElementById('series-view').style.display!=='block'||!target?.isConnected)return;
+    target.scrollIntoView({behavior:'instant',block:'center'});
+    updateScheduleTopButton();
+  });
+}
+function updateScheduleTopButton() {
+  document.getElementById('back-to-top').hidden = !(document.getElementById('series-view').style.display==='block'&&!document.getElementById('series-calendar').hidden);
 }
 
 function sessionsMarkup(sessions) {
@@ -626,9 +641,7 @@ customizeList.addEventListener("dragover", event => {
 document.getElementById("back-button").addEventListener("click", () => showSeries(activeSeriesName));
 document.getElementById("event-back-button").addEventListener("click", returnFromEvent);
 document.getElementById("event-hub-button").addEventListener("click", () => showSeries(activeSeriesName));
-window.addEventListener("scroll", () => {
-  document.getElementById("back-to-top").hidden = !(window.scrollY > 350 && document.getElementById("series-view").style.display === "block" && !document.getElementById("series-calendar").hidden);
-}, { passive: true });
+window.addEventListener("scroll", updateScheduleTopButton, { passive: true });
 document.getElementById("back-to-top").addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   document.getElementById("series-calendar").setAttribute('tabindex','-1');

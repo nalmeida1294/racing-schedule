@@ -17,6 +17,8 @@ const NascarProfiles = (() => {
   const make = value => /chev/i.test(value)?'Chevrolet':/ford/i.test(value)?'Ford':/toyota/i.test(value)?'Toyota':/\bram\b/i.test(value)?'RAM':clean(value);
   const scope = (row,series,season) => clean(row['Series ID'])===seriesIds[series] && clean(row.Season)===String(season);
   const color = value => /^#[0-9a-f]{6}$/i.test(clean(value))?clean(value):'';
+  const participation = value => key(value)==='full-time'?'Full-time':key(value)==='part-time'?'Part-time':'';
+  const participationOrder = value => value==='Full-time'?0:value==='Part-time'?1:2;
   function profiles(drivers,teams,series,season) {
     const teamMap = new Map(teams.filter(r=>scope(r,series,season)).map(r=>[clean(r['Team ID']),r]));
     const unique = new Map();
@@ -28,6 +30,9 @@ const NascarProfiles = (() => {
       const teamName=clean(team['Organization Override'])||clean(team['Display Name Override'])||clean(team['Team Name'])||(!clean(row['Team ID Override'])?clean(row['Latest Team Name']):'')||'Team to be confirmed';
       unique.set(id,{id,show:key(row['Show in Hub Override'])==='show',name:clean(row['Display Name Override'])||clean(row['Driver Name']),teamId,teamName,
         group:key(team['Organization Override']||team['Team Name']||teamName),
+        participation:participation(row.Participation),
+        teamParticipation:participation(team['Team Participation Override']),
+        teamHidden:key(team['Show in Hub Override'])==='hide',
         number:clean(row['Car Number Override'])||clean(row['Latest Car Number']),
         numberUrl:clean(row['Driver Number URL']),headshot:clean(row['Driver Headshot URL']),
         crew:clean(row['Crew Chief Override'])||clean(row['Crew Chief (API)']),
@@ -37,14 +42,15 @@ const NascarProfiles = (() => {
   }
   function groups(drivers,teams,series,season) {
     const map=new Map();
-    for(const driver of profiles(drivers,teams,series,season).filter(d=>d.show)) {
-      if(!map.has(driver.group))map.set(driver.group,{name:driver.teamName,logo:'',color:'',manufacturers:new Set(),drivers:[]});
-      const team=map.get(driver.group);
+    for(const driver of profiles(drivers,teams,series,season).filter(d=>d.show&&!d.teamHidden)) {
+      const group=JSON.stringify([driver.group,driver.teamParticipation]);
+      if(!map.has(group))map.set(group,{name:driver.teamName,participation:driver.teamParticipation,logo:'',color:'',manufacturers:new Set(),drivers:[]});
+      const team=map.get(group);
       team.logo ||= driver.logo;team.color ||= driver.color;
       if(driver.manufacturer)team.manufacturers.add(driver.manufacturer);
       team.drivers.push(driver);
     }
-    return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name)).map(t=>({...t,drivers:t.drivers.sort((a,b)=>a.number.localeCompare(b.number,undefined,{numeric:true})||a.name.localeCompare(b.name))}));
+    return [...map.values()].sort((a,b)=>participationOrder(a.participation)-participationOrder(b.participation)||a.name.localeCompare(b.name)).map(t=>({...t,drivers:t.drivers.sort((a,b)=>participationOrder(a.participation)-participationOrder(b.participation)||a.number.localeCompare(b.number,undefined,{numeric:true})||a.name.localeCompare(b.name))}));
   }
   function image(url,label,cls) {
     const safe=f1SafeImage(url);
@@ -53,8 +59,14 @@ const NascarProfiles = (() => {
   function numberMarkup(driver) {
     return `<span class="nascar-number">${image(driver.numberUrl,'Car '+driver.number,'nascar-number-image')}<span${f1SafeImage(driver.numberUrl)?' hidden':''}>${escapeHtml(driver.number?'#'+driver.number:'—')}</span></span>`;
   }
+  function teamCards(teams) {
+    return `<div class="nascar-team-list">${teams.map(team=>`<article class="nascar-team-card" style="--team-color:${team.color||'#e5b637'}"><header class="nascar-team-header"><div class="nascar-team-brand">${image(team.logo,team.name+' logo','nascar-team-logo')}<h3>${escapeHtml(team.name)}</h3></div><div class="nascar-makes">${[...team.manufacturers].map(m=>`<span class="nascar-make">${image(manufacturers[m],m,'nascar-make-logo')}<span${manufacturers[m]?' hidden':''}>${escapeHtml(m)}</span></span>`).join('')}</div></header><div class="nascar-driver-grid">${team.drivers.map((d,index)=>`${index===0||d.participation!==team.drivers[index-1].participation?'<h4 class="nascar-roster-heading">'+(d.participation?d.participation+' drivers':'Other drivers')+'</h4>':''}<section class="nascar-driver-card"><div class="nascar-driver-photo">${image(d.headshot,d.name,'nascar-headshot')||'<span class="nascar-photo-placeholder" aria-hidden="true">'+escapeHtml(d.name.split(' ').map(n=>n[0]).slice(0,2).join(''))+'</span>'}</div><div class="nascar-driver-name">${numberMarkup(d)}<h4>${escapeHtml(d.name)}</h4></div><p class="nascar-crew"><span>Crew chief</span>${escapeHtml(d.crew||'To be confirmed')}</p></section>`).join('')}</div></article>`).join('')}</div>`;
+  }
   function cards(teams) {
-    return `<div class="nascar-team-list">${teams.map(team=>`<article class="nascar-team-card" style="--team-color:${team.color||'#e5b637'}"><header class="nascar-team-header"><div class="nascar-team-brand">${image(team.logo,team.name+' logo','nascar-team-logo')}<h3>${escapeHtml(team.name)}</h3></div><div class="nascar-makes">${[...team.manufacturers].map(m=>`<span class="nascar-make">${image(manufacturers[m],m,'nascar-make-logo')}<span${manufacturers[m]?' hidden':''}>${escapeHtml(m)}</span></span>`).join('')}</div></header><div class="nascar-driver-grid">${team.drivers.map(d=>`<section class="nascar-driver-card"><div class="nascar-driver-photo">${image(d.headshot,d.name,'nascar-headshot')||'<span class="nascar-photo-placeholder" aria-hidden="true">'+escapeHtml(d.name.split(' ').map(n=>n[0]).slice(0,2).join(''))+'</span>'}</div><div class="nascar-driver-name">${numberMarkup(d)}<h4>${escapeHtml(d.name)}</h4></div><p class="nascar-crew"><span>Crew chief</span>${escapeHtml(d.crew||'To be confirmed')}</p></section>`).join('')}</div></article>`).join('')}</div>`;
+    return ['Full-time','Part-time',''].map(status=>{
+      const rows=teams.filter(t=>t.participation===status);
+      return rows.length?'<section class="nascar-team-section"><h3>'+(status?status+' teams':'Other teams')+'</h3>'+teamCards(rows)+'</section>':'';
+    }).join('');
   }
   function bindImages(el) {
     el.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;const fallback=img.nextElementSibling;if(fallback?.tagName==='SPAN')fallback.hidden=false;},{once:true}));
