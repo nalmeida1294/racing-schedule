@@ -189,6 +189,11 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .nascar-hub-tabs button[aria-pressed="true"] { background:#e5b637; color:#171717; border-color:#e5b637; }
 .nascar-team-list { display:grid; gap:22px; }
 .nascar-team-section { margin-bottom:28px; }
+.nascar-result-driver { display:flex; align-items:center; gap:10px; border-left:3px solid var(--team-color); padding-left:10px; min-width:170px; }
+.nascar-result-driver small { display:block; color:#aeb6c2; font-size:11px; margin-top:4px; }
+.nascar-competition-table { max-width:100%; overflow-x:auto; }
+.nascar-event-picker { display:flex; flex-direction:column; gap:8px; margin:14px 0; color:#b8c0ca; }
+.nascar-event-picker select { width:100%; max-width:600px; padding:12px; background:#20252b; color:#fff; border:1px solid #ffffff30; border-radius:8px; font:inherit; }
 .nascar-roster-heading { grid-column:1 / -1; margin:0; padding:12px 14px; color:#b8c0ca; font-size:12px; letter-spacing:.6px; background:#12161b; }
 .nascar-team-card { min-width:0; border:1px solid #ffffff20; border-top:3px solid var(--team-color); border-radius:14px; overflow:hidden; background:#181c22; }
 .nascar-team-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px; background:linear-gradient(110deg,color-mix(in srgb,var(--team-color) 16%,#181c22),#181c22); }

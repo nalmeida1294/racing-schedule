@@ -100,5 +100,7 @@ const NascarProfiles = (() => {
       el.querySelector('button').addEventListener('click',()=>render(el,series));
     }
   }
-  return {render,groups,profiles,numberMarkup,cards,bindImages};
+  function identities(series,season) {return profiles(state.drivers,state.teams,series,season);}
+  function teamIdentity(series,season,id) {return state.teams.find(r=>scope(r,series,season)&&clean(r['Team ID'])===String(id));}
+  return {render,groups,profiles,numberMarkup,cards,bindImages,load,identities,teamIdentity};
 })();

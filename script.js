@@ -426,6 +426,8 @@ function renderNascarHub(series,tab='schedule') {
     const content=hub.querySelector('#nascar-hub-content');
     if(tab==='teams') {
       NascarProfiles.render(content,series);
+    } else if(tab==='standings'||tab==='results') {
+      NascarCompetition.render(content,series,tab);
     } else if(tab==='tracks') {
       const ids=new Set(racesFor(series).map(r=>String(r.trackId)));
       const tracks=allTracks.filter(t=>t.source==='nascar'&&ids.has(String(t.trackId))).sort((a,b)=>a.name.localeCompare(b.name));
