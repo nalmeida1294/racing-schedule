@@ -188,6 +188,21 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .nascar-hub-tabs button { flex-shrink:0; padding:10px 14px; border:1px solid #ffffff25; border-radius:8px; background:#20252b; color:#eee; cursor:pointer; }
 .nascar-hub-tabs button[aria-pressed="true"] { background:#e5b637; color:#171717; border-color:#e5b637; }
 .nascar-team-list { display:grid; gap:22px; }
+.nascar-chase-badge { display:inline-block; position:relative; z-index:1; margin:5px 0; padding:4px 8px; border:1px solid #e5b63780; border-radius:5px; background:#302812; color:#ffe092; font-size:11px; font-weight:700; }
+.f1-table .nascar-chase-result>td { background:#e5b6370d; }
+.f1-table .nascar-chase-result>td:first-child { border-left:3px solid #e5b637; color:#ffe092; font-weight:800; }
+.nascar-chase-legend { color:#c6b993; font-size:12px; line-height:1.5; }
+.calendar-chase-race { box-shadow:inset 3px 0 #e5b637; }
+.nascar-overview-list { list-style:none; padding:0; margin:16px 0; }
+.nascar-overview-list li { display:flex; align-items:center; gap:9px; padding:12px 0; border-bottom:1px solid #ffffff14; }
+.nascar-overview-rank { min-width:20px; font-size:17px; font-weight:800; color:#f4c84d; }
+.nascar-overview .nascar-result-driver { min-width:0; flex:1; }
+.nascar-overview .nascar-result-driver>span:last-child { min-width:0; overflow-wrap:anywhere; }
+.nascar-overview .nascar-number { width:36px; }
+.nascar-overview .nascar-number-image { width:36px; }
+.nascar-overview-points { text-align:right; font-size:13px; flex-shrink:0; }
+.nascar-overview-points small { display:block; margin-top:4px; color:#b8c0ca; font-size:11px; }
+.nascar-overview .f1-feature { min-width:0; }
 .nascar-home-summary:empty { display:none; }
 .nascar-home-summary { margin-top:20px; padding-top:12px; border-top:1px solid #ffffff20; font-size:13px; }
 .nascar-home-summary p { color:#bbb; }
@@ -255,3 +270,47 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
  .nascar-driver-part-time .nascar-driver-name { min-height:70px; }
  .nascar-driver-part-time .nascar-driver-name h4 { font-size:14px; }
 }
+
+.f1-table .nascar-chase-eliminated>td{background:rgba(130,140,150,.06);color:#aeb5be}.f1-table .nascar-chase-eliminated>td:first-child{border-left-color:#707984;color:#aeb5be}.nascar-eliminated-label{display:block;margin-top:5px;color:#b4bbc5;font-size:11px;font-weight:600}
+
+
+.nascar-sort-button{font:inherit;color:inherit;background:transparent;border:0;padding:8px 2px;white-space:nowrap;cursor:pointer}.nascar-sort-button:focus-visible{outline:2px solid #eac44f;outline-offset:3px}.f1-table th[aria-sort=descending],.f1-table th[aria-sort=ascending]{color:#f2ce66}
+
+
+/* Team participation is independent of each driver's participation. */
+.nascar-part-time-section { margin-top:38px; padding-top:22px; border-top:2px solid #77818e; }
+.nascar-part-time-section>h3 { padding:14px 16px; border-radius:8px; border-left:4px solid #a4afbd; background:repeating-linear-gradient(135deg,#ffffff04 0 7px,transparent 7px 14px),#242b34; color:#e1e7ee; font-size:18px; letter-spacing:1px; text-transform:uppercase; }
+.nascar-team-full-time { box-shadow:0 0 0 1px color-mix(in srgb,var(--team-color) 24%,transparent); }
+.nascar-team-part-time { border-top:2px dashed #75808e; background:#14191f; }
+.nascar-team-part-time .nascar-team-header { padding:12px 14px; background:#20262e; }
+.nascar-team-part-time .nascar-team-logo { width:76px; height:46px; }
+.nascar-team-part-time .nascar-team-brand h3 { font-size:17px; }
+.nascar-team-status { display:inline-block; margin-top:7px; padding:3px 7px; border:1px solid #778392; border-radius:5px; color:#d0d8e2; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; }
+
+.nascar-part-time-entries-heading { border-top:2px dashed #7b8795; margin-top:12px; padding:15px 14px; background:repeating-linear-gradient(135deg,#ffffff04 0 7px,transparent 7px 14px),#252d37; color:#e1e7ee; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.nascar-part-time-entry { background:#141a21; }
+
+.nascar-driver-silhouette { display:flex; width:100%; height:100%; align-items:flex-end; justify-content:center; }
+.nascar-driver-silhouette svg { width:auto; max-width:100%; height:92%; fill:#596575; filter:drop-shadow(0 5px 12px #0005); }
+.nascar-silhouette-seam { fill:none; stroke:#34404d; stroke-width:2; }
+
+.nascar-overview-charts { margin-top:20px; min-width:0; }
+.nascar-chart-card { padding:18px; margin-bottom:18px; background:linear-gradient(145deg,#202630,#131920); border:1px solid #ffffff18; border-radius:14px; min-width:0; }
+.nascar-chart-card h3 { margin:0 0 10px; font-size:20px; }
+.nascar-chase-round { color:#f0c964; font-weight:700; margin:6px 0; }
+.nascar-chase-plot svg { width:100%; height:auto; display:block; max-height:530px; }
+.nascar-chase-plot text { fill:#bac5d1; font-size:10px; font-family:inherit; }
+.nascar-chart-actions { display:flex; gap:10px; margin-top:12px; }
+.nascar-chart-actions button { padding:10px 16px; color:#f1f4f8; background:#303a47; border:1px solid #ffffff30; border-radius:8px; cursor:pointer; }
+.nascar-driver-toggles { margin-top:14px; }
+.nascar-driver-toggles summary,.nascar-chart-data summary { padding:10px 0; cursor:pointer; }
+.nascar-driver-toggles label { display:flex; gap:9px; align-items:center; min-height:42px; font-size:13px; }
+.nascar-driver-toggles input { width:18px; height:18px; accent-color:#e8be51; }
+.nascar-chart-dot { display:inline-block; width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.nascar-chart-data { margin-top:8px; font-size:12px; color:#b7c2d0; }
+.nascar-win-charts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.nascar-win-pie { display:block; width:100%; max-width:280px; margin:auto; }
+.nascar-chart-legend { padding:0; margin:10px 0 0; list-style:none; }
+.nascar-chart-legend li { display:flex; gap:8px; align-items:center; padding:7px 0; font-size:12px; border-bottom:1px solid #ffffff0a; }
+.nascar-chart-legend li>span:nth-child(2) { flex:1; min-width:0; overflow-wrap:anywhere; }
+@media(max-width:760px) { .nascar-win-charts { grid-template-columns:1fr; gap:0; }.nascar-chart-card { padding:14px; } }

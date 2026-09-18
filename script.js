@@ -24,7 +24,8 @@ const formulaESources = {
   tracks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=1070679692&single=true&output=csv"
 };
 
-const defaultSeriesOrder = ["Formula 1", "INDYCAR", "NASCAR Cup Series", "WEC", "IMSA", "Formula E", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
+const previousDefaultSeriesOrder = ["Formula 1", "INDYCAR", "NASCAR Cup Series", "WEC", "IMSA", "Formula E", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
+const defaultSeriesOrder = ["Formula 1", "NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "INDYCAR", "WEC", "IMSA", "Formula E", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
 const nascarSeries = new Set(["NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series"]);
 const formulaSeries = new Set(["Formula 1", "Formula 2", "Formula 3", "F1 Academy"]);
 const indySeries = new Set(["INDYCAR", "Indy NXT"]);
@@ -168,7 +169,7 @@ function sourceForSeries(series) {
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem("racingSeriesSettings"));
-    if (Array.isArray(saved?.order)) seriesSettings.order = saved.order;
+    if (Array.isArray(saved?.order)) seriesSettings.order = JSON.stringify(saved.order)===JSON.stringify(previousDefaultSeriesOrder) ? [...defaultSeriesOrder] : saved.order;
     if (Array.isArray(saved?.hidden)) seriesSettings.hidden = saved.hidden;
     // Legacy next-race sorting is ignored; keep the saved order and visibility.
   } catch (_) { /* Default settings are already present. */ }
@@ -311,16 +312,16 @@ function renderHome(now = new Date()) {
       summary.className = "f1-home-summary";
       summary.innerHTML = f1HomeSummary();
       card.appendChild(summary);
-    } else {
+    } else if (!nascarHubSeries.has(series)) {
       const hubNotice = document.createElement("p");
       hubNotice.className = "series-hub-coming-soon";
-      hubNotice.textContent = nascarHubSeries.has(series) ? "In development · Next to launch" : "Full Series Hub Coming Soon";
+      hubNotice.textContent = "Full Series Hub Coming Soon";
       card.appendChild(hubNotice);
     }
     container.appendChild(card);
-    if(series==='NASCAR Cup Series'&&typeof NascarCompetition!=='undefined') {
+    if(nascarHubSeries.has(series)&&typeof NascarCompetition!=='undefined') {
       const summary=document.createElement('div');summary.className='nascar-home-summary';
-      card.appendChild(summary);NascarCompetition.homeSummary(summary);
+      card.appendChild(summary);NascarCompetition.homeSummary(summary,series);
     }
   });
   const futureSeries = [...new Set([
@@ -418,7 +419,7 @@ async function loadCupReviews() {
   } catch(error) {cupReviews.state='error';console.warn('Cup reviews unavailable',error);}
   document.querySelectorAll('[data-cup-track]').forEach(el=>{el.innerHTML=nascarTrackRatings(el.dataset.cupTrack);});
 }
-function renderNascarHub(series,tab='schedule') {
+function renderNascarHub(series,tab='overview') {
   activeSeriesName=series;
   document.getElementById('f1-hub').hidden=true;
   const hub=document.getElementById('series-hub'),calendar=document.getElementById('series-calendar');
@@ -428,7 +429,9 @@ function renderNascarHub(series,tab='schedule') {
   else {
     calendar.hidden=true;
     const content=hub.querySelector('#nascar-hub-content');
-    if(tab==='teams') {
+    if(tab==='overview') {
+      NascarCompetition.overview(content,series);
+    } else if(tab==='teams') {
       NascarProfiles.render(content,series);
     } else if(tab==='standings'||tab==='results') {
       NascarCompetition.render(content,series,tab);
@@ -446,7 +449,7 @@ function renderNascarHub(series,tab='schedule') {
   if(series==='NASCAR Cup Series')loadCupReviews();
 }
 function renderSeriesHub(series) {
-  if(nascarHubSeries.has(series))return renderNascarHub(series,'schedule');
+  if(nascarHubSeries.has(series))return renderNascarHub(series,'overview');
   activeSeriesName = series;
   document.getElementById("f1-hub").hidden = true;
   document.getElementById("series-calendar").hidden = true;
@@ -484,8 +487,10 @@ function renderSeries(series, focusCurrent = true) {
       item.style.setProperty("--series-glow", glow);
       nextRaceElement = item;
     }
+    const chaseRound=nascarHubSeries.has(series)&&/\bchase\b/i.test(String(race.round||''));
+    if(chaseRound)item.classList.add('calendar-chase-race');
     const scheduleTrack=nascarHubSeries.has(series)?allTracks.find(t=>t.source==='nascar'&&String(t.trackId)===String(race.trackId)):null;
-    item.innerHTML = `${racePhotoMarkup(race)}<div class="calendar-date">${formatDate(race.date)}</div><div class="calendar-event">${escapeHtml(race.event)}</div>${scheduleTrack?.name?`<div class="calendar-track-name">${escapeHtml(scheduleTrack.name)}</div>`:''}<div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
+    item.innerHTML = `${racePhotoMarkup(race)}<div class="calendar-date">${formatDate(race.date)}</div>${chaseRound?`<span class="nascar-chase-badge">${escapeHtml(race.round)}</span>`:''}<div class="calendar-event">${escapeHtml(race.event)}</div>${scheduleTrack?.name?`<div class="calendar-track-name">${escapeHtml(scheduleTrack.name)}</div>`:''}<div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
     item.addEventListener("click", () => showRaceDetails(race)); container.appendChild(item);
   });
   if (focusCurrent) {
@@ -598,11 +603,11 @@ function closeSeriesMenu() { seriesMenu.open = false; }
 function renderSeriesMenu() {
   const list = document.getElementById("series-menu-list");
   list.innerHTML = '<p class="series-menu-heading">All Racing Series</p>';
-  const available=seriesSettings.order.filter(series=>seriesStatus(series).status!==2);
+  const available=defaultSeriesOrder.filter(series=>seriesStatus(series).status!==2);
   available.forEach(series => {
     const button = document.createElement("button");
     button.type = "button";
-    button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'?'':`<small>${nascarHubSeries.has(series)?'In development · Next to launch':'Series Hub coming soon'}</small>`}`;
+    button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'||nascarHubSeries.has(series)?'':'<small>Series Hub coming soon</small>'}`;
     button.addEventListener("click", async () => {
       closeSeriesMenu();
       if(series==='Formula 1')await showSeries(series);
