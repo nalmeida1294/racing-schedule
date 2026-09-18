@@ -6,6 +6,13 @@ const NascarCharts=(()=>{
  const palette=['#ee5253','#36b9dc','#f4ba46','#9a85ed','#65cfaa','#e897ba','#7eacec','#db944a','#a3ce62','#d6dce5','#c872dc','#55a998','#d6ce73','#a38d7e','#7397a0','#d17b81'];
  const safeImage=(url,x,y,w,h)=>{const safe=f1SafeImage(url);return safe?`<image href="${esc(safe)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`:'';};
  const normalized=v=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
+ // Retain each brand's hue while softening bright spreadsheet colors for the dark UI.
+ const brandColor=(value,fallback='#607184')=>{
+   const hex=/^#[a-f0-9]{6}$/i.test(value||'')?value:fallback;
+   const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+   const gray=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+   return '#'+rgb.map(v=>Math.round((v*.78+gray*.22)*.82+30*.18).toString(16).padStart(2,'0')).join('');
+ };
  function wins(rows,series,profiles,kind){
    const buckets=new Map(),seen=new Set();
    rows.filter(r=>Number(r['Race Type'])===1&&Number(r.Position)===1&&String(r.Disqualified)!=='TRUE').forEach(r=>{
@@ -17,7 +24,7 @@ const NascarCharts=(()=>{
      if(!buckets.has(key))buckets.set(key,{key,name:kind==='driver'?(p?.name||r['Driver Name']):kind==='team'?org:manufacturer,numbers:new Set(),count:0,image:kind==='driver'?(p?.number===String(r['Car Number'])?p.numberUrl:''):kind==='team'?team?.['Team Logo URL']:NascarProfiles.manufacturerLogo(manufacturer),color:kind==='manufacturer'?{Chevrolet:'#dcb955',Ford:'#429be2',Toyota:'#ef5350',RAM:'#bdc5d0'}[manufacturer]:team?.['Team Color Hex']||p?.color});
      const b=buckets.get(key);b.count++;b.numbers.add(String(r['Car Number']));
    });
-   return [...buckets.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).map((b,i)=>({...b,label:b.name+(kind==='driver'?' · #'+[...b.numbers].join(' / #'):''),color:kind==='driver'?palette[i%palette.length]:/^#[a-f0-9]{6}$/i.test(b.color||'')?b.color:palette[i%palette.length]}));
+   return [...buckets.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).map((b,i)=>({...b,label:b.name+(kind==='driver'?' · #'+[...b.numbers].join(' / #'):''),color:kind==='driver'?palette[i%palette.length]:kind==='manufacturer'?({Chevrolet:'#a68b50',Ford:'#285581',Toyota:'#a5343d',RAM:'#89939f'}[b.name]||'#607184'):brandColor(b.color,['#607184','#8b8173','#506b70','#767c89'][i%4])}));
  }
  function pie(title,items){
    const total=items.reduce((n,b)=>n+b.count,0);let angle=-Math.PI/2;
@@ -52,7 +59,7 @@ const NascarCharts=(()=>{
    el.querySelector('[data-chart-top]').onclick=()=>{selected.clear();info.slice(0,5).forEach(d=>selected.add(d.id));draw();};el.querySelector('[data-chart-all]').onclick=()=>{info.forEach(d=>selected.add(d.id));draw();};el.querySelectorAll('input').forEach(i=>i.onchange=()=>{i.checked?selected.add(i.value):selected.delete(i.value);draw();});draw();
  }
  function render(el,series,rows,standings,profiles){
-   el.innerHTML='<section class="nascar-chart-card nascar-battle"></section><div class="nascar-win-charts">'+[['driver','Wins by Driver'],['team','Wins by Team'],['manufacturer','Wins by Manufacturer']].map(([kind,title])=>pie(title,wins(rows,series,profiles,kind))).join('')+'</div>';
+   el.innerHTML='<section class="nascar-chart-card nascar-battle"></section><div class="nascar-win-charts">'+[['team','Wins by Team'],['manufacturer','Wins by Manufacturer']].map(([kind,title])=>pie(title,wins(rows,series,profiles,kind))).join('')+'</div>';
    battle(el.querySelector('.nascar-battle'),rows,standings,series,profiles);
    el.querySelectorAll('svg image').forEach(img=>img.addEventListener('error',()=>img.remove(),{once:true}));
  }
