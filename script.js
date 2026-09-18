@@ -318,6 +318,10 @@ function renderHome(now = new Date()) {
       card.appendChild(hubNotice);
     }
     container.appendChild(card);
+    if(series==='NASCAR Cup Series'&&typeof NascarCompetition!=='undefined') {
+      const summary=document.createElement('div');summary.className='nascar-home-summary';
+      card.appendChild(summary);NascarCompetition.homeSummary(summary);
+    }
   });
   const futureSeries = [...new Set([
     ...seriesSettings.order.filter(series => seriesStatus(series, now).status === 2),
@@ -480,7 +484,8 @@ function renderSeries(series, focusCurrent = true) {
       item.style.setProperty("--series-glow", glow);
       nextRaceElement = item;
     }
-    item.innerHTML = `${racePhotoMarkup(race)}<div class="calendar-date">${formatDate(race.date)}</div><div class="calendar-event">${escapeHtml(race.event)}</div><div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
+    const scheduleTrack=nascarHubSeries.has(series)?allTracks.find(t=>t.source==='nascar'&&String(t.trackId)===String(race.trackId)):null;
+    item.innerHTML = `${racePhotoMarkup(race)}<div class="calendar-date">${formatDate(race.date)}</div><div class="calendar-event">${escapeHtml(race.event)}</div>${scheduleTrack?.name?`<div class="calendar-track-name">${escapeHtml(scheduleTrack.name)}</div>`:''}<div class="calendar-details">${race.round ? `Round: ${escapeHtml(race.round)}<br>` : ""}Time: ${escapeHtml(race.time || "TBD")}${race.network ? `<br>Network: ${escapeHtml(race.network)}` : ""}${race.notes ? `<br>Notes: ${escapeHtml(race.notes)}` : ""}</div>`;
     item.addEventListener("click", () => showRaceDetails(race)); container.appendChild(item);
   });
   if (focusCurrent) {
