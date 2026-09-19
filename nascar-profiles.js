@@ -70,7 +70,7 @@ const NascarProfiles = (() => {
     return photo+`<span class="nascar-driver-silhouette" aria-hidden="true"${photo?' hidden':''}><svg viewBox="0 0 160 200" focusable="false" aria-hidden="true"><circle cx="80" cy="44" r="29"/><path d="M65 70h30v18l23 8c17 6 24 20 27 43l7 61H8l7-61c3-23 10-37 27-43l23-8z"/><path class="nascar-silhouette-seam" d="M80 93v107M47 103l-8 97m74-97 8 97"/></svg></span>`;
   }
   function teamCards(teams) {
-    return `<div class="nascar-team-list">${teams.map(team=>`<article class="nascar-team-card${team.participation==='Part-time'?' nascar-team-part-time':team.participation==='Full-time'?' nascar-team-full-time':''}" style="--team-color:${team.color||'#e5b637'}"><header class="nascar-team-header"><div class="nascar-team-brand">${image(team.logo,team.name+' logo','nascar-team-logo')}<div><h3>${escapeHtml(team.name)}</h3>${team.participation==='Part-time'?'<span class="nascar-team-status">Part-time team</span>':''}</div></div><div class="nascar-makes">${[...team.manufacturers].map(m=>`<span class="nascar-make">${image(manufacturers[m],m,'nascar-make-logo')}<span${manufacturers[m]?' hidden':''}>${escapeHtml(m)}</span></span>`).join('')}</div></header><div class="nascar-driver-grid">${team.drivers.map((d,index)=>`${index===0||rosterSection(d)!==rosterSection(team.drivers[index-1])?'<h4 class="nascar-roster-heading'+(d.teamParticipation==='Part-time'?' nascar-part-time-entries-heading':'')+'">'+rosterSection(d)+'</h4>':''}<section class="nascar-driver-card${d.teamParticipation==='Part-time'?' nascar-part-time-entry':''}${d.participation==='Part-time'?' nascar-driver-part-time':d.participation==='Full-time'?' nascar-driver-full-time':''}"><div class="nascar-driver-photo">${driverPortrait(d)}</div><div class="nascar-driver-name">${numberMarkup(d)}<h4>${escapeHtml(d.name)}</h4></div><p class="nascar-crew"><span>Crew chief</span>${escapeHtml(d.crew||'To be confirmed')}</p></section>`).join('')}</div></article>`).join('')}</div>`;
+    return `<div class="nascar-team-list">${teams.map(team=>`<article class="nascar-team-card${team.participation==='Part-time'?' nascar-team-part-time':team.participation==='Full-time'?' nascar-team-full-time':''}" style="--team-color:${team.color||'#e5b637'}"><header class="nascar-team-header"><div class="nascar-team-brand">${image(team.logo,team.name+' logo','nascar-team-logo')}<div><h3>${escapeHtml(team.name)}</h3>${team.participation==='Part-time'?'<span class="nascar-team-status">Part-time team</span>':''}</div></div><div class="nascar-makes">${[...team.manufacturers].map(m=>`<span class="nascar-make">${image(manufacturers[m],m,'nascar-make-logo')}<span${manufacturers[m]?' hidden':''}>${escapeHtml(m)}</span></span>`).join('')}</div></header><div class="nascar-driver-grid">${team.drivers.map((d,index)=>`${index===0||rosterSection(d)!==rosterSection(team.drivers[index-1])?'<h4 class="nascar-roster-heading'+(d.teamParticipation==='Part-time'?' nascar-part-time-entries-heading':'')+'">'+rosterSection(d)+'</h4>':''}<section class="nascar-driver-card${d.teamParticipation==='Part-time'?' nascar-part-time-entry':''}${d.participation==='Part-time'?' nascar-driver-part-time':d.participation==='Full-time'?' nascar-driver-full-time':''}"><div class="nascar-driver-photo">${driverPortrait(d)}</div><div class="nascar-driver-name">${numberMarkup(d)}<h4>${escapeHtml(d.name)}</h4></div><p class="driver-standing"><span>Championship</span><strong>${Number.isInteger(d.standingPosition)&&d.standingPosition>0?'P'+d.standingPosition:'—'}</strong></p><p class="nascar-crew"><span>Crew chief</span>${escapeHtml(d.crew||'To be confirmed')}</p></section>`).join('')}</div></article>`).join('')}</div>`;
   }
   function cards(teams) {
     return ['Full-time','Part-time',''].map(status=>{
@@ -97,16 +97,19 @@ const NascarProfiles = (() => {
     return state.pending;
   }
   async function render(el,series) {
+    if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){Spoilers.render(el,series);return;}
     const season=new Date().getFullYear();
     el.innerHTML='<h2>Teams &amp; Drivers</h2><p role="status">Loading teams and drivers…</p>';
     if(!NASCAR_PROFILE_FEEDS.drivers||!NASCAR_PROFILE_FEEDS.teams) {
       el.innerHTML='<h2>Teams &amp; Drivers</h2><p>Team profiles are coming soon.</p>';return;
     }
     try {
-      await load();
+      const [,standings]=await Promise.all([load(),typeof NascarCompetition!=="undefined"?NascarCompetition.standingsFor(series).catch(()=>null):Promise.resolve(null)]);
       if(!el.isConnected)return;
       const roster=groups(state.drivers,state.teams,series,season);
-      el.innerHTML=`<h2>Teams &amp; Drivers</h2><p class="f1-data-note">${season} season</p>${roster.length?cards(roster):'<p>No drivers have been selected for this season yet.</p>'}`;
+      const positions=new Map((standings||[]).map(r=>[String(r["Driver ID"]),Number(r.Position)]));
+      roster.forEach(team=>team.drivers.forEach(driver=>driver.standingPosition=positions.get(driver.id)));
+      el.innerHTML=`<h2>Teams &amp; Drivers</h2><p class="f1-data-note">${season} season${standings===null?' · Championship positions temporarily unavailable':' · Championship position shown for this series'}</p>${roster.length?cards(roster):'<p>No drivers have been selected for this season yet.</p>'}`;
       bindImages(el);
     } catch(error) {
       if(!el.isConnected)return;

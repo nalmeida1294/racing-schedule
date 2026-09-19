@@ -38,6 +38,7 @@
     <p>RACE <em>CONTROL</em></p></div>
     <span id="loader-message">Opening Race Control…</span>
     <button id="retry-load" type="button" hidden>Try again</button>
+    <button id="cancel-load" type="button" hidden>Go back</button>
 </div>
 
 <header>
@@ -224,6 +225,16 @@
       <button type="button" class="support-close" id="patch-notes-close" aria-label="Close patch notes">×</button>
       <h2 id="patch-notes-title">Patch notes</h2>
       <p class="patch-notes-intro">The latest additions and improvements to Race Control. Earlier entries follow our development milestones; date ranges group work completed across several sessions.</p>
+      <article class="patch-release">
+        <time datetime="2026-09-19">September 19, 2026</time>
+        <h3>Faster startup and driver standings</h3>
+        <ul>
+          <li>The home page waits for its calendars, track details, summaries and images before opening; weekend sessions and deeper hub data load separately.</li>
+          <li>Weekend sessions load when an event opens. Hubs request the data needed for their selected tab.</li>
+          <li>A brief branded loader appears when a section needs data, with retry and back options if loading fails. Cached views open without an artificial delay.</li>
+          <li>Driver cards show their championship position in F1 and all three NASCAR hubs.</li>
+        </ul>
+      </article>
       <article class="patch-release">
         <time datetime="2026-09-18">September 18, 2026</time>
         <h3>NASCAR hubs: standings, results and the Chase</h3>

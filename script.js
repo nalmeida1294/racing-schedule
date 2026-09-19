@@ -107,20 +107,40 @@ function parseCsv(text) {
 function csvObjects(text) {
   const rows = parseCsv(text);
   const headers = (rows.shift() || []).map(header => header.replace(/^\uFEFF/, "").trim());
-  return rows.map(row => headers.reduce((record, header, index) => ({ ...record, [header]: (row[index] || "").trim() }), {}));
+  return rows.map(row => { const record = {}; headers.forEach((header,index) => Object.defineProperty(record,header,{value:(row[index] || "").trim(),enumerable:true,configurable:true,writable:true})); return record; });
 }
 
-async function fetchSheet(url) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
-  try {
-    const response = await fetch(`${url}&cacheBust=${Date.now()}`, { signal: controller.signal });
-    if (!response.ok) throw new Error(`Feed returned ${response.status}`);
-    return csvObjects(await response.text());
-  } catch(error) {
-    if(typeof window.rcRecordIssue==='function')window.rcRecordIssue('feed','Published racing feed could not load');
-    throw error;
-  } finally { clearTimeout(timeout); }
+const sheetRequests = new Map();
+const SHEET_CACHE_MS = 60000;
+function fetchSheet(url, {force=false} = {}) {
+  const cached=sheetRequests.get(url);
+  if(cached?.pending)return cached.pending;
+  if(!force&&cached?.rows&&Date.now()-cached.loaded<SHEET_CACHE_MS)return Promise.resolve(cached.rows);
+  const storageKey='rc-sheet-v1:'+url;
+  if(!force&&!cached){
+    try {const saved=JSON.parse(sessionStorage.getItem(storageKey));const age=Date.now()-saved?.loaded;
+      if(saved&&age>=0&&age<SHEET_CACHE_MS&&typeof saved.text==='string'){
+        const rows=csvObjects(saved.text);sheetRequests.set(url,{rows,loaded:saved.loaded});return Promise.resolve(rows);
+      }
+    }catch{}
+  }
+  const item=cached||{};sheetRequests.set(url,item);
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),30000);
+  item.pending=(async()=>{
+    try{
+      const separator=url.includes('?')?'&':'?';
+      const response=await fetch(`${url}${separator}cacheBust=${force?Date.now():Math.floor(Date.now()/SHEET_CACHE_MS)}`,{signal:controller.signal});
+      if(!response.ok)throw new Error(`Feed returned ${response.status}`);
+      const raw=await response.text(),rows=csvObjects(raw);
+      item.rows=rows;item.loaded=Date.now();
+      try {if(raw.length<1500000)sessionStorage.setItem(storageKey,JSON.stringify({loaded:item.loaded,text:raw}));}catch{}
+      return rows;
+    }catch(error){
+      if(typeof window.rcRecordIssue==='function')window.rcRecordIssue('feed','Published racing feed could not load');
+      throw error;
+    }finally{clearTimeout(timeout);item.pending=null;}
+  })();
+  return item.pending;
 }
 
 function formatDate(date) {
@@ -282,6 +302,7 @@ function displayedSeries(now = new Date()) {
 }
 
 function renderHome(now = new Date()) {
+  const homeJobs=[];
   const today = now;
   const container = document.getElementById("schedule"); container.innerHTML = "";
   renderWeekendRaces(now);
@@ -321,7 +342,7 @@ function renderHome(now = new Date()) {
     container.appendChild(card);
     if(nascarHubSeries.has(series)&&typeof NascarCompetition!=='undefined') {
       const summary=document.createElement('div');summary.className='nascar-home-summary';
-      card.appendChild(summary);NascarCompetition.homeSummary(summary,series);
+      card.appendChild(summary);homeJobs.push(NascarCompetition.homeSummary(summary,series));
     }
   });
   const futureSeries = [...new Set([
@@ -333,6 +354,7 @@ function renderHome(now = new Date()) {
   futureSection.setAttribute("aria-labelledby", "future-series-heading");
   futureSection.innerHTML = `<h2 id="future-series-heading" class="series-group-heading">Future Series to Be Added</h2><ul>${futureSeries.map(series => `<li>${escapeHtml(series)}</li>`).join("")}<li class="future-more">and more!</li></ul>`;
   container.appendChild(futureSection);
+  return Promise.allSettled(homeJobs);
 }
 
 function nextRaceSortTime(race) {
@@ -377,23 +399,43 @@ function setLoading(visible, message = "Loading Race Control…") {
   document.getElementById("loader-message").textContent = message;
   document.getElementById("loader-brand").innerHTML = brandedLoaderMarkup("");
   document.getElementById("retry-load").hidden = true;
+  const cancel=document.getElementById("cancel-load");if(cancel)cancel.hidden=true;
   document.getElementById("app").setAttribute("aria-busy", String(visible));
   document.querySelector("header").inert = visible;
   document.querySelector("main").inert = visible;
 }
 
+async function waitPageImages(root){
+  // Include the full rendered page, even below the fold, but not closed panels.
+  const images=[...root.querySelectorAll('img')].filter(img=>!img.hidden&&img.getClientRects().length);
+  await Promise.all(images.map(img=>new Promise(resolve=>{
+    let settled=false;
+    const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);img.removeEventListener('load',done);img.removeEventListener('error',done);resolve();};
+    const done=()=>{if(img.naturalWidth&&img.decode)img.decode().catch(()=>{}).finally(finish);else finish();};
+    const timer=setTimeout(()=>{if(!img.complete){img.hidden=true;img.dispatchEvent(new Event('error'));}finish();},15000);
+    img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true});img.loading='eager';
+    if(img.complete)done();
+  })));
+}
 async function withLoading(prepare, message) {
-  if (loading) return;
-  loading = true;
-  setLoading(true, message);
-  try {
-    // Allow the shared loader to paint before preparing the next view.
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await prepare();
-  } finally {
-    setLoading(false);
-    loading = false;
+  // Nested view renderers share the outer loading lifecycle.
+  if(loading)return prepare();
+  loading=true;let failed=false;
+  const timer=setTimeout(()=>setLoading(true,message),120);
+  try{
+    const result=await prepare();
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const page=['home-view','series-view','event-view'].map(id=>document.getElementById(id)).find(el=>el&&el.style.display!=='none'&&el.getClientRects().length);
+    if(page)await waitPageImages(page);
+    return result;
   }
+  catch(error){
+    failed=true;setLoading(true,message);loadingRetry=()=>withLoading(prepare,message);
+    document.getElementById('loader-message').textContent='This section could not load. Please try again.';
+    document.getElementById('retry-load').hidden=false;
+    const cancel=document.getElementById('cancel-load');if(cancel)cancel.hidden=false;
+    console.error('Section loading failed:',error);
+  }finally{clearTimeout(timer);if(!failed){setLoading(false);loadingRetry=null;}loading=false;}
 }
 
 function showSeries(series) {
@@ -420,25 +462,27 @@ async function loadCupReviews() {
   } catch(error) {cupReviews.state='error';console.warn('Cup reviews unavailable',error);}
   document.querySelectorAll('[data-cup-track]').forEach(el=>{el.innerHTML=nascarTrackRatings(el.dataset.cupTrack);});
 }
-function renderNascarHub(series,tab='overview') {
+function renderNascarHub(series,tab='overview',prepared=false) {
+  if(!prepared)return withLoading(async()=>{await loadSeriesDetails(series);await NascarCompetition.preload(series,tab);return renderNascarHub(series,tab,true);},'Opening '+series+'…');
   activeSeriesName=series;
   document.getElementById('f1-hub').hidden=true;
   const hub=document.getElementById('series-hub'),calendar=document.getElementById('series-calendar');
   const tabs={overview:'Overview',chase:'The Chase',schedule:'Schedule',standings:'Standings',teams:'Teams & Drivers',results:'Results',tracks:'Tracks'};
   hub.innerHTML=`<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT · NEXT TO LAUNCH</span></div><nav class="nascar-hub-tabs" aria-label="Series sections">${Object.entries(tabs).map(([key,label])=>`<button type="button" data-nascar-tab="${key}" aria-pressed="${key===tab}">${label}</button>`).join('')}</nav><div id="nascar-hub-content"></div>`;
-  if(tab==='schedule')renderSeries(series,false);
+  let contentReady;
+  if(tab==='schedule')renderSeries(series,false,true);
   else {
     calendar.hidden=true;
     const content=hub.querySelector('#nascar-hub-content');
-    if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){Spoilers.render(content,series);}
+    if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){contentReady=Spoilers.render(content,series);}
     else if(tab==='overview') {
-      NascarCompetition.overview(content,series);
+      contentReady=NascarCompetition.overview(content,series);
     } else if(tab==='chase') {
-      NascarCompetition.chase(content,series);
+      contentReady=NascarCompetition.chase(content,series);
     } else if(tab==='teams') {
-      NascarProfiles.render(content,series);
+      contentReady=NascarProfiles.render(content,series);
     } else if(tab==='standings'||tab==='results') {
-      NascarCompetition.render(content,series,tab);
+      contentReady=NascarCompetition.render(content,series,tab);
     } else if(tab==='tracks') {
       const ids=new Set(racesFor(series).map(r=>String(r.trackId)));
       const tracks=allTracks.filter(t=>t.source==='nascar'&&ids.has(String(t.trackId))).sort((a,b)=>a.name.localeCompare(b.name));
@@ -452,7 +496,8 @@ function renderNascarHub(series,tab='overview') {
   const activeTab=hub.querySelector('[aria-pressed="true"]');
   if(activeTab)activeTab.parentElement.scrollLeft=Math.max(0,activeTab.offsetLeft-activeTab.parentElement.offsetLeft-(activeTab.parentElement.clientWidth-activeTab.offsetWidth)/2);
   if(tab==='schedule')focusScheduleRace();
-  if(series==='NASCAR Cup Series')loadCupReviews();
+  const reviewsReady=series==='NASCAR Cup Series'?loadCupReviews():null;
+  return Promise.allSettled([contentReady,reviewsReady]);
 }
 function renderSeriesHub(series) {
   if(nascarHubSeries.has(series))return renderNascarHub(series,'overview');
@@ -466,7 +511,8 @@ function renderSeriesHub(series) {
   setView("series-view");
 }
 
-function renderSeries(series, focusCurrent = true) {
+function renderSeries(series, focusCurrent = true,prepared=false) {
+  if(!prepared)return withLoading(async()=>{await loadSeriesDetails(series);return renderSeries(series,focusCurrent,true);},'Opening schedule…');
   if(focusCurrent&&nascarHubSeries.has(series))return renderNascarHub(series,'schedule');
   document.getElementById("series-hub").hidden = true;
   activeSeriesName = series;
@@ -562,7 +608,8 @@ function showRaceDetails(race) {
   return withLoading(() => renderRaceDetails(race), "Opening event…");
 }
 
-function renderRaceDetails(race) {
+function renderRaceDetails(race,prepared=false) {
+  if(!prepared)return withLoading(async()=>{await loadSeriesDetails(race.series,true);return renderRaceDetails(race,true);},'Opening event…');
   activeSeriesName = race.series;
   const sessions = allSessions.filter(session => String(session.raceId) === String(race.raceId) && session.series === race.series).sort((a, b) => sessionTime(a) - sessionTime(b));
   const source = sourceForSeries(race.series);
@@ -641,7 +688,7 @@ document.addEventListener("keydown", event => {
 function showHome() {
   closeSeriesMenu();
   overlay.classList.remove("active");
-  return withLoading(() => { renderHome(); setView("home-view"); }, "Opening home…");
+  return withLoading(() => { const ready=renderHome(); setView("home-view"); return ready; }, "Opening home…");
 }
 document.getElementById("home-button").addEventListener("click", event => { event.preventDefault(); showHome(); });
 document.getElementById("customize-button").addEventListener("click", () => { closeSeriesMenu(); renderCustomizePanel(); overlay.classList.add("active"); });
@@ -669,37 +716,48 @@ document.getElementById("back-to-top").addEventListener("click", () => {
 document.getElementById("reset-series").addEventListener("click", () => { seriesSettings.order = [...defaultSeriesOrder]; saveSettings(); renderCustomizePanel(); renderHome(); });
 
 loadSettings();
-async function loadData() {
-  if (loading) return;
-  loading = true;
-  setLoading(true, "Loading racing schedules…");
-  try {
-    await Promise.all([
-  fetchSheet(scheduleSources.main), fetchSheet(scheduleSources.sessions), fetchSheet(scheduleSources.tracks),
-  fetchSheet(formulaSources.main), fetchSheet(formulaSources.sessions), fetchSheet(formulaSources.tracks),
-  fetchSheet(indySources.main), fetchSheet(indySources.sessions), fetchSheet(indySources.tracks),
-  fetchSheet(wecSources.main), fetchSheet(wecSources.sessions), fetchSheet(wecSources.tracks),
-  fetchSheet(formulaESources.main), fetchSheet(formulaESources.sessions), fetchSheet(formulaESources.tracks)
-])
-  .then(([nascarRaces, nascarSessions, nascarTracks, formulaRaces, formulaSessions, formulaTracks, indyRaces, indySessions, indyTracks, wecRaces, wecSessions, wecTracks, formulaERaces, formulaESessions, formulaETracks]) => {
-    const raceRows = nascarRaces.concat(formulaRaces, indyRaces, wecRaces, formulaERaces);
-    const sessionRows = nascarSessions.concat(formulaSessions, indySessions, wecSessions, formulaESessions);
-    allRaces = raceRows.map(row => ({ raceId: row["Race ID"], round: row.Round, event: row.Event, trackId: row["Track ID"], series: row.Series, date: row.Date, time: row.Time, network: row.Network, notes: row.Notes })).filter(race => race.series && race.event);
-    allSessions = sessionRows.map(row => ({ raceId: row["Race ID"], trackId: row["Track ID"], series: row.Series, session: row.Session, type: row["Session Type"], date: row["Start Date"], time: row["Start Time"], notes: row.Notes })).filter(session => session.raceId && session.session);
-    const toTrack = (row, source) => ({ trackId: row["Track ID"], name: String(row["Track Name Override"] || "").trim() || row["Track Name"], apiName: row["Track Name"], city: row.City, state: row.State, surface: row.Surface, type: row["Track Type"], banking: row.Banking, yearBuilt: row["Year Built"], firstGrandPrix: row["First Grand Prix"], length: row["Track Length"], mapUrl: row["Track Map URL"], imageUrl: row["Track Image URL"], description: row.Description, source });
-    allTracks = nascarTracks.map(row => toTrack(row, "nascar")).concat(formulaTracks.map(row => toTrack(row, "formula")), indyTracks.map(row => toTrack(row, "indy")), wecTracks.map(row => toTrack(row, "wec")), formulaETracks.map(row => toTrack(row, "formula-e"))).filter(track => track.trackId);
-    renderHome();
-    dataReady = true;
-    loadF1Feeds();
-  });
-    setLoading(false);
-  } catch (error) {
-    console.error("Error loading racing schedule:", error);
-    document.getElementById("loader-message").textContent = "Unable to load schedules. Check your connection and try again.";
-    document.getElementById("retry-load").hidden = false;
-  } finally { loading = false; }
+const detailSources={nascar:scheduleSources,formula:formulaSources,indy:indySources,wec:wecSources,'formula-e':formulaESources};
+const detailLoads=new Map();
+let loadingRetry=null;
+function loadSeriesDetails(series,sessions=false){
+  const source=sourceForSeries(series),feeds=detailSources[source];
+  return Promise.all((sessions?['tracks','sessions']:['tracks']).map(kind=>{
+    const key=source+':'+kind,old=detailLoads.get(key);
+    if(old?.pending)return old.pending;
+    if(old?.loaded&&Date.now()-old.loaded<300000)return Promise.resolve();
+    const item=old||{};detailLoads.set(key,item);
+    item.pending=fetchSheet(feeds[kind]).then(rows=>{
+      if(kind==='tracks'){
+        const tracks=rows.map(row=>({trackId:row['Track ID'],name:String(row['Track Name Override']||'').trim()||row['Track Name'],apiName:row['Track Name'],city:row.City,state:row.State,surface:row.Surface,type:row['Track Type'],banking:row.Banking,yearBuilt:row['Year Built'],firstGrandPrix:row['First Grand Prix'],length:row['Track Length'],mapUrl:row['Track Map URL'],imageUrl:row['Track Image URL'],description:row.Description,source})).filter(t=>t.trackId);
+        allTracks=allTracks.filter(t=>t.source!==source).concat(tracks);
+      }else{
+        const sessions=rows.map(row=>({raceId:row['Race ID'],trackId:row['Track ID'],series:row.Series,session:row.Session,type:row['Session Type'],date:row['Start Date'],time:row['Start Time'],notes:row.Notes})).filter(r=>r.raceId&&r.session);
+        allSessions=allSessions.filter(r=>sourceForSeries(r.series)!==source).concat(sessions);
+      }
+      item.loaded=Date.now();
+    }).finally(()=>{item.pending=null;});
+    return item.pending;
+  }));
 }
-document.getElementById("retry-load").addEventListener("click", loadData);
+async function loadData() {
+  if(loading)return;
+  loading=true;loadingRetry=loadData;setLoading(true,'Loading racing schedules…');
+  try{
+    const families=await Promise.all(Object.values(detailSources).map(source=>fetchSheet(source.main)));
+    allRaces=families.flat().map(row=>({raceId:row['Race ID'],round:row.Round,event:row.Event,trackId:row['Track ID'],series:row.Series,date:row.Date,time:row.Time,network:row.Network,notes:row.Notes})).filter(r=>r.series&&r.event);
+    await Promise.all([...['NASCAR Cup Series','Formula 1','INDYCAR','WEC','Formula E'].map(series=>loadSeriesDetails(series)),loadF1Feeds(false,'home')]);
+    await renderHome();
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    await waitPageImages(document.getElementById('home-view'));
+    dataReady=true;setLoading(false);loadingRetry=null;
+  }catch(error){
+    console.error('Error loading racing schedule:',error);
+    document.getElementById('loader-message').textContent='Unable to load schedules. Check your connection and try again.';
+    document.getElementById('retry-load').hidden=false;
+  }finally{loading=false;}
+}
+document.getElementById('retry-load').addEventListener('click',()=>loadingRetry?.());
+document.getElementById('cancel-load')?.addEventListener('click',()=>{loadingRetry=null;setLoading(false);});
 
 // Re-evaluate the local calendar at midnight, including after a sleeping tab resumes.
 let renderedDate = localIsoDate();

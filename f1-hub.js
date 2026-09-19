@@ -23,8 +23,17 @@ function brandedLoaderMarkup(message) {
   return `<div class="splash-flag" aria-hidden="true"><span></span><span></span><span></span><span></span></div><p>RACE <em>CONTROL</em></p><span>${escapeHtml(message)}</span>`;
 }
 
-function loadF1Feeds(force = false) {
-  return Promise.all(Object.keys(f1Feeds).map(key => loadF1Feed(key, force)));
+function loadF1Feeds(force = false, view = f1Tab) {
+  if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Promise.resolve([]);
+  const common=['drivers','constructors','status'];
+  const dependencies={home:['standings','constructorStandings','drivers','constructors'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews'],tracks:['trackScores','reviews'],schedule:[],records:[]};
+  return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force)));
+}
+let f1RefreshQueued=false;
+function queueF1Refresh(){
+  if(f1RefreshQueued)return;
+  f1RefreshQueued=true;
+  requestAnimationFrame(()=>{f1RefreshQueued=false;updateF1HomeSummary();refreshF1Hub();if(typeof refreshF1EventRatings==='function')refreshF1EventRatings();});
 }
 
 function loadF1Feed(key, force = false) {
@@ -35,7 +44,7 @@ function loadF1Feed(key, force = false) {
   entry.state = "loading";
   entry.promise = (async () => {
     try {
-      const rows = await fetchSheet(`${f1FeedBase}?gid=${f1Feeds[key].gid}&single=true&output=csv`);
+      const rows = await fetchSheet(`${f1FeedBase}?gid=${f1Feeds[key].gid}&single=true&output=csv`, {force});
       const required = f1Feeds[key].required.concat(f1Feeds[key].manual ? [] : key === "status" ? ["Season"] : ["Season", "In Latest Feed", "Updated UTC"]);
       // A correctly published empty data tab may have no rows yet.
       if (rows.length && required.some(column => !(column in rows[0]))) throw new Error("Unexpected feed columns");
@@ -48,9 +57,7 @@ function loadF1Feed(key, force = false) {
       console.error(`Formula 1 ${key} unavailable:`, error);
     } finally {
       entry.promise = null;
-      updateF1HomeSummary();
-      refreshF1Hub();
-      if (typeof refreshF1EventRatings === "function") refreshF1EventRatings();
+      queueF1Refresh();
     }
   })();
   return entry.promise;
@@ -104,7 +111,8 @@ function updateF1HomeSummary() {
   document.querySelectorAll(".f1-home-summary").forEach(element => { element.innerHTML = f1HomeSummary(); });
 }
 
-function renderF1Hub(tab = "overview") {
+function renderF1Hub(tab = "overview",prepared=false) {
+  if(!prepared)return withLoading(async()=>{await loadSeriesDetails('Formula 1');await loadF1Feeds(false,tab);return renderF1Hub(tab,true);},'Opening Formula 1…');
   document.getElementById("series-hub").hidden = true;
   activeSeriesName = "Formula 1";
   f1Tab = f1Tabs[tab] ? tab : "overview";
@@ -114,7 +122,7 @@ function renderF1Hub(tab = "overview") {
     <div class="f1-tabs" role="tablist" aria-label="Formula 1 sections">${Object.entries(f1Tabs).map(([key, label]) => `<button type="button" role="tab" id="f1-tab-${key}" data-f1-tab="${key}" aria-selected="${key === f1Tab}" aria-controls="${key === "schedule" ? "series-calendar" : "f1-content"}" tabindex="${key === f1Tab ? 0 : -1}">${label}</button>`).join("")}</div>
     <div id="f1-content" role="tabpanel" aria-labelledby="f1-tab-${f1Tab}"></div>`;
   hub.querySelectorAll("[data-f1-tab]").forEach(button => {
-    button.addEventListener("click", () => withLoading(() => { renderF1Hub(button.dataset.f1Tab); document.getElementById(`f1-tab-${f1Tab}`).focus({ preventScroll: true }); }, "Opening Formula 1…"));
+    button.addEventListener("click", () => withLoading(async () => { await renderF1Hub(button.dataset.f1Tab); document.getElementById(`f1-tab-${f1Tab}`).focus({ preventScroll: true }); }, "Opening Formula 1…"));
     button.addEventListener("keydown", event => {
       const keys = Object.keys(f1Tabs), index = keys.indexOf(button.dataset.f1Tab);
       let target;
@@ -134,7 +142,7 @@ function renderF1Hub(tab = "overview") {
   if (f1Tab === "schedule") {
     calendar.setAttribute("role", "tabpanel");
     calendar.setAttribute("aria-labelledby", "f1-tab-schedule");
-    renderSeries("Formula 1");
+    renderSeries("Formula 1",true,true);
   } else renderF1Content();
   loadF1Feeds();
 }
@@ -146,10 +154,10 @@ function renderF1Content() {
   const panel = document.getElementById("f1-content");
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1")){Spoilers.render(panel,"Formula 1");return;}
   panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup, tracks: () => f1TracksMarkup(), records: () => '<h2>Career Records</h2><p class="f1-empty">Coming soon.</p>' }[f1Tab] || f1OverviewMarkup)();
-  panel.querySelectorAll('[data-f1-open]').forEach(button => button.addEventListener('click', () => {
+  panel.querySelectorAll('[data-f1-open]').forEach(button => button.addEventListener('click', async () => {
     const target = button.dataset.f1Open;
     if (target === 'results') { f1SelectedRace = f1LatestResults()[0]?.['Jolpica Race Key'] || ''; f1ResultSession='results'; }
-    renderF1Hub(target === 'constructors' ? 'standings' : target);
+    await renderF1Hub(target === 'constructors' ? 'standings' : target);
     const destination = document.getElementById(target === 'constructors' ? 'f1-constructor-standings' : 'f1-content');
     destination?.setAttribute('tabindex', '-1'); destination?.focus({preventScroll:true});
     destination?.scrollIntoView({block:'start',behavior:'instant'});
@@ -219,7 +227,9 @@ function f1Image(value, label, className) {
   return src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(label)}" class="${className}" loading="lazy" referrerpolicy="no-referrer">` : "";
 }
 function f1DriverMarkup(row) {
-  return `<article class="f1-driver">${f1Image(row["Headshot URL"], f1DriverName(row), "f1-headshot")}<div><p class="f1-kicker">${row.Number ? `#${escapeHtml(row.Number)} · ` : ""}${escapeHtml(row.Nationality || "")}</p><h4>${escapeHtml(f1DriverName(row))}</h4>${row.Biography ? `<p class="f1-biography">${escapeHtml(row.Biography)}</p>` : ""}</div></article>`;
+  const standing=f1Rows("standings").find(r=>r["Driver ID"]===row["Driver ID"]);
+  const position=standing?f1Rank(standing):Infinity;
+  return `<article class="f1-driver">${f1Image(row["Headshot URL"], f1DriverName(row), "f1-headshot")}<div><p class="f1-kicker">${row.Number ? `#${escapeHtml(row.Number)} · ` : ""}${escapeHtml(row.Nationality || "")}</p><h4>${escapeHtml(f1DriverName(row))}</h4><p class="driver-standing"><span>Championship</span><strong>${Number.isFinite(position)?'P'+position:'—'}</strong></p>${row.Biography ? `<p class="f1-biography">${escapeHtml(row.Biography)}</p>` : ""}</div></article>`;
 }
 function f1HeadToHead(teamId) {
   const pairs=new Map();

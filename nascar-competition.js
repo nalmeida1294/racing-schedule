@@ -244,5 +244,10 @@ const NascarCompetition=(()=>{
    if(track)el.querySelector('[data-chase-next]').insertAdjacentHTML('beforeend',`<p>${text([track.type,track.length].filter(Boolean).join(' · '))}</p>${series==='NASCAR Cup Series'?nascarTrackRatings(track.trackId):''}`);
    NascarProfiles.bindImages(el);
  }
- return {render,homeSummary,overview,chase};
+ async function preload(series,tab){
+   if(typeof Spoilers!=="undefined"&&Spoilers.protected(series))return;
+   const kinds={overview:['standings','results','status'],chase:['standings','results','status'],standings:['standings','status'],results:['results','standings','status'],teams:['standings'] }[tab]||[];
+   await Promise.allSettled([...kinds.map(load),...(kinds.length?[NascarProfiles.load()]:[])]);
+ }
+ return {render,homeSummary,overview,chase,preload,standingsFor:async series=>scoped(await load('standings'),series)};
 })();
