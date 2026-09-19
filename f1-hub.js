@@ -93,6 +93,7 @@ function f1Pending(key, label) {
   return `<p class="f1-empty">No ${escapeHtml(label.toLowerCase())} published for ${new Date().getFullYear()} yet.</p>`;
 }
 function f1HomeSummary() {
+  if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Spoilers.note();
   const leader = f1Sorted("standings")[0];
   const team = f1Sorted('constructorStandings')[0];
   const summary = [leader ? `<div class="f1-home-leader"><p><span>Championship leader</span><strong>${escapeHtml(f1DriverName(leader))}</strong><small>${f1Number(leader.Points)} pts${leader['Through Round'] ? ` · Round ${escapeHtml(leader['Through Round'])}` : ''}</small></p>${f1Image(f1Driver(leader['Driver ID'])?.['Headshot URL'],'','f1-home-portrait')}</div>` : '',
@@ -143,6 +144,7 @@ function refreshF1Hub() {
 }
 function renderF1Content() {
   const panel = document.getElementById("f1-content");
+  if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1")){Spoilers.render(panel,"Formula 1");return;}
   panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup, tracks: () => f1TracksMarkup(), records: () => '<h2>Career Records</h2><p class="f1-empty">Coming soon.</p>' }[f1Tab] || f1OverviewMarkup)();
   panel.querySelectorAll('[data-f1-open]').forEach(button => button.addEventListener('click', () => {
     const target = button.dataset.f1Open;

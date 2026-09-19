@@ -63,5 +63,5 @@ const NascarCharts=(()=>{
    battle(el.querySelector('.nascar-battle'),rows,standings,series,profiles);
    el.querySelectorAll('svg image').forEach(img=>img.addEventListener('error',()=>img.remove(),{once:true}));
  }
- return {render,wins};
+ return {render,wins,battle};
 })();

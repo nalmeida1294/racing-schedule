@@ -1,6 +1,7 @@
 /* Shared live-race screen. Consumes LiveRaceState, not provider-specific fields. */
 (function(){
  'use strict';
+ if(typeof Spoilers!=="undefined"&&Spoilers.protected('Formula 1'))return;
  if(window.RACE_LIVE_CONFIG?.enabled===false)return;
  const defaults={gap:true,interval:true,tyre:true,tyreAge:false,lastLap:false,bestLap:false,positionChange:false};
  let preferences={...defaults};try{const saved=JSON.parse(localStorage.getItem('race-live-columns')||'{}');for(const k in defaults)if(typeof saved[k]==='boolean')preferences[k]=saved[k];}catch{}

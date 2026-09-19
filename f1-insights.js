@@ -17,6 +17,7 @@ function f1CombinedRaceRating(reviews) {
   return {value:weight?total/weight:null,count};
 }
 function f1TrackScoreMarkup(id) {
+  if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Spoilers.note();
   const row=f1Store.trackScores.rows.find(r=>r['Circuit ID']===id);
   const metric=(label,key,count)=>{
     const value=row&&Number(row[count])>0?f1Score(row[key]):null;

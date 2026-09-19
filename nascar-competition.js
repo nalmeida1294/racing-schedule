@@ -113,6 +113,7 @@ const NascarCompetition=(()=>{
    el.querySelector('select').addEventListener('change',e=>{selection[series]=e.target.value;sessionSelection[series]=0;results(rows,series,profiles,el,chase);el.querySelector('select').focus();});
  }
  async function render(el,series,tab) {
+   if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){Spoilers.render(el,series);return;}
    const title=tab==='standings'?'Standings':'Results';
    el.innerHTML=`<h2>${title}</h2><p role="status">Loading ${title.toLowerCase()}…</p>`;
    if(!NASCAR_COMPETITION_FEEDS[tab]){el.innerHTML=`<h2>${title}</h2><p>Published ${title.toLowerCase()} are coming soon.</p>`;return;}
@@ -134,6 +135,7 @@ const NascarCompetition=(()=>{
    }catch(e){if(!el.isConnected)return;el.innerHTML=`<h2>${title}</h2><p role="status">Unable to load ${title.toLowerCase()}.</p><button type="button">Try again</button>`;el.querySelector('button').addEventListener('click',()=>render(el,series,tab));}
  }
  async function homeSummary(el,series='NASCAR Cup Series') {
+   if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){el.innerHTML=Spoilers.note();return;}
    if(!ids[series])return;
    const [standingsResult,resultsResult]=await Promise.allSettled([load('standings'),load('results'),NascarProfiles.load()]);
    if(!el.isConnected)return;
@@ -153,7 +155,14 @@ const NascarCompetition=(()=>{
    el.innerHTML=item(leader,'Championship leader',value(leader?.Points)+' pts')+item(winner,'Latest race winner',text(winner?.Event));
    NascarProfiles.bindImages(el);
  }
+ function overviewLink(panel,label,action) {
+   panel.classList.add('nascar-overview-link');
+   panel.setAttribute('role','link');panel.tabIndex=0;panel.setAttribute('aria-label',label);
+   panel.addEventListener('click',action);
+   panel.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();action();}});
+ }
  async function overview(el,series) {
+   if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){Spoilers.render(el,series);return;}
    el.innerHTML='<div class="f1-overview-grid nascar-overview"><section class="f1-feature event-photo-tile" data-nascar-next></section><section class="f1-feature" data-nascar-latest><p class="f1-kicker">LATEST RACE PODIUM</p><p role="status">Loading results…</p></section><section class="f1-feature" data-nascar-leaders><p class="f1-kicker">CHAMPIONSHIP STANDINGS</p><p role="status">Loading standings…</p></section></div>';
    const nextPanel=el.querySelector('[data-nascar-next]'),latestPanel=el.querySelector('[data-nascar-latest]'),leadersPanel=el.querySelector('[data-nascar-leaders]');
    const nextRace=(finished=new Set())=>{
@@ -175,17 +184,65 @@ const NascarCompetition=(()=>{
      nextRace(new Set(rows.map(r=>String(r['Race ID']))));
      const latest=rows.slice().sort((a,b)=>String(b['Race Date']).localeCompare(String(a['Race Date']))||Number(b['Race ID'])-Number(a['Race ID']))[0];
      const podium=latest?rows.filter(r=>String(r['Race ID'])===String(latest['Race ID'])&&Number(r.Position)>=1&&Number(r.Position)<=3).sort((a,b)=>Number(a.Position)-Number(b.Position)):[];
-     latestPanel.innerHTML='<p class="f1-kicker">LATEST RACE PODIUM</p>'+ (latest?`<h2>${text(latest.Event)}</h2><p class="f1-data-note">${text(eventLabel(latest))}</p><ol class="nascar-overview-list">${podium.map(r=>`<li><span class="nascar-overview-rank">${value(r.Position)}</span>${identity(r,series,profiles,true)}</li>`).join('')}</ol>${warning('Results')}<button type="button" data-full-results>Full race results →</button>`:'<p>No completed race results have been published for this season yet.</p>');
-     latestPanel.querySelector('[data-full-results]')?.addEventListener('click',()=>{selection[series]=String(latest['Race ID']);renderNascarHub(series,'results');});
+     latestPanel.innerHTML='<p class="f1-kicker">LATEST RACE PODIUM</p>'+ (latest?`<h2>${text(latest.Event)}</h2><p class="f1-data-note">${text(eventLabel(latest))}</p><ol class="nascar-overview-list">${podium.map(r=>`<li><span class="nascar-overview-rank">${value(r.Position)}</span>${identity(r,series,profiles,true)}</li>`).join('')}</ol>${warning('Results')}`:'<p>No completed race results have been published for this season yet.</p>');
+     if(latest)overviewLink(latestPanel,'View full results for '+latest.Event,()=>{selection[series]=String(latest['Race ID']);renderNascarHub(series,'results');});
    }else failed(latestPanel,'LATEST RACE PODIUM');
    if(standingsResult.status==='fulfilled') {
      const top=scoped(standingsResult.value,series).sort((a,b)=>Number(a.Position)-Number(b.Position)).slice(0,5);
-     leadersPanel.innerHTML='<p class="f1-kicker">CHAMPIONSHIP STANDINGS</p><h2>The top five</h2>'+(top.length?`<ol class="nascar-overview-list">${top.map(r=>`<li><span class="nascar-overview-rank">${value(r.Position)}</span>${identity(r,series,profiles,false)}<span class="nascar-overview-points"><strong>${value(r.Points)} pts</strong><small>${Number(r.Position)===1?'Leader':value(r['Behind Leader'])+' behind'}</small></span></li>`).join('')}</ol>${warning('Standings')}<button type="button" data-full-standings>Full standings →</button>`:'<p>Standings have not been published for this season yet.</p>');
-     leadersPanel.querySelector('[data-full-standings]')?.addEventListener('click',()=>renderNascarHub(series,'standings'));
+     leadersPanel.innerHTML='<p class="f1-kicker">CHAMPIONSHIP STANDINGS</p><h2>The top five</h2>'+(top.length?`<ol class="nascar-overview-list">${top.map(r=>`<li><span class="nascar-overview-rank">${value(r.Position)}</span>${identity(r,series,profiles,false)}<span class="nascar-overview-points"><strong>${value(r.Points)} pts</strong><small>${Number(r.Position)===1?'Leader':value(r['Behind Leader'])+' behind'}</small></span></li>`).join('')}</ol>${warning('Standings')}`:'<p>Standings have not been published for this season yet.</p>');
+     if(top.length)overviewLink(leadersPanel,'View full championship standings',()=>renderNascarHub(series,'standings'));
    }else failed(leadersPanel,'CHAMPIONSHIP STANDINGS');
    const charts=document.createElement('div');charts.className='nascar-overview-charts';el.appendChild(charts);
    NascarCharts.render(charts,series,resultsResult.status==='fulfilled'?scoped(resultsResult.value,series):[],standingsResult.status==='fulfilled'?scoped(standingsResult.value,series):[],profiles);
    NascarProfiles.bindImages(el);
  }
- return {render,homeSummary,overview};
+ async function chase(el,series) {
+   if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){Spoilers.render(el,series);return;}
+   el.innerHTML='<p role="status">Loading The Chase…</p>';
+   const loaded=await Promise.allSettled([load('standings'),load('results'),NascarProfiles.load(),load('status')]);
+   if(!el.isConnected)return;
+   if(loaded[0].status!=='fulfilled'||loaded[1].status!=='fulfilled'){
+     el.innerHTML='<h2>The Chase</h2><p>Championship data is temporarily unavailable.</p><button type="button">Try again</button>';
+     el.querySelector('button').onclick=()=>chase(el,series);return;
+   }
+   const standings=scoped(loaded[0].value,series).sort((a,b)=>Number(a.Position)-Number(b.Position));
+   const rows=scoped(loaded[1].value,series),total={1:10,2:9,3:7}[ids[series]],size=chaseSizes[ids[series]];
+   const profiles=loaded[2].status==='fulfilled'?NascarProfiles.identities(series,new Date().getFullYear()):[];
+   const snapshots=new Map();
+   rows.forEach(r=>{const round=number(r['Chase Round']);if(round===null||round<0||round>total||number(r['Championship Points'])===null||number(r['Championship Position'])===null)return;if(!snapshots.has(round))snapshots.set(round,new Map());snapshots.get(round).set(String(r['Driver ID']),r);});
+   const complete=[...snapshots.keys()].filter(n=>snapshots.get(n).size===size&&[...snapshots.get(n).values()].some(r=>Number(r['Championship Position'])===1)).sort((a,b)=>a-b);
+   const round=complete.length?complete.at(-1):null,current=round===null?null:snapshots.get(round),prior=round>0?snapshots.get(round-1):null;
+   const comparable=prior?.size===size;
+   const leaderPoints=map=>Math.max(...[...map.values()].map(r=>Number(r['Championship Points'])));
+   const delta=id=>{const a=current?.get(id),b=prior?.get(id);return comparable&&a&&b?{rank:Number(b['Championship Position'])-Number(a['Championship Position']),gap:(leaderPoints(prior)-Number(b['Championship Points']))-(leaderPoints(current)-Number(a['Championship Points']))}:null;};
+   const grid=standings.filter(r=>Number(r.Position)<=size);
+   const movers=grid.map(r=>({r,d:delta(String(r['Driver ID']))})).filter(x=>x.d?.rank>0).sort((a,b)=>b.d.rank-a.d.rank);
+   const calendar=racesFor(series).filter(r=>/chase/i.test(r.round||''));
+   const finished=new Set(rows.filter(r=>Number(r['Race Type'])===1&&Number(r.Position)===1).map(r=>String(r['Race ID'])));
+   const next=calendar.find(r=>!finished.has(String(r.raceId)));
+   const last=current?[...current.values()][0]:null;
+   const stageLeader=key=>standings.filter(r=>number(r[key])!==null).sort((a,b)=>Number(b[key])-Number(a[key]));
+   const stageCard=(key)=>{const sorted=stageLeader(key),best=sorted[0];return `<div><p class="f1-kicker">${key}</p>${best?`<strong>${value(best[key])}</strong><p>${sorted.filter(r=>Number(r[key])===Number(best[key])).map(r=>text(r['Driver Name'])).join(' · ')}</p>`:'<p>Awaiting stage statistics</p>'}</div>`;};
+   const warning=loaded[3].status==='fulfilled'&&scoped(loaded[3].value,series).some(r=>r.State==='ERROR');
+   el.innerHTML=`<header class="chase-hero"><p class="f1-kicker">${text(series)} · ${new Date().getFullYear()}</p><h2>The Chase</h2><p class="chase-round-title">${round===null?'Awaiting Chase snapshots':round===0?'Starting grid · '+total+' rounds': 'After round '+round+' of '+total}</p><div class="chase-progress" aria-label="${round??0} of ${total} rounds recorded">${Array.from({length:total},(_,i)=>`<span class="${round!==null&&i<round?'is-complete':''}">${i+1}</span>`).join('')}</div>${standings[0]?`<div class="chase-leader">${identity(standings[0],series,profiles,false)}<strong>${value(standings[0].Points)} pts</strong><span>${standings[1]?value(Math.max(0,Number(standings[0].Points)-Number(standings[1].Points)))+' points clear':'Championship leader'}</span></div>`:''}</header>${warning?'<p class="f1-warning">Latest source update unavailable. Showing previously imported data.</p>':''}
+   <div class="chase-highlights"><section class="nascar-chart-card"><h3>Biggest mover</h3><p class="f1-data-note">${round>0?text(last?.Event||'Latest saved round'):'Awaiting the first Chase race'}</p>${movers.length?movers.filter(x=>x.d.rank===movers[0].d.rank).map(({r,d})=>`<p><strong>↑ ${d.rank} places</strong> · ${text(r['Driver Name'])}</p>`).join(''): `<p>${comparable?'No positions gained in the latest round.':'Available when consecutive rounds are saved.'}</p>`}</section><section class="nascar-chart-card"><h3>Stage spotlight</h3><p class="f1-data-note">Full-season totals</p><div class="chase-stage-leaders">${stageCard('Stage Wins')}${stageCard('Stage Points')}</div></section></div>
+   <section class="nascar-chart-card" data-chase-battle></section>
+   <section class="nascar-chart-card"><h3>Chase contenders</h3><p class="f1-data-note">Current standings · Changes after ${round>0?text(last?.Event):'the next recorded race'}. Gap change measures points gained on (+) or lost to (−) the leader. Recent form shows the last five published points-race finishes, oldest first.</p><div class="chase-contenders">${grid.map(r=>{const id=String(r['Driver ID']),d=delta(id),form=rows.filter(x=>String(x['Driver ID'])===id&&Number(x['Race Type'])===1).sort((a,b)=>String(a['Race Date']).localeCompare(String(b['Race Date']))).slice(-5);return `<article class="chase-contender${contention(r,series)?' is-eliminated':''}"><div class="chase-contender-head"><strong>P${value(r.Position)}</strong>${identity(r,series,profiles,false)}</div><p>${value(r.Points)} pts · ${Number(r.Position)===1?'Leader':behind(r['Behind Leader'])+' behind'}${contention(r,series)?' · Out of contention (calculated)':''}</p><p class="chase-changes">${d?`${d.rank>0?'↑':d.rank<0?'↓':'—'} ${Math.abs(d.rank)} places · ${d.gap>0?'+':''}${d.gap} pts on leader`:'Round comparison unavailable'}</p><div class="chase-form">${form.map(x=>`<span class="${Number(x.Position)===1?'is-win':Number(x.Position)<=5?'is-top-five':''}" title="${text(x.Event)}">${String(x.Disqualified)==='TRUE'?'DSQ':Number(x.Position)>0?value(x.Position):'—'}</span>`).join('')||'<small>Recent finishes unavailable</small>'}</div></article>`;}).join('')||'<p>Contenders will appear when standings are available.</p>'}</div><p class="f1-data-note">Elimination labels use the same conservative points calculation as Standings; they are not official designations.</p></section>
+   <section class="nascar-chart-card event-photo-tile" data-chase-next>${next?`${racePhotoMarkup(next)}<p class="f1-kicker">NEXT CHASE STOP</p><h3>${text(next.event)}</h3><p>${text(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${text(next.time||'Time TBD')}</p><button type="button">Event &amp; weekend schedule →</button>`:'<h3>Next Chase stop</h3><p>No upcoming Chase race is currently listed.</p>'}</section>
+   <section class="nascar-chart-card"><h3>The road to the championship</h3><div class="chase-calendar">${calendar.map((r,i)=>`<button type="button" data-chase-event="${i}"><span>${text(r.round)}</span><strong>${text(trackNameForRace(r))}</strong><small>${formatDate(r.date)} · ${finished.has(String(r.raceId))?'Results available':text(r.time||'Time TBD')}</small></button>`).join('')||'<p>Chase dates will appear when the schedule’s Round column identifies the Chase races.</p>'}</div></section>`;
+   const contenders=[...el.querySelectorAll('.chase-contender')];
+   if(contenders.length>5){
+     const toggle=document.createElement('button');toggle.type='button';toggle.className='chase-expand';toggle.setAttribute('aria-expanded','false');
+     const update=expanded=>{contenders.forEach((card,i)=>card.hidden=!expanded&&i>=5);toggle.setAttribute('aria-expanded',String(expanded));toggle.textContent=expanded?'Show top five':'Show all '+contenders.length+' contenders';};
+     toggle.onclick=()=>update(toggle.getAttribute('aria-expanded')!=='true');
+     el.querySelector('.chase-contenders').after(toggle);update(false);
+   }
+   NascarCharts.battle(el.querySelector('[data-chase-battle]'),rows,standings,series,profiles);
+   el.querySelector('[data-chase-next] button')?.addEventListener('click',()=>showRaceDetails(next));
+   el.querySelectorAll('[data-chase-event]').forEach(b=>b.onclick=()=>showRaceDetails(calendar[Number(b.dataset.chaseEvent)]));
+   const track=next?allTracks.find(t=>t.source==='nascar'&&String(t.trackId)===String(next.trackId)):null;
+   if(track)el.querySelector('[data-chase-next]').insertAdjacentHTML('beforeend',`<p>${text([track.type,track.length].filter(Boolean).join(' · '))}</p>${series==='NASCAR Cup Series'?nascarTrackRatings(track.trackId):''}`);
+   NascarProfiles.bindImages(el);
+ }
+ return {render,homeSummary,overview,chase};
 })();

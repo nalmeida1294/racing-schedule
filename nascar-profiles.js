@@ -62,7 +62,7 @@ const NascarProfiles = (() => {
   }
   function rosterSection(driver) {
     if(driver.teamParticipation==='Part-time')return 'Part-Time Entries';
-    if(driver.teamParticipation==='Full-time')return driver.participation==='Full-time'?'Full-Time Entries':driver.participation==='Part-time'?'Part-Time Drivers · Full-Time Entries':'Other Drivers · Full-Time Entries';
+    if(driver.teamParticipation==='Full-time')return driver.participation==='Full-time'?'Full-Time Entries':driver.participation==='Part-time'?'Reserve Driver':'Other Drivers · Full-Time Entries';
     return driver.participation?driver.participation+' drivers':'Other drivers';
   }
   function driverPortrait(driver) {

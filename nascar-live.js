@@ -33,6 +33,7 @@
  }
  root.NascarLive={normalize,matches,phase};
  if(typeof document==='undefined')return;
+ if(typeof Spoilers!=="undefined"&&Spoilers.protected('NASCAR Cup Series'))return;
  const SERIES='NASCAR Cup Series',URL='https://cf.nascar.com/live/feeds/live-feed.json';
  const defaults={gap:true,last:false,best:false,laps:false,speed:false,change:true};
  let prefs={...defaults};try{const saved=JSON.parse(localStorage.getItem('cup-live-columns')||'{}');Object.keys(defaults).forEach(k=>{if(typeof saved[k]==='boolean')prefs[k]=saved[k];});}catch{}
