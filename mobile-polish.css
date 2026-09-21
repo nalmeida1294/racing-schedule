@@ -339,3 +339,43 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .driver-standing{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;margin:10px 0;border:1px solid #ffffff18;border-radius:6px;background:#ffffff05;font-size:12px}.driver-standing span{color:#b5bfcb}.driver-standing strong{font-variant-numeric:tabular-nums;color:#e1cc94;font-size:15px}
 .spoiler-event{display:flex;align-items:flex-start;gap:12px;padding:12px;margin:7px 0;background:#222a34;border:1px solid #ffffff18;border-radius:8px;cursor:pointer}.spoiler-event input{width:20px;height:20px;flex-shrink:0;margin-top:2px}.spoiler-event span{min-width:0}.spoiler-event strong,.spoiler-event small{display:block;overflow-wrap:anywhere}.spoiler-event small{color:#bac3cf;line-height:1.5;margin-top:4px}.spoiler-event:has(input:checked){border-color:#c2a258;background:#302e24}#spoiler-choices details{margin:16px 0}#spoiler-choices summary{cursor:pointer;min-height:44px;padding:12px 0}#spoiler-clear{padding:10px;border:1px solid #ffffff35;border-radius:6px;background:#252e39;color:#eee;cursor:pointer;min-height:44px}
 .event-result-buttons{display:flex;flex-wrap:wrap;gap:10px}.event-result-buttons button,.event-result-shortcuts>button{min-height:44px;padding:11px 16px;background:#242c36;border:1px solid #c2a25880;color:#ead49a;border-radius:8px;font:inherit;font-size:13px;cursor:pointer}.event-result-buttons button:hover{background:#303a46}.event-result-buttons button:focus-visible{outline:2px solid #dcc78d;outline-offset:3px}
+.race-pole{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid #b9a15b55;border-radius:10px;background:linear-gradient(110deg,#b9a15b16,#10151b99);position:relative;color:#f4f5f7;text-align:left}
+.race-pole[hidden]{display:none}
+.race-pole>div{flex:1;min-width:0}
+.race-pole strong,.race-pole small,.race-pole-label{display:block}
+.race-pole strong{font-size:.95rem;line-height:1.3}
+.race-pole small{font-size:.7rem;line-height:1.4;color:#b9c1cb;margin-top:3px}
+.race-pole-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.09em;color:#d9c586;margin-bottom:3px}
+.race-pole-badge{font-weight:800;font-size:.8rem;color:#e5d397;border:1px solid #b9a15b66;border-radius:6px;padding:5px}
+.race-pole-photo{width:40px;height:56px;object-fit:contain;flex-shrink:0}
+.race-pole img{max-width:48px;max-height:56px;object-fit:contain}
+.home-series-card{padding:18px!important;border-top:2px solid var(--series-color);background:linear-gradient(145deg,#191d23,#101318)!important;overflow:hidden}
+.home-series-card .series-brand-heading{width:100%;margin-bottom:18px!important;display:flex;align-items:center;gap:14px;text-align:left}
+.home-series-card .series-brand-heading>span{font-size:1rem;letter-spacing:.07em;text-transform:uppercase}
+.home-event-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.home-event-grid>section:only-child{grid-column:1/-1}
+.home-event-panel{position:relative;isolation:isolate;overflow:hidden;min-width:0;padding:14px;border:1px solid #ffffff16;border-radius:12px;background:#12171e;display:flex;flex-direction:column;text-align:left;gap:7px}
+.home-event-panel[role=link]{cursor:pointer;transition:border-color .18s,background .18s}
+.home-event-panel[role=link]:hover,.home-event-panel[role=link]:focus-visible{border-color:var(--series-color);outline:none;background:#202630}
+.home-event-panel h3{font-size:1rem;line-height:1.3;margin:0;color:#f2f3f5;overflow-wrap:anywhere}
+.home-panel-label{font-size:.62rem;font-weight:750;letter-spacing:.12em;color:#b9c3ce;display:flex;justify-content:space-between;gap:6px}
+.home-event-panel .home-track{font-size:.75rem;color:#aab8c7;margin:0;line-height:1.4}
+.home-event-panel .home-event-date,.home-event-panel .race-network{font-size:.74rem;line-height:1.55;color:#d1d6de;margin:0}
+.home-panel-cta{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;box-sizing:border-box;margin-top:auto;padding:10px 0 0!important;background:transparent!important;border:0!important;border-top:1px solid #ffffff1c!important;border-radius:0!important;color:#f1f2f5;font-size:.73rem;font-weight:650;text-align:left}
+.home-panel-cta span{color:var(--series-color)}
+.home-race-winner{position:relative;padding:10px 0;margin-top:4px;border-top:1px solid #ffffff1c;min-height:55px}
+.home-race-winner>strong,.home-race-winner>small{display:block;padding-right:38px;font-size:.8rem;margin-top:5px}
+.home-race-winner>small{font-size:.65rem;color:#aab8c7}
+.home-winner-photo{position:absolute;right:0;bottom:0;width:38px;height:60px;object-fit:contain}
+.home-race-winner .nascar-result-driver{margin-top:6px;font-size:.8rem}
+.home-series-card .f1-home-summary,.home-series-card .nascar-home-summary{margin-top:12px;border-top:0;display:grid;gap:8px}
+.home-series-card .f1-home-leader{padding:12px;border:1px solid #ffffff12;border-radius:10px;background:#ffffff04;cursor:pointer}
+.home-series-card .f1-home-leader:hover,.home-series-card .f1-home-leader:focus-visible{border-color:var(--series-color);outline:none}
+.home-event-panel .race-pole{padding:8px 0;border:0;border-top:1px solid #b9a15b44;border-radius:0;background:transparent;gap:6px;margin-top:4px;flex-wrap:wrap}
+.home-event-panel .race-pole strong{font-size:.78rem}.home-event-panel .race-pole small{font-size:.6rem}.home-event-panel .race-pole-badge{font-size:.65rem;padding:3px}
+@media(max-width:380px){.home-series-card{padding:12px!important}.home-event-panel{padding:10px}.home-event-panel h3{font-size:.87rem}.home-event-grid{gap:7px}}
+.home-event-panel>.event-background-photo{width:calc(100% + 28px);height:90px;object-fit:cover;margin:-14px -14px 5px;opacity:.75;flex-shrink:0;mask-image:linear-gradient(#000 55%,transparent)}
+@media(max-width:380px){.home-event-panel>.event-background-photo{width:calc(100% + 20px);margin:-10px -10px 5px;height:76px}}
+.home-race-winner .nascar-result-driver{min-width:0;max-width:100%;flex-wrap:wrap;gap:6px;white-space:normal}
+.home-race-winner .nascar-result-driver>span{min-width:0;max-width:100%}
+.home-race-winner .nascar-result-driver strong,.home-race-winner .nascar-result-driver small{white-space:normal;overflow-wrap:anywhere;display:block;line-height:1.4}

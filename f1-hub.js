@@ -26,7 +26,7 @@ function brandedLoaderMarkup(message) {
 function loadF1Feeds(force = false, view = f1Tab) {
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Promise.resolve([]);
   const common=['drivers','constructors','status'];
-  const dependencies={home:['standings','constructorStandings','drivers','constructors'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews'],tracks:['trackScores','reviews'],schedule:[],records:[]};
+  const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews'],tracks:['trackScores','reviews'],schedule:[],records:[]};
   return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force)));
 }
 let f1RefreshQueued=false;
@@ -103,12 +103,12 @@ function f1HomeSummary() {
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Spoilers.note();
   const leader = f1Sorted("standings")[0];
   const team = f1Sorted('constructorStandings')[0];
-  const summary = [leader ? `<div class="f1-home-leader"><p><span>Championship leader</span><strong>${escapeHtml(f1DriverName(leader))}</strong><small>${f1Number(leader.Points)} pts${leader['Through Round'] ? ` · Round ${escapeHtml(leader['Through Round'])}` : ''}</small></p>${f1Image(f1Driver(leader['Driver ID'])?.['Headshot URL'],'','f1-home-portrait')}</div>` : '',
-    team ? `<div class="f1-home-leader"><p><span>Constructors’ leader</span><strong>${escapeHtml(f1TeamName(team))}</strong><small>${f1Number(team.Points)} pts${team['Through Round'] ? ` · Round ${escapeHtml(team['Through Round'])}` : ''}</small></p>${f1Image(f1Constructor(team['Constructor ID'])?.['Logo URL'],'','f1-home-team-logo')}</div>` : ''].join('');
-  return summary+poleSlot(seriesStatus('Formula 1').nextRace);
+  const summary = [leader ? `<div class="f1-home-leader" data-home-action="standings" role="link" tabindex="0"><p><span>Championship leader</span><strong>${escapeHtml(f1DriverName(leader))}</strong><small>${f1Number(leader.Points)} pts${leader['Through Round'] ? ` · Round ${escapeHtml(leader['Through Round'])}` : ''}</small></p>${f1Image(f1Driver(leader['Driver ID'])?.['Headshot URL'],'','f1-home-portrait')}</div>` : '',
+    team ? `<div class="f1-home-leader" data-home-action="standings" role="link" tabindex="0"><p><span>Constructors’ leader</span><strong>${escapeHtml(f1TeamName(team))}</strong><small>${f1Number(team.Points)} pts${team['Through Round'] ? ` · Round ${escapeHtml(team['Through Round'])}` : ''}</small></p>${f1Image(f1Constructor(team['Constructor ID'])?.['Logo URL'],'','f1-home-team-logo')}</div>` : ''].join('');
+  return summary;
 }
 function updateF1HomeSummary() {
-  document.querySelectorAll(".f1-home-summary").forEach(element => { element.innerHTML = f1HomeSummary(); });
+  document.querySelectorAll(".f1-home-summary").forEach(element => { element.innerHTML = f1HomeSummary(); updateF1HomeCard(element.closest('.race-card')); });
 }
 
 function renderF1Hub(tab = "overview",prepared=false) {
@@ -189,7 +189,7 @@ function f1OverviewMarkup() {
   const next = seriesStatus("Formula 1").nextRace, latest = f1LatestResults();
 
   return `<div data-live-slot="overview" hidden></div><div class="f1-overview-grid"><section class="f1-feature event-photo-tile">${racePhotoMarkup(next)}<p class="f1-kicker">NEXT GRAND PRIX</p>${next
-    ? `<h2>${escapeHtml(next.event)}</h2><p>${escapeHtml(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${escapeHtml(next.time || "Time TBD")}</p><button type="button" data-f1-next>Event & weekend schedule →</button>`
+    ? `<h2>${escapeHtml(next.event)}</h2><p>${escapeHtml(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${escapeHtml(next.time || "Time TBD")}</p>${poleSlot(next)}<button type="button" data-f1-next>Event & weekend schedule →</button>`
     : `<h2>${seriesStatus("Formula 1").status === 1 ? "Season completed" : "Schedule coming soon"}</h2><p>The full calendar is available in Schedule.</p>`}</section>
     <section class="f1-feature f1-linked-feature"><button class="f1-card-link" data-f1-open="results" aria-label="View full results of the latest race"></button><p class="f1-kicker">LATEST RACE PODIUM</p>${latest.length
       ? `<h2>${escapeHtml(latest[0].Event)}</h2><p>${formatDate(latest[0]["Race Date UTC"])}</p><ol class="f1-podium">${latest.filter(row => ["1", "2", "3"].includes(row["Position Text"])).map(row => `<li value="${f1Rank(row)}"><strong>${f1TeamIdentity(row,true,true)}</strong><span>${escapeHtml(f1TeamName(row))}</span></li>`).join("")}</ol>${f1FeedNote("results")}`
@@ -385,4 +385,11 @@ async function f1EventResultLinks(race){
     const keys=[...new Set(rows.map(r=>r['Jolpica Race Key']).filter(Boolean))];
     return keys.length===1?[{label,open:()=>{f1SelectedRace=keys[0];f1ResultSession=type;return renderF1Hub('results');}}]:[];
   });
+}
+
+function updateF1HomeCard(card){
+  if(!card||!card.querySelector('.home-event-grid')||(typeof Spoilers!=='undefined'&&Spoilers.protected('Formula 1')))return;
+  const rows=f1LatestResults(),winner=rows.find(r=>Number(r.Position)===1);if(!winner)return;
+  const race=allRaces.find(r=>r.series==='Formula 1'&&r.date===winner['Race Date UTC'])||{series:'Formula 1',event:winner.Event,date:winner['Race Date UTC'],trackId:winner['Circuit ID']};
+  homePreviousPanel(card,race,`<strong>${escapeHtml(f1DriverName(winner))}</strong><small>${escapeHtml(f1TeamName(winner))}</small>${f1Image(f1Driver(winner['Driver ID'])?.['Headshot URL'],'','home-winner-photo')}`,()=>{f1SelectedRace=winner['Jolpica Race Key'];f1ResultSession='results';return renderF1Hub('results');});
 }

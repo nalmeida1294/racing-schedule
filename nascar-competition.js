@@ -165,7 +165,15 @@ const NascarCompetition=(()=>{
      const badge=NascarProfiles.numberMarkup({number,numberUrl:profile?.number===number?profile.numberUrl:''});
      return `<div class="f1-home-leader"><p><span>${label}</span><strong>${text(profile?.name||row['Driver Name'])}</strong><small>${detail}</small></p><div class="nascar-home-driver-media">${photo?`<img class="f1-home-portrait" src="${text(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:''}${badge}</div></div>`;
    };
-   el.innerHTML=item(leader,'Championship leader',value(leader?.Points)+' pts')+item(winner,'Latest race winner',text(winner?.Event));
+   el.innerHTML=item(leader,'Championship leader',value(leader?.Points)+' pts');
+   el.querySelector('.f1-home-leader')?.setAttribute('data-home-action','standings');
+   el.querySelector('.f1-home-leader')?.setAttribute('role','link');
+   if(el.firstElementChild)el.firstElementChild.tabIndex=0;
+   const card=el.closest('.race-card');
+   if(winner&&card?.querySelector('.home-event-grid')){
+     const race=allRaces.find(r=>r.series===series&&String(r.raceId)===String(winner['Race ID']))||{series,raceId:winner['Race ID'],event:winner.Event,date:winner['Race Date'],trackId:winner['Track ID']};
+     homePreviousPanel(card,race,identity(winner,series,profiles,true),()=>{selection[series]=String(winner['Race ID']);sessionSelection[series]=0;return renderNascarHub(series,'results');});
+   }
    NascarProfiles.bindImages(el);
  }
  function overviewLink(panel,label,action) {
@@ -181,7 +189,7 @@ const NascarCompetition=(()=>{
    const nextRace=(finished=new Set())=>{
      const today=new Date();today.setHours(0,0,0,0);
      const races=racesFor(series),next=races.find(r=>raceTime(r)>=today.getTime()&&!finished.has(String(r.raceId)));
-     nextPanel.innerHTML=`${racePhotoMarkup(next)}<p class="f1-kicker">NEXT RACE</p>${next?`<h2>${text(next.event)}</h2><p>${text(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${text(next.time||'Time TBD')}</p><button type="button" data-next-event>Event &amp; weekend schedule →</button>`:`<h2>${races.length?'No upcoming races':'Schedule coming soon'}</h2><p>${races.length?'No further races are currently listed for this season.':'Race dates will appear when available.'}</p><button type="button" data-next-calendar>View schedule →</button>`}`;
+     nextPanel.innerHTML=`${racePhotoMarkup(next)}<p class="f1-kicker">NEXT RACE</p>${next?`<h2>${text(next.event)}</h2><p>${text(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${text(next.time||'Time TBD')}</p>${poleSlot(next)}<button type="button" data-next-event>Event &amp; weekend schedule →</button>`:`<h2>${races.length?'No upcoming races':'Schedule coming soon'}</h2><p>${races.length?'No further races are currently listed for this season.':'Race dates will appear when available.'}</p><button type="button" data-next-calendar>View schedule →</button>`}`;
      nextPanel.querySelector('[data-next-event]')?.addEventListener('click',()=>showRaceDetails(next));
      nextPanel.querySelector('[data-next-calendar]')?.addEventListener('click',()=>renderNascarHub(series,'schedule'));
    };
