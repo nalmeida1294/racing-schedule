@@ -105,7 +105,7 @@ function f1HomeSummary() {
   const team = f1Sorted('constructorStandings')[0];
   const summary = [leader ? `<div class="f1-home-leader"><p><span>Championship leader</span><strong>${escapeHtml(f1DriverName(leader))}</strong><small>${f1Number(leader.Points)} pts${leader['Through Round'] ? ` · Round ${escapeHtml(leader['Through Round'])}` : ''}</small></p>${f1Image(f1Driver(leader['Driver ID'])?.['Headshot URL'],'','f1-home-portrait')}</div>` : '',
     team ? `<div class="f1-home-leader"><p><span>Constructors’ leader</span><strong>${escapeHtml(f1TeamName(team))}</strong><small>${f1Number(team.Points)} pts${team['Through Round'] ? ` · Round ${escapeHtml(team['Through Round'])}` : ''}</small></p>${f1Image(f1Constructor(team['Constructor ID'])?.['Logo URL'],'','f1-home-team-logo')}</div>` : ''].join('');
-  return summary;
+  return summary+poleSlot(seriesStatus('Formula 1').nextRace);
 }
 function updateF1HomeSummary() {
   document.querySelectorAll(".f1-home-summary").forEach(element => { element.innerHTML = f1HomeSummary(); });
@@ -352,3 +352,37 @@ function f1ResultsMarkup() {
 }
 
 
+
+// Event-specific shortcuts use the GP date, never the editable schedule round/name.
+const f1EventCalendars=new Map();
+async function f1EventPole(race){
+  if(typeof Spoilers!=='undefined'&&Spoilers.protected('Formula 1'))return null;
+  await loadF1Feed('sessions');
+  const year=Number(race.date.slice(0,4));
+  const qualifying=f1Rows('sessions',year).filter(r=>r.Session==='Qualifying'&&Number(r.Position)===1);
+  if(!qualifying.length)return null;
+  let round=f1Rows('results',year).find(r=>r['Race Date UTC']===race.date)?.Round;
+  if(!round){
+    if(!f1EventCalendars.has(year))f1EventCalendars.set(year,fetch('https://api.jolpi.ca/ergast/f1/'+year+'.json?limit=100',{signal:AbortSignal.timeout(10000)}).then(r=>{if(!r.ok)throw Error('Calendar unavailable');return r.json();}).then(d=>d.MRData.RaceTable.Races).catch(e=>{f1EventCalendars.delete(year);throw e;}));
+    const matches=(await f1EventCalendars.get(year)).filter(r=>r.date===race.date);if(matches.length!==1)return null;round=matches[0].round;
+  }
+  const rows=qualifying.filter(r=>String(r.Round)===String(round));if(rows.length!==1)return null;
+  const row=rows[0];
+  return {label:'Pole sitter',name:f1DriverName(row),detail:'Qualifying P1 · subject to grid penalties',image:f1Image(f1Driver(row['Driver ID'])?.['Headshot URL'],'','race-pole-photo')};
+}
+async function f1EventResultLinks(race){
+  await Promise.all([loadF1Feed('results'),loadF1Feed('sessions')]);
+  const year=Number(race.date.slice(0,4));
+  let round=f1Rows('results',year).find(r=>r['Race Date UTC']===race.date)?.Round;
+  if(!round){
+    if(!f1EventCalendars.has(year))f1EventCalendars.set(year,fetch('https://api.jolpi.ca/ergast/f1/'+year+'.json?limit=100').then(r=>{if(!r.ok)throw Error('Calendar unavailable');return r.json();}).then(d=>d.MRData.RaceTable.Races).catch(e=>{f1EventCalendars.delete(year);throw e;}));
+    const matches=(await f1EventCalendars.get(year)).filter(r=>r.date===race.date);
+    if(matches.length!==1)return [];round=matches[0].round;
+  }
+  const types=[['Qualifying','Qualifying results'],['Sprint Qualifying','Sprint qualifying results'],['Sprint','Sprint results'],['results','Race results']];
+  return types.flatMap(([type,label])=>{
+    const rows=f1Rows(type==='results'?'results':'sessions',year).filter(r=>String(r.Round)===String(round)&&(type==='results'||r.Session===type));
+    const keys=[...new Set(rows.map(r=>r['Jolpica Race Key']).filter(Boolean))];
+    return keys.length===1?[{label,open:()=>{f1SelectedRace=keys[0];f1ResultSession=type;return renderF1Hub('results');}}]:[];
+  });
+}

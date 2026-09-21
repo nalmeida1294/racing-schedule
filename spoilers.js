@@ -1,22 +1,42 @@
 /* Spoiler protection is a presentation preference, saved on this device. */
 const Spoilers=(()=>{
  const key='raceControlSpoilersV1';
- let state={enabled:false,choices:{}};
- try{const saved=JSON.parse(localStorage.getItem(key));if(saved&&typeof saved.enabled==='boolean')state={enabled:saved.enabled,choices:saved.choices&&typeof saved.choices==='object'?saved.choices:{}};}catch{}
- const protectedSeries=series=>state.enabled&&state.choices[series]!=='caught-up';
- const note=()=>'<p class="spoiler-note">Spoiler Mode · results and updates hidden</p>';
+ let state={enabled:false,events:[]};
+ try{
+   const saved=JSON.parse(localStorage.getItem(key));
+   if(saved&&typeof saved.enabled==='boolean'){
+     const events=Array.isArray(saved.events)?saved.events:Object.entries(saved.choices||{}).filter(([series,id])=>typeof id==='string'&&id&&id!=='caught-up').map(([series,id])=>({series,id}));
+     state={enabled:saved.enabled,events:events.filter(e=>e&&typeof e.series==='string'&&typeof e.id==='string'&&e.id)};
+   }
+ }catch{}
+ const protectedSeries=series=>state.enabled&&state.events.some(e=>e.series===series);
+ const note=()=>'<p class="spoiler-note">Spoiler Mode · unwatched event selected</p>';
  const esc=v=>escapeHtml(String(v??''));
  const cache=new Map();
- function chosen(series){return allRaces.find(r=>r.series===series&&String(r.raceId)===state.choices[series]);}
+ const eventKey=e=>JSON.stringify([e.series,String(e.id??e.raceId)]);
+ function chosen(series){
+   const events=state.events.filter(e=>e.series===series).map(e=>allRaces.find(r=>r.series===series&&String(r.raceId)===e.id));
+   if(events.some(e=>!e))return undefined;
+   return events.sort((a,b)=>nextRaceSortTime(a)-nextRaceSortTime(b))[0];
+ }
  function configure(){
    const host=document.getElementById('spoiler-settings');if(!host)return;
-   const series=[...new Set(allRaces.map(r=>r.series))];
-   host.innerHTML=`<label class="spoiler-switch"><input type="checkbox" id="spoiler-enabled"${state.enabled?' checked':''}> Spoiler Mode</label><p>Watching later? Hide results, live timing, and championship updates for series you haven’t caught up with. Choose the next race you plan to watch. Off by default; saved on this device until you change it.</p><div id="spoiler-choices"${state.enabled?'':' hidden'}><p>Series start protected. Choose “Fully caught up” to show a series normally. Pre-race standings are shown only when a verified snapshot exists.</p>${series.map(s=>`<label class="spoiler-choice">${esc(s)}<select data-spoiler-series="${esc(s)}"><option value="">Hide updates — choose a race</option><option value="caught-up"${state.choices[s]==='caught-up'?' selected':''}>Fully caught up</option>${racesFor(s).map(r=>`<option value="${esc(r.raceId)}"${String(r.raceId)===state.choices[s]?' selected':''}>Before ${esc(r.event)} · ${esc(r.date)}</option>`).join('')}</select></label>`).join('')}</div><button type="button" id="spoiler-save">Save spoiler settings</button><p id="spoiler-save-status" role="status"></p>`;
+   const selected=new Map(state.events.map(e=>[eventKey(e),e]));
+   const races=[...new Map(allRaces.filter(r=>r.raceId).map(r=>[eventKey(r),r])).values()];
+   const today=localIsoDate(),nearStart=new Date();nearStart.setDate(nearStart.getDate()-14);const nearEnd=new Date();nearEnd.setDate(nearEnd.getDate()+14);
+   const before=localIsoDate(nearStart),after=localIsoDate(nearEnd);
+   const groups=[['Recent events',races.filter(r=>r.date>=before&&r.date<today).sort((a,b)=>nextRaceSortTime(b)-nextRaceSortTime(a))],['Today & coming up',races.filter(r=>r.date>=today&&r.date<=after).sort((a,b)=>nextRaceSortTime(a)-nextRaceSortTime(b))],['Earlier events',races.filter(r=>r.date<before).sort((a,b)=>nextRaceSortTime(b)-nextRaceSortTime(a))],['Later events',races.filter(r=>r.date>after).sort((a,b)=>nextRaceSortTime(a)-nextRaceSortTime(b))]];
+   const candidates=races.map(r=>({series:r.series,id:String(r.raceId),event:r.event,date:r.date,time:r.time}));
+   for(const e of state.events)if(!candidates.some(c=>eventKey(c)===eventKey(e)))candidates.push(e);
+   const card=e=>{const i=candidates.findIndex(c=>eventKey(c)===eventKey(e));return `<label class="spoiler-event"><input type="checkbox" data-spoiler-event="${i}"${selected.has(eventKey(e))?' checked':''}><span><strong>${esc(e.event||'Saved event — no longer in calendar')}</strong><small>${esc(e.series)} · ${esc(e.date||'Date unavailable')}${e.time?' · '+esc(e.time):''}</small></span></label>`;};
+   host.innerHTML=`<label class="spoiler-switch"><input type="checkbox" id="spoiler-enabled"${state.enabled?' checked':''}> Spoiler Mode</label><p>All series are up to date unless you select an unwatched event. Select races you plan to watch later to hide that series’ results and updates from the earliest selection onward.</p><div id="spoiler-choices"${state.enabled?'':' hidden'}><p id="spoiler-selection-count" aria-live="polite"></p><button type="button" id="spoiler-clear">Mark everything up to date</button>${groups.map(([title,items],i)=>{const content=items.map(r=>card({...r,id:String(r.raceId)})).join('')||'<p>No scheduled events in this range.</p>';return i<2?`<h4>${title}</h4>${content}`:`<details${items.some(r=>selected.has(eventKey(r)))?' open':''}><summary>${title} (${items.length})</summary>${content}</details>`;}).join('')}${candidates.filter(e=>!races.some(r=>eventKey(r)===eventKey(e))).map(card).join('')}<p>Uncheck an event after watching it. Later results stay hidden while an earlier event in that series remains selected. Saved on this device.</p></div><button type="button" id="spoiler-save">Save spoiler settings</button><p id="spoiler-save-status" role="status"></p>`;
+   const update=()=>{const n=host.querySelectorAll('[data-spoiler-event]:checked').length;host.querySelector('#spoiler-selection-count').textContent=n?n+' unwatched event'+(n===1?'':'s')+' selected':'All series are up to date.';};update();
+   host.querySelectorAll('[data-spoiler-event]').forEach(c=>c.onchange=update);
+   host.querySelector('#spoiler-clear').onclick=()=>{host.querySelectorAll('[data-spoiler-event]').forEach(c=>c.checked=false);update();};
    host.querySelector('#spoiler-enabled').onchange=e=>host.querySelector('#spoiler-choices').hidden=!e.target.checked;
    host.querySelector('#spoiler-save').onclick=()=>{
-     const next={enabled:host.querySelector('#spoiler-enabled').checked,choices:Object.fromEntries([...host.querySelectorAll('[data-spoiler-series]')].map(s=>[s.dataset.spoilerSeries,s.value]))};
+     const next={enabled:host.querySelector('#spoiler-enabled').checked,events:[...host.querySelectorAll('[data-spoiler-event]:checked')].map(c=>candidates[Number(c.dataset.spoilerEvent)])};
      try{localStorage.setItem(key,JSON.stringify(next));}catch{host.querySelector('#spoiler-save-status').textContent='Your browser could not save this setting. Spoiler settings have not changed.';return;}
-     // Reload clears old rendered views, in-flight callbacks, and live connections together.
      document.body.style.visibility='hidden';location.reload();
    };
  }
@@ -62,7 +82,7 @@ const Spoilers=(()=>{
  function table(title,rows){return `<h3>${title}</h3><div class="spoiler-table"><table><thead><tr><th>Pos</th><th>Name</th><th>Points</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.position)}</td><td>${esc(r.name)}</td><td>${esc(r.points)}</td></tr>`).join('')}</tbody></table></div>`;}
  async function render(el,series){
    const race=chosen(series),token={};el.spoilerToken=token;
-   el.innerHTML=`<section class="nascar-chart-card spoiler-protected"><h2>Spoiler Mode</h2><p>${race?'Before '+esc(race.event)+' · '+esc(race.date):'Choose your next race to watch in Customize Series.'}</p><p>Current results, charts, ratings, and live timing are hidden for this series. Schedules are still available. Mark the series fully caught up in settings to restore its normal hub.</p><div data-spoiler-history>${race?'<p role="status">Loading pre-race standings…</p>':''}</div></section>`;
+   el.innerHTML=`<section class="nascar-chart-card spoiler-protected"><h2>Spoiler Mode</h2><p>${race?'Before '+esc(race.event)+' · '+esc(race.date):'A saved unwatched event is no longer in the calendar. Review your selections in Customize Series.'}</p><p>Current results, charts, ratings, and live timing are hidden for this series. Schedules are still available. Uncheck watched events in Customize Series to restore the normal hub once that series is up to date.</p><div data-spoiler-history>${race?'<p role="status">Loading pre-race standings…</p>':''}</div></section>`;
    if(!race)return;
    const k=series+'|'+race.date+'|'+race.raceId;
    try{

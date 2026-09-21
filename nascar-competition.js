@@ -1,5 +1,6 @@
 /* Published automated sheets created by NASCAR_Standings_Results.gs. */
 const NASCAR_COMPETITION_FEEDS={
+ qualifying:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=250698917&single=true&output=csv',
  standings:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=564291582&single=true&output=csv',
  results:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=694502053&single=true&output=csv',
  status:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQQz0-0bQ37MkSEcZ_jsdy-YD-Laff8UaP70F3FrdywdvgvmUpnydQaVW03vVRHgcqwqGTAV6VCBll/pub?gid=1456037153&single=true&output=csv'
@@ -25,7 +26,7 @@ const NascarCompetition=(()=>{
    return Math.abs(gap)>(rules[0]-starts)*76;
  }
  const scoped=(rows,series)=>rows.filter(r=>Number(r['Series ID'])===ids[series]&&Number(r.Season)===new Date().getFullYear());
- const requirements={standings:['Season','Series ID','Driver ID','Position','Points'],results:['Season','Series ID','Race ID','Driver ID','Team ID','Position'],status:['Dataset','Season','Series ID','State']};
+ const requirements={qualifying:['Season','Series ID','Race ID','Driver ID','Position','Run ID','Session'],standings:['Season','Series ID','Driver ID','Position','Points'],results:['Season','Series ID','Race ID','Driver ID','Team ID','Position'],status:['Dataset','Season','Series ID','State']};
  async function load(kind) {
    const entry=cache[kind];if(entry?.pending)return entry.pending;
    if(entry?.loaded&&Date.now()-entry.loaded<300000)return entry.rows;
@@ -91,26 +92,37 @@ const NascarCompetition=(()=>{
    const track=allTracks.find(t=>t.source==='nascar'&&String(t.trackId)===String(row['Track ID']));
    return [row['Race Date'],row.Event,track?.name].filter(Boolean).join(' · ');
  }
- function results(rows,series,profiles,el,chase=null) {
-   const events=[...new Map(rows.map(r=>[String(r['Race ID']),r])).values()].sort((a,b)=>String(b['Race Date']).localeCompare(String(a['Race Date']))||Number(b['Race ID'])-Number(a['Race ID']));
+ function results(rows,series,profiles,el,chase=null,qualifying=[]) {
+   const events=[...new Map([...qualifying,...rows].map(r=>[String(r['Race ID']),r])).values()].sort((a,b)=>String(b['Race Date']).localeCompare(String(a['Race Date']))||Number(b['Race ID'])-Number(a['Race ID']));
    if(!events.some(r=>String(r['Race ID'])===selection[series]))selection[series]=String(events[0]['Race ID']);
    const selected=events.find(r=>String(r['Race ID'])===selection[series]);
    const raceRows=rows.filter(r=>String(r['Race ID'])===selection[series]).sort((a,b)=>(Number(a.Position)||999)-(Number(b.Position)||999));
    el.innerHTML=`<label class="nascar-event-picker">Event<select id="nascar-result-event">${events.map(r=>`<option value="${text(r['Race ID'])}"${String(r['Race ID'])===selection[series]?' selected':''}>${text(eventLabel(r))}</option>`).join('')}</select></label><h3>${text(selected.Event)}</h3><p class="f1-data-note">${text(selected['Race Date'])} · Race results</p><p class="nascar-chase-legend">${chase?'Gold highlights show the current top '+chaseSizes[ids[series]]+' Chase grid, not the grid at the time of this race.':'Chase highlighting unavailable while standings cannot be loaded.'}</p>`+table(['Finish','Driver','Manufacturer','Start','Laps','Led','Points','Status'],raceRows.map(r=>`<tr${chase?.has(String(r['Driver ID']))?' class="nascar-chase-result"':''}><td>${String(r.Disqualified)==='TRUE'?'DSQ':Number(r.Position)>0?value(r.Position):'—'}</td><td>${identity(r,series,profiles,true)}${chase?.has(String(r['Driver ID']))?'<span class="nascar-chase-badge">Chase grid</span>':''}</td><td>${text(r.Manufacturer)||'—'}</td><td>${Number(r.Start)>0?value(r.Start):'—'}</td>${['Laps','Laps Led','Points'].map(k=>`<td>${value(r[k])}</td>`).join('')}<td>${text(r.Status)||'—'}</td></tr>`));
    const available=[1,2,3].filter(n=>raceRows.some(r=>number(r['Stage '+n+' Position'])>0));
-   if(!available.includes(sessionSelection[series]))sessionSelection[series]=0;
+   const qualRows=qualifying.filter(r=>String(r['Race ID'])===selection[series]);
+   const runs=[...new Map(qualRows.map(r=>[String(r['Run ID']),r])).values()];
+   const options=[...(raceRows.length?[{key:'0',label:'Race Results'}]:[]),...runs.map(r=>({key:'q:'+r['Run ID'],label:r.Session||'Qualifying'})),...available.map(n=>({key:String(n),label:'Stage '+n}))];
+   if(!options.some(o=>o.key===String(sessionSelection[series])))sessionSelection[series]=options[0]?.key;
+
    const session=document.createElement('label');session.className='nascar-event-picker';
-   session.innerHTML='Session<select id="nascar-result-session"><option value="0">Race Results</option>'+available.map(n=>`<option value="${n}"${sessionSelection[series]===n?' selected':''}>Stage ${n}</option>`).join('')+'</select>';
+   session.innerHTML='Session<select id="nascar-result-session">'+options.map(o=>`<option value="${text(o.key)}"${String(sessionSelection[series])===o.key?' selected':''}>${text(o.label)}</option>`).join('')+'</select>';
    el.querySelector('.nascar-event-picker').after(session);
-   if(sessionSelection[series]) {
+   if(String(sessionSelection[series]).startsWith('q:')) {
+     const run=String(sessionSelection[series]).slice(2),entries=qualRows.filter(r=>String(r['Run ID'])===run).sort((a,b)=>(Number(a.Position)||999)-(Number(b.Position)||999));
+     const grid=entries[0]?.Session==='Starting Grid';
+     el.querySelector('h3').textContent=selected.Event+' · '+(entries[0]?.Session||'Qualifying');
+     el.querySelector('.f1-data-note').textContent=grid?'Published starting grid · Timed qualifying unavailable. Grid order can differ from qualifying because of penalties or NASCAR procedures.':'Published qualifying · Times in seconds; speeds in mph. Subject to source updates.';
+     const precision=v=>number(v)>0?Number(v).toFixed(3):'—';
+     el.querySelector('.nascar-competition-table').outerHTML=table(grid?['Start','Driver','Manufacturer']:['Pos','Driver','Manufacturer','Lap Time','Speed (mph)','Laps','Status'],entries.map(r=>`<tr${chase?.has(String(r['Driver ID']))?' class="nascar-chase-result"':''}><td>${String(r.Disqualified)==='TRUE'?'DSQ':Number(r.Position)>0?value(r.Position):'—'}</td><td>${identity(r,series,profiles,true)}${chase?.has(String(r['Driver ID']))?'<span class="nascar-chase-badge">Chase grid</span>':''}</td><td>${text(r.Manufacturer)||'—'}</td>${grid?'':`<td>${precision(r['Lap Time'])}</td><td>${precision(r.Speed)}</td><td>${value(r.Laps)}</td><td>${text(r.Status)||'—'}</td>`}</tr>`));
+   } else if(Number(sessionSelection[series])>0) {
      const n=sessionSelection[series],stageRows=raceRows.filter(r=>number(r['Stage '+n+' Position'])>0).sort((a,b)=>Number(a['Stage '+n+' Position'])-Number(b['Stage '+n+' Position']));
      el.querySelector('h3').textContent=selected.Event+' · Stage '+n;
      el.querySelector('.f1-data-note').textContent=selected['Race Date']+' · Published stage results';
      el.querySelector('.nascar-competition-table').outerHTML=table(['Pos','Driver','Manufacturer','Stage Points'],stageRows.map(r=>`<tr${chase?.has(String(r['Driver ID']))?' class="nascar-chase-result"':''}><td>${value(r['Stage '+n+' Position'])}</td><td>${identity(r,series,profiles,true)}${chase?.has(String(r['Driver ID']))?'<span class="nascar-chase-badge">Chase grid</span>':''}</td><td>${text(r.Manufacturer)||'—'}</td><td>${value(r['Stage '+n+' Points'])}</td></tr>`));
    }
-   session.querySelector('select').addEventListener('change',e=>{sessionSelection[series]=Number(e.target.value);results(rows,series,profiles,el,chase);el.querySelector('#nascar-result-session').focus();});
+   session.querySelector('select').addEventListener('change',e=>{sessionSelection[series]=e.target.value;results(rows,series,profiles,el,chase,qualifying);el.querySelector('#nascar-result-session').focus();});
    NascarProfiles.bindImages(el);
-   el.querySelector('select').addEventListener('change',e=>{selection[series]=e.target.value;sessionSelection[series]=0;results(rows,series,profiles,el,chase);el.querySelector('select').focus();});
+   el.querySelector('select').addEventListener('change',e=>{selection[series]=e.target.value;sessionSelection[series]=0;results(rows,series,profiles,el,chase,qualifying);el.querySelector('select').focus();});
  }
  async function render(el,series,tab) {
    if(typeof Spoilers!=="undefined"&&Spoilers.protected(series)){Spoilers.render(el,series);return;}
@@ -118,19 +130,20 @@ const NascarCompetition=(()=>{
    el.innerHTML=`<h2>${title}</h2><p role="status">Loading ${title.toLowerCase()}…</p>`;
    if(!NASCAR_COMPETITION_FEEDS[tab]){el.innerHTML=`<h2>${title}</h2><p>Published ${title.toLowerCase()} are coming soon.</p>`;return;}
    try {
-     const [rows,profileResult,statusResult,chaseRows]=await Promise.all([load(tab),NascarProfiles.load().then(()=>true,()=>false),load('status').catch(()=>[]),tab==='results'?load('standings').catch(()=>null):Promise.resolve(null)]);
+     const [rows,profileResult,statusResult,chaseRows,qualResult]=await Promise.all([load(tab),NascarProfiles.load().then(()=>true,()=>false),load('status').catch(()=>[]),tab==='results'?load('standings').catch(()=>null):Promise.resolve(null),tab==='results'&&NASCAR_COMPETITION_FEEDS.qualifying?load('qualifying').catch(()=>null):Promise.resolve([])]);
      if(!el.isConnected)return;
      const data=scoped(rows,series),profiles=profileResult?NascarProfiles.identities(series,new Date().getFullYear()):[];
      const status=scoped(statusResult,series).find(r=>r.Dataset===(tab==='standings'?'Standings':'Results'));
      const updated=data.map(r=>r['Updated UTC']).filter(v=>v&&Number.isFinite(Date.parse(v))).sort().at(-1);
      el.innerHTML=`<h2>${title}</h2><p class="f1-data-note">${new Date().getFullYear()} season${updated?' · Data imported '+text(new Date(updated).toLocaleString()):''}</p>${status?.State==='ERROR'?'<p class="f1-warning">The latest source update failed. Showing the last available data.</p>':''}${!profileResult?'<p class="f1-data-note">Driver images and team details are temporarily unavailable.</p>':''}<div class="nascar-competition-content"></div>`;
      const content=el.querySelector('.nascar-competition-content');
-     if(!data.length){content.innerHTML='<p>No published data is available for this season yet.</p>';return;}
+     if(!data.length&&!(tab==='results'&&qualResult?.some(r=>Number(r['Series ID'])===ids[series]&&Number(r.Season)===new Date().getFullYear()))){content.innerHTML='<p>No published data is available for this season yet.</p>';return;}
      if(tab==='standings'){renderStandings(content,data,series,profiles);}
      else {
        const grid=chaseRows===null?null:scoped(chaseRows,series);
        const chase=grid?.length?new Set(grid.filter(r=>Number(r.Position)>=1&&Number(r.Position)<=chaseSizes[ids[series]]).map(r=>String(r['Driver ID']))):null;
-       results(data,series,profiles,content,chase);
+       results(data,series,profiles,content,chase,scoped(qualResult||[],series));
+       if(qualResult===null||scoped(statusResult,series).some(r=>r.Dataset==='Qualifying'&&r.State==='ERROR'))content.insertAdjacentHTML('afterbegin','<p class="f1-warning">Qualifying could not refresh. Available race and stage results are still shown.</p>');
      }
    }catch(e){if(!el.isConnected)return;el.innerHTML=`<h2>${title}</h2><p role="status">Unable to load ${title.toLowerCase()}.</p><button type="button">Try again</button>`;el.querySelector('button').addEventListener('click',()=>render(el,series,tab));}
  }
@@ -246,8 +259,25 @@ const NascarCompetition=(()=>{
  }
  async function preload(series,tab){
    if(typeof Spoilers!=="undefined"&&Spoilers.protected(series))return;
-   const kinds={overview:['standings','results','status'],chase:['standings','results','status'],standings:['standings','status'],results:['results','standings','status'],teams:['standings'] }[tab]||[];
+   const kinds={overview:['standings','results','status'],chase:['standings','results','status'],standings:['standings','status'],results:['results','standings','status',...(NASCAR_COMPETITION_FEEDS.qualifying?['qualifying']:[])],teams:['standings'] }[tab]||[];
    await Promise.allSettled([...kinds.map(load),...(kinds.length?[NascarProfiles.load()]:[])]);
  }
- return {render,homeSummary,overview,chase,preload,standingsFor:async series=>scoped(await load('standings'),series)};
+ async function eventLinks(race){
+   const [raceData,qualData]=await Promise.all([load('results'),NASCAR_COMPETITION_FEEDS.qualifying?load('qualifying').catch(()=>[]):Promise.resolve([])]);
+   const rows=scoped(raceData,race.series).filter(r=>String(r['Race ID'])===String(race.raceId));
+   const qualifying=scoped(qualData,race.series).filter(r=>String(r['Race ID'])===String(race.raceId));
+   const runs=[...new Map(qualifying.map(r=>[String(r['Run ID']),r])).values()];
+   const links=[...(rows.length?[{key:0,label:'Race results'}]:[]),...runs.map(r=>({key:'q:'+r['Run ID'],label:r.Session==='Starting Grid'?'Starting grid':r.Session+' results'})),...[1,2,3].filter(n=>rows.some(r=>number(r['Stage '+n+' Position'])>0)).map(n=>({key:n,label:'Stage '+n+' results'}))];
+   return links.map(o=>({label:o.label,open:()=>{selection[race.series]=String(race.raceId);sessionSelection[race.series]=o.key;return renderNascarHub(race.series,'results');}}));
+ }
+ async function pole(race){
+   if(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series))return null;
+   const rows=(await load('qualifying')).filter(r=>Number(r.Season)===Number(race.date.slice(0,4))&&Number(r['Series ID'])===ids[race.series]&&String(r['Race ID'])===String(race.raceId));
+   let leaders=rows.filter(r=>Number(r.Position)===1&&String(r.Disqualified).toUpperCase()!=='TRUE');
+   if(leaders.length>1){const finals=leaders.filter(r=>/\bfinal\b/i.test(r.Session));if(finals.length===1)leaders=finals;}
+   if(leaders.length!==1)return null;
+   const row=leaders[0],profile=NascarProfiles.identities(race.series,Number(row.Season)).find(p=>p.id===String(row['Driver ID']));
+   return {label:row.Session==='Starting Grid'?'Starts P1':'Pole sitter',name:profile?.name||row['Driver Name'],detail:row.Session==='Starting Grid'?'Published starting grid · no timed qualifying':['#'+row['Car Number'],row.Manufacturer,number(row['Lap Time'])>0?Number(row['Lap Time']).toFixed(3)+'s':''].filter(Boolean).join(' · '),image:NascarProfiles.numberMarkup({number:row['Car Number'],numberUrl:profile?.number===String(row['Car Number'])?profile.numberUrl:''})};
+ }
+ return {render,homeSummary,overview,chase,preload,eventLinks,pole,standingsFor:async series=>scoped(await load('standings'),series)};
 })();

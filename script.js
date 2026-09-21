@@ -405,7 +405,32 @@ function setLoading(visible, message = "Loading Race Control…") {
   document.querySelector("main").inert = visible;
 }
 
+function poleSlot(race){
+  if(!race||(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series)))return '';
+  if(race.series!=='Formula 1'&&!nascarHubSeries.has(race.series))return '';
+  return `<div class="race-pole" data-pole-series="${escapeHtml(race.series)}" data-pole-id="${escapeHtml(String(race.raceId))}" hidden></div>`;
+}
+async function fillPoleDisplays(root){
+  if(!root)return;
+  const slots=[...root.querySelectorAll('[data-pole-id]')];
+  const displays=await Promise.all(slots.map(async slot=>{
+    const series=slot.dataset.poleSeries,id=slot.dataset.poleId;
+    if(typeof Spoilers!=='undefined'&&Spoilers.protected(series))return null;
+    const race=allRaces.find(r=>r.series===series&&String(r.raceId)===id);if(!race)return null;
+    try{return {series,id,data:series==='Formula 1'?await f1EventPole(race):await NascarCompetition.pole(race)};}catch{return null;}
+  }));
+  // Feed completion can rebuild F1 cards; populate the current elements.
+  if(slots.length)await new Promise(requestAnimationFrame);
+  for(const slot of root.querySelectorAll('[data-pole-id]')){
+    const result=displays.find(d=>d&&d.series===slot.dataset.poleSeries&&d.id===slot.dataset.poleId);
+    const p=result?.data;
+    if(!p||(typeof Spoilers!=='undefined'&&Spoilers.protected(result.series))){slot.hidden=true;continue;}
+    slot.innerHTML=`<span class="race-pole-badge">P1</span><div><span class="race-pole-label">${escapeHtml(p.label)}</span><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.detail||'')}</small></div>${p.image||''}`;
+    slot.hidden=false;
+  }
+}
 async function waitPageImages(root){
+  await fillPoleDisplays(root);
   // Include the full rendered page, even below the fold, but not closed panels.
   const images=[...root.querySelectorAll('img')].filter(img=>!img.hidden&&img.getClientRects().length);
   await Promise.all(images.map(img=>new Promise(resolve=>{
@@ -624,6 +649,21 @@ function renderRaceDetails(race,prepared=false) {
     document.getElementById('event-details').insertAdjacentHTML('beforeend',`<section class="detail-section" data-cup-track="${escapeHtml(race.trackId)}">${nascarTrackRatings(race.trackId)}</section>`);
     loadCupReviews();
   }
+  return eventResultShortcuts(race);
+}
+
+async function eventResultShortcuts(race){
+  if(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series))return;
+  if(race.series!=='Formula 1'&&!nascarHubSeries.has(race.series))return;
+  const host=document.createElement('section');host.className='detail-section event-result-shortcuts';
+  document.querySelector('#event-details .event-hero').after(host);
+  try{
+    const links=race.series==='Formula 1'?await f1EventResultLinks(race):await NascarCompetition.eventLinks(race);
+    if(!host.isConnected)return;
+    if(!links.length){host.remove();return;}
+    host.innerHTML='<h2>Event results</h2><div class="event-result-buttons"></div>';
+    links.forEach(link=>{const button=document.createElement('button');button.type='button';button.textContent=link.label+' →';button.onclick=()=>withLoading(link.open,'Opening results…');host.querySelector('div').appendChild(button);});
+  }catch{if(host.isConnected)host.innerHTML='<p>Result links could not load.</p><button type="button">Retry results</button>';host.querySelector('button')?.addEventListener('click',()=>{host.remove();eventResultShortcuts(race);});}
 }
 
 function renderCustomizePanel() {
