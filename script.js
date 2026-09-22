@@ -320,13 +320,14 @@ function renderHome(now = new Date()) {
     card.className = "race-card"; card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const seriesButton = `<button class="series-name series-name-button series-brand-heading">${seriesLogoMarkup(series)}<span>${escapeHtml(series)}</span></button>`;
     if(status===1)card.classList.add('season-completed');
-    const nextMarkup=nextRace?`<section class="home-event-panel home-next" data-home-action="next" role="link" tabindex="0" aria-label="Open ${escapeHtml(nextRace.event)} event schedule">${racePhotoMarkup(nextRace)}<span class="home-panel-label">NEXT RACE <span>↗</span></span><h3>${escapeHtml(nextRace.event)}</h3><p class="home-track">${escapeHtml(trackNameForRace(nextRace))}</p><p class="home-event-date">${formatDate(nextRace.date)}<br>${escapeHtml(nextRace.time||'Time TBD')}</p>${nextRace.network?`<p class="race-network">Network: ${escapeHtml(nextRace.network)}</p>`:''}${poleSlot(nextRace)}<span class="home-panel-cta">Event schedule <span>→</span></span></section>`:`<section class="home-event-panel home-next"><span class="home-panel-label">SEASON STATUS</span><h3>Season completed</h3><p>No upcoming races scheduled.</p></section>`;
+    const nextMarkup=nextRace?`<section class="home-event-panel home-next" data-home-action="next" role="link" tabindex="0" aria-label="Open ${escapeHtml(nextRace.event)} event schedule">${racePhotoMarkup(nextRace)}<span class="home-panel-label">NEXT RACE</span><h3>${escapeHtml(nextRace.event)}</h3><p class="home-track">${escapeHtml(trackNameForRace(nextRace))}</p><p class="home-event-date">${formatDate(nextRace.date)}<br>${escapeHtml(nextRace.time||'Time TBD')}</p>${nextRace.network?`<p class="race-network">Network: ${escapeHtml(nextRace.network)}</p>`:''}${poleSlot(nextRace)}<span class="home-panel-cta">Event schedule <span>→</span></span></section>`:`<section class="home-event-panel home-next"><span class="home-panel-label">SEASON STATUS</span><h3>Season completed</h3><p>No upcoming races scheduled.</p></section>`;
     card.classList.add('home-series-card');
-    card.innerHTML=seriesButton+`<div class="home-event-grid">${nextMarkup}</div>`;
+    card.innerHTML=`<div class="home-series-header">${seriesButton}<button type="button" class="home-hub-button" data-home-action="hub" aria-label="Open ${escapeHtml(series)} series hub">Series Hub</button></div><div class="home-event-grid">${nextMarkup}</div>`;
     const activate=event=>{
       const action=event.target.closest('[data-home-action]');
       if(event.type==='keydown'){if(!action||!['Enter',' '].includes(event.key)||event.target.tagName==='BUTTON')return;event.preventDefault();}
       if(action){event.stopPropagation();const name=action.dataset.homeAction;
+        if(name==='hub')return showSeries(series);
         if(name==='next')return showRaceDetails(nextRace);
         if(name==='previous')return card.openPrevious?.();
         if(name==='standings')return series==='Formula 1'?renderF1Hub('standings'):renderNascarHub(series,'standings');
@@ -370,7 +371,7 @@ function homePreviousPanel(card,race,winnerMarkup,open){
   const panel=document.createElement('section');panel.className='home-event-panel home-previous';
   panel.dataset.homeAction='previous';panel.setAttribute('role','link');panel.tabIndex=0;
   panel.setAttribute('aria-label','View results for '+race.event);
-  panel.innerHTML=`${racePhotoMarkup(race)}<span class="home-panel-label">PREVIOUS RACE <span>↗</span></span><h3>${escapeHtml(race.event)}</h3><p class="home-track">${escapeHtml(trackNameForRace(race))}</p><p class="home-event-date">${formatDate(race.date)}</p><div class="home-race-winner"><span class="home-panel-label">RACE WINNER</span>${winnerMarkup}</div><button type="button" class="home-panel-cta">Full results <span>→</span></button>`;
+  panel.innerHTML=`${racePhotoMarkup(race)}<span class="home-panel-label">PREVIOUS RACE</span><h3>${escapeHtml(race.event)}</h3><p class="home-track">${escapeHtml(trackNameForRace(race))}</p><p class="home-event-date">${formatDate(race.date)}</p><div class="home-race-winner"><span class="home-panel-label">RACE WINNER</span>${winnerMarkup}</div><button type="button" class="home-panel-cta">Full results <span>→</span></button>`;
   card.querySelector('.home-event-grid').prepend(panel);card.openPrevious=open;
 }
 function nextRaceSortTime(race) {
@@ -509,7 +510,7 @@ function renderNascarHub(series,tab='overview',prepared=false) {
   document.getElementById('f1-hub').hidden=true;
   const hub=document.getElementById('series-hub'),calendar=document.getElementById('series-calendar');
   const tabs={overview:'Overview',chase:'The Chase',schedule:'Schedule',standings:'Standings',teams:'Teams & Drivers',results:'Results',tracks:'Tracks'};
-  hub.innerHTML=`<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT · NEXT TO LAUNCH</span></div><nav class="nascar-hub-tabs" aria-label="Series sections">${Object.entries(tabs).map(([key,label])=>`<button type="button" data-nascar-tab="${key}" aria-pressed="${key===tab}">${label}</button>`).join('')}</nav><div id="nascar-hub-content"></div>`;
+  hub.innerHTML=`<div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1><span class="hub-status">IN DEVELOPMENT · NEXT TO LAUNCH</span></div><nav class="nascar-hub-tabs" style="--hub-accent:${themeFor(series)[0]}" aria-label="Series sections">${Object.entries(tabs).map(([key,label])=>`<button type="button" data-nascar-tab="${key}" aria-pressed="${key===tab}">${label}</button>`).join('')}</nav><div id="nascar-hub-content"></div>`;
   let contentReady;
   if(tab==='schedule')renderSeries(series,false,true);
   else {
