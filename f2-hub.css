@@ -1,0 +1,21 @@
+#f2-hub-content{max-width:1200px;width:100%;margin:0 auto;padding-top:18px;box-sizing:border-box;overflow:hidden}
+#f2-hub-content>.f1-feature{margin-bottom:18px}
+.f2-table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}
+.f2-table th{padding:12px;color:#aab6c5;font-size:11px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #ffffff20}
+.f2-table td{padding:12px;border-bottom:1px solid #ffffff0e;white-space:nowrap;font-variant-numeric:tabular-nums}
+.f2-logo{width:40px;height:30px;object-fit:contain;vertical-align:middle;margin-right:8px}
+.f2-identity{display:inline-flex;align-items:center;gap:8px;border-left:3px solid var(--f2-team);padding-left:9px;text-align:left}
+.f2-identity strong,.f2-identity small{display:block}.f2-identity small{color:#aab6c5;font-size:11px;margin-top:4px}
+.f2-overview-link{display:block;width:100%;text-align:left;color:inherit;cursor:pointer;font:inherit}
+.f2-podium{display:flex;gap:14px;align-items:center;margin:14px 0}.f2-podium>b{font-size:22px;color:#99bdd6}
+.f2-section-link{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:transparent;color:inherit;border:0;cursor:pointer;padding:0}
+.f2-section-link span{color:#80b5da}.f2-section-link h2{font-size:20px}
+.f2-team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:16px}
+.f2-drivers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.f2-drivers article{text-align:center;background:#ffffff04;padding:12px;border-radius:12px}
+.f2-drivers h4{margin:8px 0;min-height:2.5em}.f2-drivers p{font-size:12px;color:#aab6c5}
+.f2-portrait{display:block;width:100%;height:210px;object-fit:contain;object-position:center bottom;margin-bottom:12px}
+.f2-result-filters{display:flex;flex-wrap:wrap;gap:12px}.f2-result-filters label{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.f2-result-filters select{background:#171c24;color:#fff;border:1px solid #ffffff25;border-radius:10px;padding:12px;font-size:16px;max-width:100%;min-height:46px}
+.f2-home-leader{background:transparent;border:0;color:inherit;display:flex;flex-wrap:wrap;align-items:center;gap:12px;text-align:left;width:100%;padding:12px;cursor:pointer}
+.f2-home-leader>small{width:100%;color:#aab6c5;letter-spacing:.1em}
+@media(max-width:600px){.f2-result-filters label{flex-basis:100%}.f2-portrait{height:175px}.f2-table td,.f2-table th{padding:10px 7px}.f2-section-link{align-items:flex-start;flex-direction:column;padding-bottom:12px}.f2-drivers article{padding:8px}}

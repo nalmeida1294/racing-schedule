@@ -29,8 +29,10 @@ function f1TrackScoreMarkup(id) {
     return vsc!==null&&sc!==null&&Number.isInteger(vsc)&&Number.isInteger(sc)?[vsc+sc]:[];
   });
   const average=counts.length?(counts.reduce((a,b)=>a+b,0)/counts.length).toFixed(2):'—';
+  const affected=counts.filter(count=>count>0).length;
+  const frequency=counts.length?Math.round(affected/counts.length*100):null;
   const combined=f1CombinedRaceRating(reviews);
-  return `<dl class="track-facts f1-track-scores">${metric('Rain','Rain Score /10','Rain Samples')}${metric('Chaos','Chaos Score /10','Chaos Samples')}<div><dt>Overall race rating</dt><dd>${combined.value===null?'Not rated':combined.value.toFixed(2)+' /5'}</dd><small>${combined.count} rated sessions</small></div><div><dt>VSC or SC per race</dt><dd>${average}</dd><small>${counts.length} rated sessions</small></div></dl><p class="f1-data-note">Personal ratings · across published seasons. Blank scores are excluded.</p>${f1Store.trackScores.state==='error'?'<p class="f1-warning">Track score update unavailable.</p><button data-f1-retry="trackScores">Retry track scores</button>':''}`;
+  return `<dl class="track-facts f1-track-scores">${metric('Rain','Rain Score /10','Rain Samples')}${metric('Chaos','Chaos Score /10','Chaos Samples')}<div><dt>Overall race rating</dt><dd>${combined.value===null?'Not rated':combined.value.toFixed(2)+' /5'}</dd><small>${combined.count} rated sessions</small></div><div><dt>VSC or SC per race</dt><dd>${average}</dd><small>${counts.length} rated sessions</small><p class="f1-safety-frequency">${frequency===null?'VSC / SC frequency unavailable':`<strong>${frequency}%</strong> had a VSC or SC<small>${affected} of ${counts.length} recorded sessions</small>`}</p></div></dl><p class="f1-data-note">Personal ratings · across published seasons. Blank scores are excluded.</p>${f1Store.trackScores.state==='error'?'<p class="f1-warning">Track score update unavailable.</p><button data-f1-retry="trackScores">Retry track scores</button>':''}`;
 }
 function f1TrackFlagMarkup(country) {
   const key=String(country||'').trim().toLowerCase();

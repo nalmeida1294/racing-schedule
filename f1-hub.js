@@ -26,7 +26,7 @@ function brandedLoaderMarkup(message) {
 function loadF1Feeds(force = false, view = f1Tab) {
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Promise.resolve([]);
   const common=['drivers','constructors','status'];
-  const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews'],tracks:['trackScores','reviews'],schedule:[],records:[]};
+  const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings','results','sessions'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews'],tracks:['trackScores','reviews'],schedule:[],records:[]};
   return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force)));
 }
 let f1RefreshQueued=false;
@@ -118,9 +118,9 @@ function renderF1Hub(tab = "overview",prepared=false) {
   f1Tab = f1Tabs[tab] ? tab : "overview";
   const hub = document.getElementById("f1-hub");
   hub.hidden = false;
-  hub.innerHTML = `<div class="f1-hub-heading">${seriesLogoMarkup('Formula 1',true)}<p class="weekend-eyebrow">THE CHAMPIONSHIP HUB</p><h1>Formula <em>1</em></h1><p>${new Date().getFullYear()} season · Every Lap, One App.</p></div>
+  hub.innerHTML = `<div class="hub-sticky-navigation"><div class="f1-hub-heading">${seriesLogoMarkup('Formula 1',true)}<p class="weekend-eyebrow">THE CHAMPIONSHIP HUB</p><h1>Formula <em>1</em></h1><p>${new Date().getFullYear()} season · Every Lap, One App.</p></div>
     <div class="f1-tabs" role="tablist" aria-label="Formula 1 sections">${Object.entries(f1Tabs).map(([key, label]) => `<button type="button" role="tab" id="f1-tab-${key}" data-f1-tab="${key}" aria-selected="${key === f1Tab}" aria-controls="${key === "schedule" ? "series-calendar" : "f1-content"}" tabindex="${key === f1Tab ? 0 : -1}">${label}</button>`).join("")}</div>
-    <div id="f1-content" role="tabpanel" aria-labelledby="f1-tab-${f1Tab}"></div>`;
+    </div><div id="f1-content" role="tabpanel" aria-labelledby="f1-tab-${f1Tab}"></div>`;
   hub.querySelectorAll("[data-f1-tab]").forEach(button => {
     button.addEventListener("click", () => withLoading(async () => { await renderF1Hub(button.dataset.f1Tab); document.getElementById(`f1-tab-${f1Tab}`).focus({ preventScroll: true }); }, "Opening Formula 1…"));
     button.addEventListener("keydown", event => {
@@ -162,6 +162,15 @@ function renderF1Content() {
     destination?.setAttribute('tabindex', '-1'); destination?.focus({preventScroll:true});
     destination?.scrollIntoView({block:'start',behavior:'instant'});
   }));
+  panel.querySelectorAll('[data-f1-sort]').forEach(button=>{
+    const key=button.dataset.f1Sort;button.closest('th').setAttribute('aria-sort',f1StandingSort.key===key?f1StandingSort.direction:'none');
+    button.addEventListener('click',()=>{
+      const scroll=button.closest('.f1-table-scroll').scrollLeft;
+      f1StandingSort.direction=f1StandingSort.key===key?(f1StandingSort.direction==='ascending'?'descending':'ascending'):['Position','DriverName','AverageFinish','AverageStart','DNFs'].includes(key)?'ascending':'descending';
+      f1StandingSort.key=key;renderF1Content();
+      const next=panel.querySelector(`[data-f1-sort="${key}"]`);next.closest('.f1-table-scroll').scrollLeft=scroll;next.focus({preventScroll:true});
+    });
+  });
   if (typeof bindF1Insights === "function") bindF1Insights(panel);
   if (typeof liveRefreshEntries === "function") liveRefreshEntries();
   ["season", "session"].forEach(kind => {
@@ -213,10 +222,37 @@ function f1Table(headers, rows, caption, changeLabel) {
   const heading = changeLabel ? `<tr>${headers.slice(0,-2).map(header=>`<th scope="col" rowspan="2">${header}</th>`).join("")}<th scope="colgroup" colspan="2" class="f1-change-heading"><span>${escapeHtml(changeLabel)}</span></th></tr><tr>${headers.slice(-2).map(header=>`<th scope="col" class="f1-change-column">${header}</th>`).join("")}</tr>` : `<tr>${headers.map(header=>`<th scope="col">${header}</th>`).join("")}</tr>`;
   return `<div class="f1-table-scroll" role="region" aria-label="${escapeHtml(caption)}" tabindex="0"><table class="f1-table"><caption>${escapeHtml(caption)}</caption><thead>${heading}</thead><tbody>${rows.join("")}</tbody></table></div>`;
 }
+const f1StandingSort={key:'Points',direction:'descending'};
+function f1DriverSeasonStats(driver){
+  const through=Number(driver['Through Round'])||Infinity,id=driver['Driver ID'];
+  const unique=new Map();
+  f1Rows('results').filter(r=>r['Driver ID']===id&&Number(r.Round)<=through).forEach(r=>unique.set(r['Jolpica Race Key'],r));
+  const races=[...unique.values()],available=f1Store.results.state==='ready'&&races.length>0;
+  const positive=v=>String(v??'').trim()!==''&&Number.isFinite(Number(v))&&Number(v)>0;
+  const starts=races.filter(r=>!/^(did not start|did not qualify|did not prequalify|withdrawn|excluded)$/i.test(r['Finish Status']||''));
+  const average=key=>{const values=starts.filter(r=>positive(r[key])).map(r=>Number(r[key]));return available&&values.length?values.reduce((a,b)=>a+b,0)/values.length:null;};
+  const qualifying=f1Rows('sessions').filter(r=>r['Driver ID']===id&&r.Session==='Qualifying'&&unique.has(r['Jolpica Race Key']));
+  const poleRaces=new Set(qualifying.filter(r=>Number(r.Position)===1).map(r=>r['Jolpica Race Key']));
+  const unknownStatus=starts.some(r=>!String(r['Finish Status']||'').trim());
+  return {Podiums:available?races.filter(r=>Number(r.Position)>=1&&Number(r.Position)<=3&&!/disqualified|excluded/i.test(r['Finish Status']||'')).length:null,
+    Poles:available&&f1Store.sessions.state==='ready'&&qualifying.length?poleRaces.size:null,
+    AverageFinish:average('Position'),AverageStart:average('Grid'),
+    DNFs:available&&!unknownStatus?starts.filter(r=>!/^Finished$|^\+\d+ Laps?$|^Disqualified$/i.test(String(r['Finish Status']).trim())).length:null};
+}
 function f1StandingsMarkup() {
-  const drivers = f1Sorted("standings"), teams = f1Sorted("constructorStandings");
-  return `<section><h2>Driver Standings</h2>${drivers.length ? f1FeedNote("standings") + f1Table(["Pos", "Driver", "Points", "Wins", "Teams this season"], drivers.map(row => `<tr><td>${escapeHtml(row["Position Text"] || row.Position)}</td><th scope="row">${f1TeamIdentity(row)}</th><td class="f1-table-points">${f1Number(row.Points)}</td><td>${f1Number(row.Wins)}</td><td>${escapeHtml(row["Season Constructors"])}</td></tr>`), "Driver championship standings") : f1Pending("standings", "Driver standings")}</section>
-    <section class="f1-section" id="f1-constructor-standings"><h2>Constructor Standings</h2>${teams.length ? f1FeedNote("constructorStandings") + f1Table(["Pos", "Constructor", "Points", "Wins"], teams.map(row => `<tr><td>${escapeHtml(row["Position Text"] || row.Position)}</td><th scope="row">${f1TeamIdentity(row,false)}</th><td class="f1-table-points">${f1Number(row.Points)}</td><td>${f1Number(row.Wins)}</td></tr>`), "Constructor championship standings") : f1Pending("constructorStandings", "Constructor standings")}</section>`;
+  const drivers=f1Sorted('standings').map(row=>({...row,...f1DriverSeasonStats(row),DriverName:f1DriverName(row)})),teams=f1Sorted('constructorStandings');
+  const columns=[['Position','Pos'],['DriverName','Driver'],['Points','Points'],['Wins','Wins'],['Podiums','Podiums'],['Poles','Poles'],['AverageFinish','Avg finish'],['AverageStart','Avg start'],['DNFs','DNFs']];
+  const numeric=v=>v===null||v===undefined||String(v).trim()===''||!Number.isFinite(Number(v))?null:Number(v);
+  drivers.sort((a,b)=>{
+    const key=f1StandingSort.key,av=key==='DriverName'?a[key]:numeric(a[key]),bv=key==='DriverName'?b[key]:numeric(b[key]);
+    if(av===null||bv===null)return av===bv?f1Rank(a)-f1Rank(b):av===null?1:-1;
+    const delta=key==='DriverName'?av.localeCompare(bv):av-bv;
+    return (f1StandingSort.direction==='ascending'?delta:-delta)||f1Rank(a)-f1Rank(b);
+  });
+  const headers=columns.map(([key,label])=>`<button type="button" data-f1-sort="${key}" aria-label="Sort by ${label}">${label}<span aria-hidden="true">${f1StandingSort.key===key?(f1StandingSort.direction==='ascending'?' ↑':' ↓'):''}</span></button>`);
+  let table=f1Table(headers,drivers.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row)}</th>${columns.slice(2).map(([key])=>`<td${key==='Points'?' class="f1-table-points"':''}>${numeric(row[key])===null?'—':key.startsWith('Average')?Number(row[key]).toFixed(1):f1Number(row[key])}</td>`).join('')}</tr>`),'Driver championship standings');
+  return `<section><h2>Driver Standings</h2>${drivers.length?f1FeedNote('standings')+'<p class="f1-data-note">Grand Prix statistics from loaded results. Poles use qualifying P1; average start excludes pit-lane starts. DNFs exclude DNS and disqualifications. Tap a heading to sort.</p>'+table:f1Pending('standings','Driver standings')}</section>
+    <section class="f1-section" id="f1-constructor-standings"><h2>Constructor Standings</h2>${teams.length?f1FeedNote('constructorStandings')+f1Table(['Pos','Constructor','Points','Wins'],teams.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row,false)}</th><td class="f1-table-points">${f1Number(row.Points)}</td><td>${f1Number(row.Wins)}</td></tr>`),'Constructor championship standings'):f1Pending('constructorStandings','Constructor standings')}</section>`;
 }
 
 function f1SafeImage(value) {

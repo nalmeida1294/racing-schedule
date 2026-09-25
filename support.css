@@ -57,3 +57,6 @@
 .admin-error { color:#ffb1b9; }.admin-success { color:#9ce2c7; }
 [hidden] { display:none!important; }
 @media(max-width:600px){.admin-shell{padding:16px}.support-dialog{padding:20px}.site-footer{margin-top:30px}.admin-toolbar .admin-button{flex:1}.admin-login{margin:30px auto}.admin-item{padding:15px}}
+
+/* Avoid mobile focus magnification without disabling pinch zoom. */
+.support-form input,.support-form textarea,.support-form select,.admin-controls input,.admin-controls select{font-size:16px}

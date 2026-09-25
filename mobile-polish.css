@@ -408,3 +408,53 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
   .f1-tabs,.nascar-hub-tabs{--visible-tabs:2}
   .f1-tabs button,.nascar-hub-tabs button{flex-basis:calc((100% - 6px)/2);font-size:12px}
 }
+
+#f1-content .f1-table th button[data-f1-sort]{display:flex;align-items:center;gap:5px;min-height:44px;padding:8px 0;background:transparent;border:0;border-radius:3px;color:inherit;font:inherit;font-weight:700;text-align:left;white-space:nowrap}
+#f1-content .f1-table th[aria-sort=ascending],#f1-content .f1-table th[aria-sort=descending]{color:#f1ca78}
+#f1-content .f1-table th button[data-f1-sort]:focus-visible{outline:2px solid #f1ca78;outline-offset:3px}
+
+.nascar-schedule-action{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:48px;margin-top:20px;padding:13px 16px;border:1px solid var(--event-accent,#c2a258);border-radius:10px;background:linear-gradient(135deg,#272d35,#171c23);color:#f1f3f6;font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer;transition:background .15s,box-shadow .15s}
+.nascar-schedule-action svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:var(--event-accent,#c2a258);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nascar-schedule-action:hover{background:#303740;box-shadow:0 3px 12px #0003}
+.nascar-schedule-action:focus-visible{outline:2px solid var(--event-accent,#c2a258);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.nascar-schedule-action{transition:none}}
+
+.nascar-chase-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:26px;margin-left:7px;color:#dcc078;vertical-align:middle;flex-shrink:0}
+.nascar-chase-icon svg{display:block;width:22px;height:24px}
+.nascar-chase-legend .nascar-chase-icon{margin-left:0;margin-right:3px}
+
+/* Keep the series identity and single-row navigation above scrolled content. */
+#f1-hub:not([hidden]),#series-hub:not([hidden]):has(.hub-sticky-navigation){display:contents}
+.hub-sticky-navigation{position:sticky;top:0;z-index:30;padding:10px 0 4px;margin-bottom:18px;background:#0c0e10;box-shadow:0 8px 16px #0003}
+.hub-sticky-navigation .f1-hub-heading,.hub-sticky-navigation .series-hub-hero{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;margin:0;padding:6px 10px;border-left-width:3px;background:transparent;min-width:0}
+.hub-sticky-navigation .f1-hub-heading h1,.hub-sticky-navigation .series-hub-hero h1{font-size:clamp(18px,4vw,26px);line-height:1.15;margin:0;min-width:0}
+.hub-sticky-navigation .f1-hub-heading>p,.hub-sticky-navigation .series-hub-hero>p,.hub-sticky-navigation .hub-status{display:none}
+.hub-sticky-navigation .series-brand-logo{max-width:70px;max-height:36px;width:auto;height:32px;object-fit:contain;margin:0}
+.hub-sticky-navigation .f1-tabs,.hub-sticky-navigation .nascar-hub-tabs{position:relative;top:auto;margin:8px 0 0;background:transparent}
+#f1-content,#f1-constructor-standings,#nascar-hub-content{scroll-margin-top:130px}
+
+
+.f1-safety-frequency{margin:10px 0 0;padding-top:9px;border-top:1px solid #ffffff18;font-size:12px;line-height:1.5;color:#c3ccd6}
+.f1-safety-frequency strong{color:#e9d295;font-size:16px;font-variant-numeric:tabular-nums}
+.f1-safety-frequency small{display:block;margin-top:3px}
+
+/* Chase race trail, stage leaders, and compact labeled finishes. */
+.chase-race-progress{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.chase-round-stop{min-width:0;padding:10px;border:1px solid #ffffff18;border-radius:9px;background:#ffffff03}
+.chase-round-stop.is-complete{border-color:#c2a25880;background:#c2a2580c}
+.chase-round-stop>span{display:block;font-size:10px;color:#d2b86f;text-transform:uppercase;letter-spacing:.07em}
+.chase-round-stop>strong{display:block;margin:6px 0;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.chase-round-stop>small{font-size:10px;line-height:1.4;color:#b5bfca;display:block}
+.chase-mover-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chase-mover-columns h4{font-size:12px;margin:8px 0;color:#d7bd80}
+.chase-mover-columns ul,.chase-stage-top{list-style:none;padding:0;margin:0}
+.chase-mover-columns li{font-size:12px;margin:12px 0;line-height:1.5}
+.chase-mover-columns li>*{display:block}.chase-mover-columns small{color:#aebdce}
+.chase-stage-top li{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:12px;line-height:1.5;padding:8px 0;border-bottom:1px solid #ffffff10}
+.chase-stage-top li strong{font-size:16px}
+.chase-form{display:flex;gap:5px;align-items:stretch}
+.chase-form .chase-form-result{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:flex-start;width:auto;height:auto;min-width:0;max-width:80px;padding:6px 3px;gap:3px;text-align:center}
+.chase-form-result>small{font-size:9px;line-height:1.3;white-space:normal;overflow-wrap:anywhere}.chase-form-result>strong{font-size:13px}.chase-form-track{color:#b5bfca}
+.chase-gap-toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-size:12px;margin-top:10px}.chase-gap-toggle input{width:18px;height:18px;accent-color:#c2a258}
+.nascar-chase-plot .chase-dot-gap{font-size:9px;paint-order:stroke;stroke:#111820;stroke-width:3px;stroke-linejoin:round}
+.chase-calendar .event-photo-tile{min-height:100px;text-align:left}.chase-calendar .event-background-photo{opacity:.6}
