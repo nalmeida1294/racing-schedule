@@ -292,7 +292,7 @@ function weekLogoMarkup(series) {
 function seriesStatus(series, now = new Date()) {
   const today = localIsoDate(now);
   const races = racesFor(series).filter(race => usableRaceDate(race.date) && race.date.slice(0, 4) === String(now.getFullYear()));
-  const nextRace = races.find(race => race.date >= today);
+  const nextRace = races.find(race => race.date >= today && (series!=='Formula 2'||typeof F2Hub==='undefined'||F2Hub.featureRace(race)));
   return { series, nextRace, status: nextRace ? 0 : races.length ? 1 : 2 };
 }
 
@@ -728,9 +728,9 @@ function renderSeriesMenu() {
     button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'||series==='Formula 2'||nascarHubSeries.has(series)?'':'<small>Series Hub coming soon</small>'}`;
     button.addEventListener("click", async () => {
       closeSeriesMenu();
-      if(series==='Formula 1')await showSeries(series);
-      else await withLoading(()=>{renderSeries(series);document.getElementById('back-button').hidden=true;},'Opening schedule…');
-      const hub=document.getElementById(series==='Formula 1'?'f1-hub':'series-calendar');
+      if(series==='Formula 1'||nascarHubSeries.has(series))await showSeries(series);
+      else await withLoading(async()=>{await renderSeries(series);document.getElementById('back-button').hidden=true;},'Opening schedule…');
+      const hub=nascarHubSeries.has(series)?document.querySelector('#series-hub .nascar-hub-tabs'):document.getElementById(series==='Formula 1'?'f1-hub':'series-calendar');
       hub.setAttribute('tabindex','-1');hub.focus({preventScroll:true});
     });
     list.appendChild(button);
