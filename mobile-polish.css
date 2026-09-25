@@ -417,6 +417,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .nascar-schedule-action svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:var(--event-accent,#c2a258);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .nascar-schedule-action:hover{background:#303740;box-shadow:0 3px 12px #0003}
 .nascar-schedule-action:focus-visible{outline:2px solid var(--event-accent,#c2a258);outline-offset:3px}
+.nascar-overview .nascar-schedule-action{display:inline-flex;width:fit-content;max-width:100%;justify-content:flex-start;gap:12px}
 @media(prefers-reduced-motion:reduce){.nascar-schedule-action{transition:none}}
 
 .nascar-chase-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:26px;margin-left:7px;color:#dcc078;vertical-align:middle;flex-shrink:0}

@@ -34,15 +34,20 @@ const F2Hub=(()=>{
     const tracks=new Map(formulaTracks.map(t=>[String(t.trackId),{...t,source:'f2'}]));
     const incoming=[];const covered=[];const newSessions=[];
     for(const e of rows('Events')){
-      const ss=sessions(e);if(!ss.length)continue;
+      const ss=sessions(e);
       const oldRace=legacy.find(r=>r.date>=e['Start Date']&&r.date<=e['End Date'])||legacyEvents.get(e['Event ID']);
       if(oldRace)legacyEvents.set(e['Event ID'],oldRace);
       const candidates=formulaTracks.filter(t=>[t.name,t.apiName,t.city].some(n=>n&&[e['Track Name'],e.City].some(v=>normalize(v)===normalize(n))));
-      const shared=formulaTracks.find(t=>e['F1 Track ID']&&String(t.trackId)===String(e['F1 Track ID']))||formulaTracks.find(t=>oldRace&&String(t.trackId)===String(oldRace.trackId))||(candidates.length===1?candidates[0]:null);
+      const shared=formulaTracks.find(t=>e['F1 Track ID']&&String(t.trackId)===String(e['F1 Track ID']))||formulaTracks.find(t=>e['Track ID']&&String(t.trackId)===String(e['Track ID']))||(candidates.length===1?candidates[0]:null)||formulaTracks.find(t=>oldRace&&String(t.trackId)===String(oldRace.trackId));
       const id='f2-'+(e['Track ID']||e['Event ID']);
       tracks.set(id,{...(shared||{}),trackId:id,source:'f2',name:shared?.name||e['Track Name'],city:shared?.city||e.City,state:shared?.state||e.Country,length:shared?.length||e['Track Length'],imageUrl:shared?.imageUrl||e['Track Image URL'],mapUrl:shared?.mapUrl||e['Track Map URL']});
       const races=ss.filter(s=>s.type==='Race');
-      if(!races.length)continue;
+      if(!races.length){
+        // Even before session backfill, repair the old calendar's track link.
+        const existing=legacy.filter(r=>r.date>=e['Start Date']&&r.date<=e['End Date']);
+        if(existing.length){covered.push(e);incoming.push(...existing.map(r=>({...r,trackId:id})));}
+        continue;
+      }
       covered.push(e);
       for(const s of races){const when=eastern(s.start);incoming.push({series,raceId:'f2-'+e['Event ID']+'-'+s.id,f2EventId:e['Event ID'],f2Session:s.name,round:String(e.Round),event:e.Event+' · '+s.name,trackId:id,date:when.date||e['End Date'],time:when.time,network:oldRace?.network||'',notes:''});}
       for(const race of incoming.filter(r=>r.f2EventId===e['Event ID']))for(const s of ss){const when=eastern(s.start);newSessions.push({raceId:race.raceId,trackId:id,series,session:s.name,type:s.type,date:when.date,time:when.time,notes:''});}
@@ -56,7 +61,7 @@ const F2Hub=(()=>{
   function standings(category='Driver',limit){const sorted=rows('Standings').filter(r=>r.Category===category).sort((a,b)=>Number(a.Position)-Number(b.Position));return `<div class="f1-table-wrap"><table class="f2-table"><thead><tr><th>Pos</th><th>${category==='Driver'?'Driver':'Team'}</th><th>Points</th><th>Behind</th></tr></thead><tbody>${sorted.slice(0,limit||sorted.length).map(r=>`<tr><td>${esc(r.Position)}</td><td>${category==='Driver'?identity(r.ID,r.Name):`${img(team(r.ID)?.['Logo URL Override']||team(r.ID)?.['Logo URL'])}${esc(teamName(team(r.ID))||r.Name)}`}</td><td>${esc(r.Points)}</td><td>${Number(r.Position)===1?'—':'−'+(Number(sorted[0].Points)-Number(r.Points))}</td></tr>`).join('')}</tbody></table></div>`;}
   function resultRows(){return rows('Results').sort((a,b)=>String(b['Start UTC']).localeCompare(String(a['Start UTC']))||Number(a.Position)-Number(b.Position));}
   function overview(el){
-    const next=racesFor(series).find(r=>raceStartTime(r)>=Date.now()),last=resultRows().find(r=>/Race/.test(r.Session));
+    const next=racesFor(series).find(r=>r.date>localIsoDate()||(r.date===localIsoDate()&&raceStartTime(r)>=Date.now())),last=resultRows().find(r=>/Race/.test(r.Session));
     el.innerHTML=`${note()}${next?`<section class="f1-feature event-photo-tile" style="--event-accent:#438cbd">${racePhotoMarkup(next)}<p class="f1-kicker">Next Race</p><h2>${esc(next.event)}</h2><p>${esc(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${esc(next.time)}</p>${next.network?`<p>Network: ${esc(next.network)}</p>`:''}<button class="nascar-schedule-action" data-f2-next>Event & Weekend Schedule <span aria-hidden="true">→</span></button></section>`:'<section class="f1-feature"><h2>Season Schedule</h2><p>No upcoming race is currently scheduled.</p></section>'}${last?`<button class="f1-feature f2-overview-link" data-f2-latest><p class="f1-kicker">Latest Podium · ${esc(last.Session)}</p><h2>${esc(rows('Events').find(e=>e['Event ID']===last['Event ID'])?.Event||'Latest Race')}</h2>${resultRows().filter(r=>r['Session ID']===last['Session ID']&&Number(r.Position)>=1&&Number(r.Position)<=3).sort((a,b)=>Number(a.Position)-Number(b.Position)).map(r=>`<span class="f2-podium"><b>${esc(r.Position)}</b>${identity(r['Driver ID'],r.Driver,r['Team ID'])}</span>`).join('')}<span class="home-panel-cta">Full Results →</span></button>`:'<p>Race results are being imported.</p>'}<section class="f1-feature"><button class="f2-section-link" data-f2-standings><h2>Driver Championship</h2><span>Full Standings →</span></button>${standings('Driver',3)}</section><section class="f1-feature"><button class="f2-section-link" data-f2-team-standings><h2>Team Championship</h2><span>Full Standings →</span></button>${standings('Team',3)}</section>`;
     el.querySelector('[data-f2-next]')?.addEventListener('click',()=>showRaceDetails(next));
     el.querySelector('[data-f2-latest]')?.addEventListener('click',()=>openResults(last['Event ID'],last['Session ID']));
