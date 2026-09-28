@@ -284,7 +284,7 @@ const NascarCompetition=(()=>{
    const qualifying=scoped(qualData,race.series).filter(r=>String(r['Race ID'])===String(race.raceId));
    const runs=[...new Map(qualifying.map(r=>[String(r['Run ID']),r])).values()];
    const links=[...(rows.length?[{key:0,label:'Race results'}]:[]),...runs.map(r=>({key:'q:'+r['Run ID'],label:r.Session==='Starting Grid'?'Starting grid':r.Session+' results'})),...[1,2,3].filter(n=>rows.some(r=>number(r['Stage '+n+' Position'])>0)).map(n=>({key:n,label:'Stage '+n+' results'}))];
-   return links.map(o=>({label:o.label,open:()=>{selection[race.series]=String(race.raceId);sessionSelection[race.series]=o.key;return renderNascarHub(race.series,'results');}}));
+   return links.map(o=>({label:o.label,session:typeof o.key==='number'?'Race':'Qualifying',leader:(()=>{if(o.key!==0&&typeof o.key==='number')return '';const first=(o.key===0?rows:qualifying.filter(r=>'q:'+r['Run ID']===o.key)).find(r=>Number(r.Position)===1&&String(r.Disqualified).toUpperCase()!=='TRUE');return first?.['Driver Name']||first?.Driver||'';})(),leaderLabel:o.key===0?'Winner':o.label==='Starting grid'?'Starts P1':runs.length===1||/final/i.test(o.label)?'Pole sitter':'Session leader',open:()=>{selection[race.series]=String(race.raceId);sessionSelection[race.series]=o.key;return renderNascarHub(race.series,'results');}}));
  }
  async function pole(race){
    if(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series))return null;

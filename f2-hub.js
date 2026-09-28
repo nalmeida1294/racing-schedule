@@ -8,6 +8,11 @@ const F2Hub=(()=>{
   const rows=kind=>(data?.[kind]||[]).filter(r=>kind==='Status'||String(r.Season)===year());
   const safe=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';}catch{return '';}};
   const img=(url,cls='f2-logo')=>safe(url)?`<img class="${cls}" src="${esc(safe(url))}" alt="" onerror="this.hidden=true">`:'';
+  function driverFlag(country){
+    const codes={'argentina':'ar','brazil':'br','paraguay':'py','japan':'jp','united states of america':'us','united states':'us','usa':'us','mexico':'mx','bulgaria':'bg','sweden':'se','poland':'pl','italy':'it','germany':'de','colombia':'co','spain':'es','norway':'no','ireland':'ie','india':'in','thailand':'th','great britain':'gb','united kingdom':'gb','netherlands':'nl','france':'fr','australia':'au','new zealand':'nz','finland':'fi','denmark':'dk','belgium':'be','switzerland':'ch','austria':'at','canada':'ca','china':'cn','south korea':'kr','portugal':'pt','czech republic':'cz','czechia':'cz','estonia':'ee'};
+    const code=codes[String(country||'').trim().toLowerCase()];
+    return code?img('https://flagcdn.com/w80/'+code+'.png','f2-driver-flag'):'';
+  }
   const team=id=>rows('Teams').find(t=>String(t['Team ID'])===String(id));
   const teamName=t=>t?.['Display Name Override']||t?.Team||'';
   const color=t=>/^#[0-9a-f]{6}$/i.test(t?.['Color Override']||t?.Color||'')?(t['Color Override']||t.Color):'#438cbd';
@@ -88,7 +93,7 @@ const F2Hub=(()=>{
     el.querySelector('[data-f2-standings]').onclick=()=>render('standings');
     el.querySelector('[data-f2-team-standings]').onclick=async()=>{await render('standings');document.getElementById('f2-team-standings')?.scrollIntoView({block:'center'});};
   }
-  function teams(el){el.innerHTML=`${note()}<h2>Teams & Drivers</h2><div class="f2-team-grid">${rows('Teams').filter(t=>seasonDrivers().some(d=>d['Team ID']===t['Team ID'])).map(t=>`<section class="f1-feature" style="border-top:3px solid ${color(t)}"><h3>${img(t['Logo URL Override']||t['Logo URL'])}${esc(teamName(t))}</h3><div class="f2-drivers">${seasonDrivers().filter(d=>d['Team ID']===t['Team ID']).map(d=>`<article>${img(d['Headshot URL Override']||d['Headshot URL'],'f2-portrait')}<small>#${esc(d.Number)}</small><h4>${esc(name(d['Driver ID'],d.Driver))}</h4>${d.Country?`<p class="f2-country">${esc(d.Country)}</p>`:''}${d.Current!=='TRUE'?'<small class="f2-former">Former Driver · This Season</small>':''}<p>${rows('Standings').find(r=>r.Category==='Driver'&&r.ID===d['Driver ID'])?'P'+esc(rows('Standings').find(r=>r.Category==='Driver'&&r.ID===d['Driver ID']).Position)+' in the Championship':'No Championship Classification Yet'}</p></article>`).join('')}</div></section>`).join('')}</div>`;}
+  function teams(el){el.innerHTML=`${note()}<h2>Teams & Drivers</h2><div class="f2-team-grid">${rows('Teams').filter(t=>seasonDrivers().some(d=>d['Team ID']===t['Team ID'])).map(t=>`<section class="f1-feature" style="border-top:3px solid ${color(t)}"><h3>${img(t['Logo URL Override']||t['Logo URL'])}${esc(teamName(t))}</h3><div class="f2-drivers">${seasonDrivers().filter(d=>d['Team ID']===t['Team ID']).map(d=>`<article>${img(d['Headshot URL Override']||d['Headshot URL'],'f2-portrait')}<small>#${esc(d.Number)}</small><h4>${esc(name(d['Driver ID'],d.Driver))}</h4>${d.Country?`<p class="f2-country">${driverFlag(d.Country)}${esc(d.Country)}</p>`:''}${d.Current!=='TRUE'?'<small class="f2-former">Former Driver · This Season</small>':''}<p>${rows('Standings').find(r=>r.Category==='Driver'&&r.ID===d['Driver ID'])?'P'+esc(rows('Standings').find(r=>r.Category==='Driver'&&r.ID===d['Driver ID']).Position)+' in the Championship':'No Championship Classification Yet'}</p></article>`).join('')}</div></section>`).join('')}</div>`;}
   function results(el){
     const rs=resultRows(),ids=[...new Set(rs.map(r=>r['Event ID']))],events=rows('Events').filter(e=>ids.includes(e['Event ID'])).sort((a,b)=>Number(b.Round)-Number(a.Round));
     if(!events.length){el.innerHTML='<h2>Results</h2><p>No published results have been imported yet.</p>';return;}
@@ -118,7 +123,20 @@ const F2Hub=(()=>{
     if(which==='schedule')focusScheduleRace();
   }
   function openResults(event,session){selectedEvent=String(event);selectedSession=String(session||'');return render('results');}
-  function home(card){if(!data||protectedMode())return;const leader=rows('Standings').find(r=>r.Category==='Driver'&&Number(r.Position)===1);if(leader){const el=document.createElement('div');el.className='f2-home-summary';el.innerHTML=`<button class="f2-home-leader" data-home-action="standings"><small>CHAMPIONSHIP LEADER</small>${identity(leader.ID,leader.Name)}<span>${esc(leader.Points)} pts</span></button>`;card.appendChild(el);}const last=resultRows().find(r=>/Race/.test(r.Session)&&Number(r.Position)===1),race=last&&racesFor(series).find(r=>r.f2EventId===last['Event ID']&&r.f2Session===last.Session);if(race)homePreviousPanel(card,race,`${identity(last['Driver ID'],last.Driver,last['Team ID'])}`,()=>openResults(last['Event ID'],last['Session ID']));}
-  function eventLinks(race){if(protectedMode()||!data)return [];let event=race.f2EventId;if(!event)event=rows('Events').find(e=>race.date>=e['Start Date']&&race.date<=e['End Date'])?.['Event ID'];return [...new Map(resultRows().filter(r=>r['Event ID']===event).map(r=>[r['Session ID'],r])).values()].map(r=>({label:r.Session+' Results',open:()=>openResults(r['Event ID'],r['Session ID'])}));}
+  function home(card){
+    if(!data||protectedMode())return;
+    const leader=rows('Standings').find(r=>r.Category==='Driver'&&Number(r.Position)===1);
+    const teamLeader=rows('Standings').find(r=>r.Category==='Team'&&Number(r.Position)===1);
+    const d=leader&&driver(leader.ID),t=teamLeader&&team(teamLeader.ID);
+    const el=document.createElement('div');el.className='f2-home-summary';
+    el.innerHTML=[leader?`<div class="f1-home-leader" data-home-action="standings" role="link" tabindex="0"><p><span>Championship leader</span><strong>${esc(name(leader.ID,leader.Name))}</strong><small>${esc(leader.Points)} pts</small></p>${img(d?.['Headshot URL Override']||d?.['Headshot URL'],'f1-home-portrait')}</div>`:'',teamLeader?`<div class="f1-home-leader" data-f2-team-leader role="link" tabindex="0"><p><span>Teams’ championship leader</span><strong>${esc(teamName(t)||teamLeader.Name)}</strong><small>${esc(teamLeader.Points)} pts</small></p>${img(t?.['Logo URL Override']||t?.['Logo URL'],'f1-home-team-logo')}</div>`:''].join('');
+    if(leader||teamLeader)card.appendChild(el);
+    const openTeams=async e=>{if(e.type==='keydown'&&!['Enter',' '].includes(e.key))return;e.preventDefault();e.stopPropagation();await render('standings');document.getElementById('f2-team-standings')?.scrollIntoView({block:'center'});};
+    el.querySelector('[data-f2-team-leader]')?.addEventListener('click',openTeams);
+    el.querySelector('[data-f2-team-leader]')?.addEventListener('keydown',openTeams);
+    const last=resultRows().find(r=>/Race/.test(r.Session)&&Number(r.Position)===1),race=last&&racesFor(series).find(r=>r.f2EventId===last['Event ID']&&r.f2Session===last.Session);
+    if(race)homePreviousPanel(card,race,`${identity(last['Driver ID'],last.Driver,last['Team ID'])}`,()=>openResults(last['Event ID'],last['Session ID']));
+  }
+  function eventLinks(race){if(protectedMode()||!data)return [];let event=race.f2EventId;if(!event)event=rows('Events').find(e=>race.date>=e['Start Date']&&race.date<=e['End Date'])?.['Event ID'];return [...new Map(resultRows().filter(r=>r['Event ID']===event).map(r=>[r['Session ID'],r])).values()].map(r=>({label:r.Session+' Results',session:r.Session,leader:(()=>{const winner=resultRows().find(w=>w['Session ID']===r['Session ID']&&Number(w.Position)===1);return winner?name(winner['Driver ID'],winner.Driver):'';})(),leaderLabel:/qualifying/i.test(r.Session)?'Pole sitter':'Winner',open:()=>openResults(r['Event ID'],r['Session ID'])}));}
   return {load,install,enabled,configured,render,home,eventLinks,featureRace};
 })();

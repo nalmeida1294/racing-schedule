@@ -26,7 +26,7 @@ function brandedLoaderMarkup(message) {
 function loadF1Feeds(force = false, view = f1Tab) {
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Promise.resolve([]);
   const common=['drivers','constructors','status'];
-  const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings','results','sessions'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews'],tracks:['trackScores','reviews'],schedule:[],records:[]};
+  const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings','results','sessions'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews','standings'],tracks:['trackScores','reviews'],schedule:[],records:[]};
   return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force)));
 }
 let f1RefreshQueued=false;
@@ -318,6 +318,7 @@ function f1ValidRatings() {
   });
 }
 function f1RatingRanks(rows) {
+  const championship=new Map(f1Rows('standings',rows[0]?.Season||f1RatingSeason).map(row=>[row['Driver ID'],f1Rank(row)]));
   const drivers = new Map();
   rows.forEach(row => {
     const id = row["Driver ID"], driver = drivers.get(id) || { id, name: row.Driver || id, total: 0, weight: 0, gp: 0, sprint: 0, high: -Infinity, low: Infinity };
@@ -328,7 +329,7 @@ function f1RatingRanks(rows) {
     drivers.set(id, driver);
   });
   return [...drivers.values()].map(driver => ({ ...driver, average: driver.total / driver.weight }))
-    .sort((a,b) => b.average - a.average || a.name.localeCompare(b.name));
+    .sort((a,b) => b.average - a.average || (championship.get(a.id)??Infinity)-(championship.get(b.id)??Infinity) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 }
 function f1RatingLabel(key) {
   const race = f1Store.reviews.rows.find(row => row["Session Key"] === key);
@@ -355,13 +356,13 @@ function f1RankingsMarkup() {
   const latestRound = Math.max(0,...seasonRows.map(row => Number(row['Session Key'].split(':')[1]) || 0));
   const previous = f1RatingRanks(seasonRows.filter(row => Number(row['Session Key'].split(':')[1]) < latestRound));
   const seasonRanks = f1RatingRanks(seasonRows);
-  const rankOf = (list, item) => list.findIndex(other => other.average === item.average) + 1;
+  const rankOf = (list, item) => list.findIndex(other => other.id === item.id) + 1;
   const delta = (value, decimals) => Math.abs(value) < (decimals ? .005 : .5) ? '—' : (value > 0 ? '+' : '−') + Math.abs(value).toFixed(decimals);
   const changes = f1RatingSession === 'all';
   const latestEvent = f1Store.reviews.rows.find(row=>row['Session Key']===latestSession)?.Event;
   const changeLabel = latestSession ? 'After ' + (latestEvent || f1RatingLabel(latestSession)) : ''; 
 
-  return title + controls + note + '<button type="button" data-f1-retry="ratings">Refresh ratings</button>' + (ranks.length ? f1Table(['Rank','Driver','Rating /10','Season high','Season low',...(changes ? ['Rating change','Rank change'] : [])], ranks.map(driver => {
+  return title + controls + note + (ranks.length ? f1Table(['Rank','Driver','Rating /10','Season high','Season low',...(changes ? ['Rating change','Rank change'] : [])], ranks.map(driver => {
     const prior = previous.find(other => other.id === driver.id), season = seasonRanks.find(other => other.id === driver.id);
     return `<tr><td>${rankOf(ranks,driver)}</td><th scope="row">${f1TeamIdentity({"Driver ID":driver.id,Driver:driver.name})}</th><td class="f1-table-points">${driver.average.toFixed(2)}</td><td>${season.high.toFixed(2)}</td><td>${season.low.toFixed(2)}</td>${changes ? '<td>' + (prior ? delta(driver.average-prior.average,2) : 'New') + '</td><td>' + (prior ? delta(rankOf(previous,prior)-rankOf(ranks,driver),0) : 'New') + '</td>' : ''}</tr>`;
   }), changes ? `${f1RatingSeason} driver rankings` : f1RatingLabel(f1RatingSession), changes ? changeLabel : null) : '<p class="f1-empty">No rated sessions for this season yet.</p>');
@@ -419,7 +420,8 @@ async function f1EventResultLinks(race){
   return types.flatMap(([type,label])=>{
     const rows=f1Rows(type==='results'?'results':'sessions',year).filter(r=>String(r.Round)===String(round)&&(type==='results'||r.Session===type));
     const keys=[...new Set(rows.map(r=>r['Jolpica Race Key']).filter(Boolean))];
-    return keys.length===1?[{label,open:()=>{f1SelectedRace=keys[0];f1ResultSession=type;return renderF1Hub('results');}}]:[];
+    const first=rows.find(r=>Number(r.Position)===1);
+    return keys.length===1?[{label,session:type==='results'?'Race':type,leader:first?f1DriverName(first):'',leaderLabel:/Qualifying/.test(type)?'Pole sitter':'Winner',open:()=>{f1SelectedRace=keys[0];f1ResultSession=type;return renderF1Hub('results');}}]:[];
   });
 }
 

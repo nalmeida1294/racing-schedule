@@ -25,7 +25,8 @@ const formulaESources = {
 };
 
 const previousDefaultSeriesOrder = ["Formula 1", "INDYCAR", "NASCAR Cup Series", "WEC", "IMSA", "Formula E", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
-const defaultSeriesOrder = ["Formula 1", "NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "INDYCAR", "WEC", "IMSA", "Formula E", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
+const priorHubSeriesOrder = ["Formula 1", "NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "INDYCAR", "WEC", "IMSA", "Formula E", "ARCA Menards Series", "Indy NXT", "Formula 2", "Formula 3", "F1 Academy", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
+const defaultSeriesOrder = ["Formula 1", "NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "Formula 2", "F1 Academy", "INDYCAR", "WEC", "IMSA", "Formula E", "ARCA Menards Series", "Indy NXT", "Formula 3", "Formula Regional", "CARS Tour LMSC", "Dirt Sprint Cars", "Special Event"];
 const nascarSeries = new Set(["NASCAR Cup Series", "O'Reilly Auto Parts Series", "Craftsman Truck Series", "ARCA Menards Series"]);
 const formulaSeries = new Set(["Formula 1", "Formula 2", "Formula 3", "F1 Academy"]);
 const indySeries = new Set(["INDYCAR", "Indy NXT"]);
@@ -179,6 +180,7 @@ function trackNameForRace(race) {
   return allTracks.find(track => track.source === source && String(track.trackId) === String(race.trackId))?.name || "";
 }
 function sourceForSeries(series) {
+  if(series === "F1 Academy" && typeof AcademyHub !== "undefined" && AcademyHub.enabled())return "academy";
   if(series === "Formula 2" && typeof F2Hub !== "undefined" && F2Hub.enabled())return "f2";
   if (formulaSeries.has(series)) return "formula";
   if (indySeries.has(series)) return "indy";
@@ -190,7 +192,7 @@ function sourceForSeries(series) {
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem("racingSeriesSettings"));
-    if (Array.isArray(saved?.order)) seriesSettings.order = JSON.stringify(saved.order)===JSON.stringify(previousDefaultSeriesOrder) ? [...defaultSeriesOrder] : saved.order;
+    if (Array.isArray(saved?.order)) seriesSettings.order = [previousDefaultSeriesOrder,priorHubSeriesOrder].some(order=>JSON.stringify(saved.order)===JSON.stringify(order)) ? [...defaultSeriesOrder] : saved.order;
     if (Array.isArray(saved?.hidden)) seriesSettings.hidden = saved.hidden;
     // Legacy next-race sorting is ignored; keep the saved order and visibility.
   } catch (_) { /* Default settings are already present. */ }
@@ -292,7 +294,7 @@ function weekLogoMarkup(series) {
 function seriesStatus(series, now = new Date()) {
   const today = localIsoDate(now);
   const races = racesFor(series).filter(race => usableRaceDate(race.date) && race.date.slice(0, 4) === String(now.getFullYear()));
-  const nextRace = races.find(race => race.date >= today && (series!=='Formula 2'||typeof F2Hub==='undefined'||F2Hub.featureRace(race)));
+  const nextRace = races.find(race => race.date >= today && (series!=='Formula 2'||typeof F2Hub==='undefined'||F2Hub.featureRace(race)) && (series!=='F1 Academy'||typeof AcademyHub==='undefined'||AcademyHub.featureRace(race)));
   return { series, nextRace, status: nextRace ? 0 : races.length ? 1 : 2 };
 }
 
@@ -331,7 +333,7 @@ function renderHome(now = new Date()) {
         if(name==='hub')return showSeries(series);
         if(name==='next')return showRaceDetails(nextRace);
         if(name==='previous')return card.openPrevious?.();
-        if(name==='standings')return series==='Formula 1'?renderF1Hub('standings'):series==='Formula 2'?F2Hub.render('standings'):renderNascarHub(series,'standings');
+        if(name==='standings')return series==='Formula 1'?renderF1Hub('standings'):series==='Formula 2'?F2Hub.render('standings'):series==='F1 Academy'?AcademyHub.render('standings'):renderNascarHub(series,'standings');
       }
       if(event.type==='click')showSeries(series);
     };
@@ -344,6 +346,8 @@ function renderHome(now = new Date()) {
       updateF1HomeCard(card);
     } else if (series === "Formula 2" && typeof F2Hub !== "undefined") {
       F2Hub.home(card);
+    } else if (series === "F1 Academy" && typeof AcademyHub !== "undefined") {
+      AcademyHub.home(card);
     } else if (!nascarHubSeries.has(series)) {
       const hubNotice = document.createElement("p");
       hubNotice.className = "series-hub-coming-soon";
@@ -545,6 +549,7 @@ function renderNascarHub(series,tab='overview',prepared=false) {
   return Promise.allSettled([contentReady,reviewsReady]);
 }
 function renderSeriesHub(series) {
+  if(series === "F1 Academy" && typeof AcademyHub !== "undefined")return AcademyHub.render();
   if(series === "Formula 2" && typeof F2Hub !== "undefined")return F2Hub.render();
   if(nascarHubSeries.has(series))return renderNascarHub(series,'overview');
   activeSeriesName = series;
@@ -559,6 +564,7 @@ function renderSeriesHub(series) {
 
 function renderSeries(series, focusCurrent = true,prepared=false) {
   if(!prepared)return withLoading(async()=>{await loadSeriesDetails(series);return renderSeries(series,focusCurrent,true);},'Opening schedule…');
+  if(focusCurrent&&series==='F1 Academy'&&typeof AcademyHub!=='undefined')return AcademyHub.render('schedule');
   if(focusCurrent&&series==='Formula 2'&&typeof F2Hub!=='undefined')return F2Hub.render('schedule');
   if(focusCurrent&&nascarHubSeries.has(series))return renderNascarHub(series,'schedule');
   document.getElementById("series-hub").hidden = true;
@@ -613,9 +619,23 @@ function updateScheduleTopButton() {
   document.getElementById('back-to-top').hidden = !(document.getElementById('series-view').style.display==='block'&&!document.getElementById('series-calendar').hidden);
 }
 
+function eventSessionKind(value){
+  const s=String(value||'').toLowerCase();
+  if(/sprint.*(qual|shootout)|(qual|shootout).*sprint/.test(s))return 'sprint-qualifying';
+  if(/qual|starting grid/.test(s))return 'qualifying';
+  if(/reverse grid/.test(s))return 'reverse-grid';
+  if(/opening race/.test(s))return 'opening-race';
+  if(/feature/.test(s))return 'feature-race';
+  if(/sprint/.test(s))return 'sprint';
+  if(/race|grand prix/.test(s))return 'race';
+  return 'practice';
+}
+function eventSessionCard(session){
+  const namedKind=eventSessionKind(session.session),kind=namedKind==='practice'?eventSessionKind(session.type):namedKind,name=session.session||session.type||'Session';
+  return `<article class="weekend-session" data-session-name="${escapeHtml(name)}" data-session-kind="${kind}"><div class="weekend-session-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 21V4m0 0c5-4 9 4 14 0v10c-5 4-9-4-14 0"/></svg></div><div class="weekend-session-main"><span class="weekend-session-type">${escapeHtml(session.type||'Session')}</span><h3>${escapeHtml(name)}</h3><div class="weekend-session-time">${session.date?`<span>${formatDate(session.date)}</span>`:''}<strong>${escapeHtml(session.time||'Time TBD')}</strong></div>${session.notes&&!(typeof Spoilers!=='undefined'&&Spoilers.protected(activeSeriesName))?`<p class="weekend-session-note">${escapeHtml(session.notes)}</p>`:''}<div class="weekend-session-outcomes"></div></div><div class="event-result-buttons" hidden></div></article>`;
+}
 function sessionsMarkup(sessions) {
-  if (!sessions.length) return `<section class="detail-section"><h2>Weekend Schedule</h2><p class="empty-details">Session times have not been published yet.</p></section>`;
-  return `<section class="detail-section"><h2>Weekend Schedule</h2><div class="session-list">${sessions.map(session => `<div class="session-item"><span class="session-type">${escapeHtml(session.type || "Session")}</span><div><strong>${escapeHtml(session.session)}</strong><br><span>${formatDate(session.date)} · ${escapeHtml(session.time || "TBD")}</span>${(session.notes && !(typeof Spoilers!=="undefined"&&Spoilers.protected(activeSeriesName))) ? `<br><span>${escapeHtml(session.notes)}</span>` : ""}</div></div>`).join("")}</div></section>`;
+  return `<section class="detail-section weekend-schedule" style="--session-accent:${themeFor(activeSeriesName)[0]}"><div class="weekend-schedule-heading"><p class="weekend-eyebrow">THE RACE WEEKEND</p><h2>Weekend Schedule</h2></div><div class="session-list">${sessions.length?sessions.map(eventSessionCard).join(''):'<p class="empty-details">Session times have not been published yet.</p>'}</div></section>`;
 }
 
 function trackMediaMarkup(track) {
@@ -678,16 +698,27 @@ function renderRaceDetails(race,prepared=false) {
 
 async function eventResultShortcuts(race){
   if(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series))return;
-  if(race.series!=='Formula 1'&&race.series!=='Formula 2'&&!nascarHubSeries.has(race.series))return;
-  const host=document.createElement('section');host.className='detail-section event-result-shortcuts';
-  document.querySelector('#event-details .event-hero').after(host);
+  if(race.series!=='Formula 1'&&race.series!=='Formula 2'&&race.series!=='F1 Academy'&&!nascarHubSeries.has(race.series))return;
+  const host=document.querySelector('#event-details .weekend-schedule');if(!host)return;
   try{
-    const links=race.series==='Formula 1'?await f1EventResultLinks(race):race.series==='Formula 2'?F2Hub.eventLinks(race):await NascarCompetition.eventLinks(race);
+    const links=race.series==='Formula 1'?await f1EventResultLinks(race):race.series==='Formula 2'?F2Hub.eventLinks(race):race.series==='F1 Academy'?AcademyHub.eventLinks(race):await NascarCompetition.eventLinks(race);
+    if(!host.isConnected||(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series)))return;
+    for(const link of links){
+      const session=link.session||link.label.replace(/ results$/i,''),kind=eventSessionKind(session);
+      const cards=[...host.querySelectorAll('.weekend-session')];
+      const normalize=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
+      let card=cards.find(c=>normalize(c.dataset.sessionName)===normalize(session));
+      if(!card){const matches=cards.filter(c=>c.dataset.sessionKind===kind);if(matches.length===1)card=matches[0];}
+      // Results may arrive before the schedule feed. Keep a clearly named session available.
+      if(!card){host.querySelector('.session-list').insertAdjacentHTML('beforeend',eventSessionCard({session,type:kind.includes('qualifying')?'Qualifying':'Race',time:'Time not listed'}));card=host.querySelector('.weekend-session:last-child');}
+      const actions=card.querySelector('.event-result-buttons');actions.hidden=false;
+      const button=document.createElement('button');button.type='button';button.className='session-results-link';button.textContent=link.label+' →';button.onclick=()=>withLoading(link.open,'Opening results…');actions.appendChild(button);
+      if(link.leader){const outcome=document.createElement('p');outcome.className='session-outcome';outcome.innerHTML=`<span>${escapeHtml(link.leaderLabel||'Winner')}</span><strong>${escapeHtml(link.leader)}</strong>`;card.querySelector('.weekend-session-outcomes').appendChild(outcome);}
+    }
+  }catch{
     if(!host.isConnected)return;
-    if(!links.length){host.remove();return;}
-    host.innerHTML='<h2>Event results</h2><div class="event-result-buttons"></div>';
-    links.forEach(link=>{const button=document.createElement('button');button.type='button';button.textContent=link.label+' →';button.onclick=()=>withLoading(link.open,'Opening results…');host.querySelector('div').appendChild(button);});
-  }catch{if(host.isConnected)host.innerHTML='<p>Result links could not load.</p><button type="button">Retry results</button>';host.querySelector('button')?.addEventListener('click',()=>{host.remove();eventResultShortcuts(race);});}
+    const retry=document.createElement('button');retry.type='button';retry.className='session-results-link';retry.textContent='Retry session results';retry.onclick=()=>{retry.remove();eventResultShortcuts(race);};host.appendChild(retry);
+  }
 }
 
 function renderCustomizePanel() {
@@ -725,12 +756,12 @@ function renderSeriesMenu() {
   available.forEach(series => {
     const button = document.createElement("button");
     button.type = "button";
-    button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'||series==='Formula 2'||nascarHubSeries.has(series)?'':'<small>Series Hub coming soon</small>'}`;
+    button.innerHTML = `<span>${escapeHtml(series)}</span>${series==='Formula 1'||series==='Formula 2'||series==='F1 Academy'||nascarHubSeries.has(series)?'':'<small>Series Hub coming soon</small>'}`;
     button.addEventListener("click", async () => {
       closeSeriesMenu();
-      if(series==='Formula 1'||nascarHubSeries.has(series))await showSeries(series);
+      if(series==='Formula 1'||series==='Formula 2'||series==='F1 Academy'||nascarHubSeries.has(series))await showSeries(series);
       else await withLoading(async()=>{await renderSeries(series);document.getElementById('back-button').hidden=true;},'Opening schedule…');
-      const hub=nascarHubSeries.has(series)?document.querySelector('#series-hub .nascar-hub-tabs'):document.getElementById(series==='Formula 1'?'f1-hub':'series-calendar');
+      const hub=series==='Formula 2'||series==='F1 Academy'||nascarHubSeries.has(series)?document.querySelector('#series-hub .nascar-hub-tabs'):document.getElementById(series==='Formula 1'?'f1-hub':'series-calendar');
       hub.setAttribute('tabindex','-1');hub.focus({preventScroll:true});
     });
     list.appendChild(button);
@@ -784,6 +815,7 @@ const detailSources={nascar:scheduleSources,formula:formulaSources,indy:indySour
 const detailLoads=new Map();
 let loadingRetry=null;
 function loadSeriesDetails(series,sessions=false){
+  if(series === "F1 Academy" && typeof AcademyHub !== "undefined" && AcademyHub.configured())return (async()=>{await loadSeriesDetails("Formula 1",sessions);await AcademyHub.load();AcademyHub.install();})();
   if(series === "Formula 2" && typeof F2Hub !== "undefined" && F2Hub.configured())return (async()=>{await loadSeriesDetails("Formula 1",sessions);await F2Hub.load();F2Hub.install();})();
   const source=sourceForSeries(series),feeds=detailSources[source];
   return Promise.all((sessions?['tracks','sessions']:['tracks']).map(kind=>{
@@ -812,6 +844,7 @@ async function loadData() {
     allRaces=families.flat().map(row=>({raceId:row['Race ID'],round:row.Round,event:row.Event,trackId:row['Track ID'],series:row.Series,date:row.Date,time:row.Time,network:row.Network,notes:row.Notes})).filter(r=>r.series&&r.event);
     await Promise.all([...['NASCAR Cup Series','Formula 1','INDYCAR','WEC','Formula E'].map(series=>loadSeriesDetails(series)),loadF1Feeds(false,'home')]);
     if(typeof F2Hub!=="undefined"&&F2Hub.configured()){await F2Hub.load();F2Hub.install();}
+    if(typeof AcademyHub!=="undefined"&&AcademyHub.configured()){await AcademyHub.load();AcademyHub.install();}
     await renderHome();
     await new Promise(resolve=>requestAnimationFrame(resolve));
     await waitPageImages(document.getElementById('home-view'));

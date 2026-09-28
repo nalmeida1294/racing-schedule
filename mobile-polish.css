@@ -417,7 +417,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .nascar-schedule-action svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:var(--event-accent,#c2a258);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .nascar-schedule-action:hover{background:#303740;box-shadow:0 3px 12px #0003}
 .nascar-schedule-action:focus-visible{outline:2px solid var(--event-accent,#c2a258);outline-offset:3px}
-.nascar-overview .nascar-schedule-action{display:inline-flex;width:fit-content;max-width:100%;justify-content:flex-start;gap:12px}
+.nascar-overview .nascar-schedule-action,[data-chase-next] .nascar-schedule-action{display:inline-flex;width:fit-content;max-width:100%;justify-content:flex-start;gap:12px}
 @media(prefers-reduced-motion:reduce){.nascar-schedule-action{transition:none}}
 
 .nascar-chase-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:26px;margin-left:7px;color:#dcc078;vertical-align:middle;flex-shrink:0}
@@ -459,3 +459,23 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .chase-gap-toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-size:12px;margin-top:10px}.chase-gap-toggle input{width:18px;height:18px;accent-color:#c2a258}
 .nascar-chase-plot .chase-dot-gap{font-size:9px;paint-order:stroke;stroke:#111820;stroke-width:3px;stroke-linejoin:round}
 .chase-calendar .event-photo-tile{min-height:100px;text-align:left}.chase-calendar .event-background-photo{opacity:.6}
+/* Event weekend timeline: series accents, session-level results and compact mobile cards. */
+.weekend-schedule .session-list{display:grid;gap:12px;margin-top:20px}
+.weekend-schedule-heading .weekend-eyebrow{color:var(--session-accent);margin:0 0 6px;font-size:10px;letter-spacing:.16em}
+.weekend-schedule-heading h2{margin:0}
+.weekend-session{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:14px;align-items:center;padding:18px;border:1px solid #ffffff12;border-left:3px solid var(--session-accent);border-radius:12px;background:linear-gradient(115deg,#ffffff06,#ffffff02);min-width:0}
+.weekend-session-mark{width:32px;height:36px;display:grid;place-items:center;color:var(--session-accent);border-radius:8px;background:#ffffff05}
+.weekend-session-mark svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.weekend-session-type{font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:var(--session-accent);font-weight:700}
+.weekend-session h3{margin:4px 0 8px;font-size:18px;line-height:1.25;color:#f4f6f8}
+.weekend-session-time{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:12px;color:#aab5c3}
+.weekend-session-time strong{font-size:14px;color:#f1f3f5;font-variant-numeric:tabular-nums}
+.weekend-session-note{font-size:12px;color:#aab5c3;margin:8px 0 0}
+.weekend-session .event-result-buttons{display:flex;flex-direction:column;gap:6px;margin:0}
+.weekend-session .event-result-buttons[hidden]{display:none}
+.weekend-session .session-results-link,.weekend-schedule>.session-results-link{background:#ffffff08;border:1px solid #ffffff25;border-radius:8px;color:#f2f4f6;min-height:44px;padding:10px 14px;font:inherit;font-size:12px;font-weight:650;cursor:pointer;text-align:left}
+.weekend-session .session-results-link:hover{border-color:var(--session-accent);background:#ffffff10}
+.weekend-session .session-results-link:focus-visible{outline:2px solid var(--session-accent);outline-offset:3px}
+.session-outcome{display:flex;flex-wrap:wrap;gap:5px 10px;margin:12px 0 0;padding-top:10px;border-top:1px solid #ffffff10;font-size:12px}
+.session-outcome span{color:#aab5c3}.session-outcome strong{color:#f3f5f7}
+@media(max-width:600px){.weekend-session{grid-template-columns:26px minmax(0,1fr);gap:10px;padding:14px 12px}.weekend-session-mark{width:26px}.weekend-session .event-result-buttons{grid-column:2;align-items:flex-start;flex-direction:row;flex-wrap:wrap}.weekend-session h3{font-size:17px}.weekend-session .session-results-link{max-width:100%}}

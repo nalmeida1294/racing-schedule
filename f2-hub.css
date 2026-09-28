@@ -21,3 +21,7 @@
 @media(max-width:600px){.f2-result-filters label{flex-basis:100%}.f2-portrait{height:175px}.f2-table td,.f2-table th{padding:10px 7px}.f2-section-link{align-items:flex-start;flex-direction:column;padding-bottom:12px}.f2-drivers article{padding:8px}}
 
 .f2-table th button{background:transparent;border:0;color:inherit;font:inherit;white-space:nowrap;cursor:pointer;padding:8px 0}.f2-table th{white-space:nowrap}.f2-former{display:block;color:#aeb9c6;border-top:1px solid #ffffff20;padding-top:8px}.f2-country{color:#aeb9c6;font-size:.85rem}
+
+.home-series-card .f2-home-summary{margin-top:12px;display:grid;gap:8px}.f2-home-summary .f1-home-leader p{display:grid;gap:4px}.f2-home-summary .f1-home-leader p>span{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted,#aeb9c6)}.f2-home-summary .f1-home-leader small{color:var(--muted,#aeb9c6)}
+
+.f2-country{display:flex;align-items:center;justify-content:center;gap:8px}.f2-driver-flag{width:24px;height:16px;object-fit:contain;flex-shrink:0;border-radius:2px}.f2-driver-flag[hidden]{display:none}
