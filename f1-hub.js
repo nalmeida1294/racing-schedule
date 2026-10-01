@@ -109,6 +109,7 @@ function f1HomeSummary() {
 }
 function updateF1HomeSummary() {
   document.querySelectorAll(".f1-home-summary").forEach(element => { element.innerHTML = f1HomeSummary(); updateF1HomeCard(element.closest('.race-card')); });
+  if(typeof ChampionshipSnapshot!=='undefined')ChampionshipSnapshot.render();
 }
 
 function renderF1Hub(tab = "overview",prepared=false) {

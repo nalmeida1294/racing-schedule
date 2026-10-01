@@ -138,5 +138,5 @@ const F2Hub=(()=>{
     if(race)homePreviousPanel(card,race,`${identity(last['Driver ID'],last.Driver,last['Team ID'])}`,()=>openResults(last['Event ID'],last['Session ID']));
   }
   function eventLinks(race){if(protectedMode()||!data)return [];let event=race.f2EventId;if(!event)event=rows('Events').find(e=>race.date>=e['Start Date']&&race.date<=e['End Date'])?.['Event ID'];return [...new Map(resultRows().filter(r=>r['Event ID']===event).map(r=>[r['Session ID'],r])).values()].map(r=>({label:r.Session+' Results',session:r.Session,leader:(()=>{const winner=resultRows().find(w=>w['Session ID']===r['Session ID']&&Number(w.Position)===1);return winner?name(winner['Driver ID'],winner.Driver):'';})(),leaderLabel:/qualifying/i.test(r.Session)?'Pole sitter':'Winner',open:()=>openResults(r['Event ID'],r['Session ID'])}));}
-  return {load,install,enabled,configured,render,home,eventLinks,featureRace};
+  return {load,install,enabled,configured,render,home,eventLinks,featureRace,raceCompleted:race=>!!data&&rows('Results').some(r=>r['Event ID']===race.f2EventId&&r.Session===race.f2Session&&Number(r.Position)>0)};
 })();

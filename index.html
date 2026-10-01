@@ -22,6 +22,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="season-timeline.css">
+    <link rel="stylesheet" href="championship-snapshot.css">
+    <link rel="stylesheet" href="series-carousel.css">
     <link rel="stylesheet" href="mobile-polish.css">
     <link rel="stylesheet" href="support.css">
     <link rel="stylesheet" href="live-hub.css">
@@ -115,6 +118,8 @@
 
                 </section>
 
+                <section id="season-timeline" aria-labelledby="timeline-heading" hidden></section>
+                <section id="championship-snapshot" aria-labelledby="snapshot-heading" hidden></section>
                 <div id="schedule">
 
 
@@ -229,6 +234,13 @@
       <button type="button" class="support-close" id="patch-notes-close" aria-label="Close patch notes">×</button>
       <h2 id="patch-notes-title">Patch notes</h2>
       <p class="patch-notes-intro">The latest additions and improvements to Race Control. Earlier entries follow our development milestones; date ranges group work completed across several sessions.</p>
+      <article class="patch-release">
+        <time datetime="2026-10-01">October 1, 2026</time>
+        <h3>Season Timeline</h3>
+        <ul><li>Homepage Series Hubs now swipe horizontally, with full-tile snapping, navigation controls and an adaptive height. Your selected series follow your custom order.</li></ul>
+        <ul><li>Added a Championship Snapshot below the timeline for followed series, with driver photos where available, points, WEC class leaders, and verified completed-season champions. Spoiler Mode hides championship identities.</li></ul>
+        <ul><li>Added a compact homepage timeline for followed series, with season dates, individual race progress bars and NASCAR Chase markers.</li><li>Announced upcoming seasons appear 30 days before their opener. Timeline rows open the series hub.</li></ul>
+      </article>
       <article class="patch-release">
         <time datetime="2026-09-29">September 29, 2026</time>
         <h3>WEC Hub and Formula E Preseason Preview</h3>
@@ -417,6 +429,9 @@
     <script src="wec-config.js"></script>
     <script src="wec-hub.js"></script>
     <script src="formula-e-preseason.js"></script>
+    <script src="season-timeline.js"></script>
+    <script src="championship-snapshot.js"></script>
+    <script src="series-carousel.js"></script>
     <script src="script.js"></script>
     <script src="live-config.js"></script>
     <script src="live-adapter.js"></script>

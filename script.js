@@ -311,22 +311,16 @@ function renderHome(now = new Date()) {
   const today = now;
   const container = document.getElementById("schedule"); container.innerHTML = "";
   renderWeekendRaces(now);
+  SeasonTimeline.render(now);
   const visibleSeries = displayedSeries(now);
-  let previousStatus = null;
+  visibleSeries.sort((a,b)=>seriesSettings.order.indexOf(a.series)-seriesSettings.order.indexOf(b.series));
   visibleSeries.filter(({ status }) => status !== 2).forEach(({ series, nextRace, status }) => {
-    if (status !== previousStatus) {
-      const heading = document.createElement("h2");
-      heading.className = "series-group-heading";
-      heading.textContent = ["Active Series", "Season Completed"][status];
-      container.appendChild(heading);
-      previousStatus = status;
-    }
     const card = document.createElement("div"); const [color, glow] = themeFor(series);
     card.className = "race-card"; card.style.setProperty("--series-color", color); card.style.setProperty("--series-glow", glow);
     const seriesButton = `<button class="series-name series-name-button series-brand-heading">${seriesLogoMarkup(series)}<span>${escapeHtml(series)}</span></button>`;
     if(status===1)card.classList.add('season-completed');
     const nextMarkup=nextRace?`<section class="home-event-panel home-next" data-home-action="next" role="link" tabindex="0" aria-label="Open ${escapeHtml(nextRace.event)} event schedule">${racePhotoMarkup(nextRace)}<span class="home-panel-label">NEXT RACE</span><h3>${escapeHtml(nextRace.event)}</h3><p class="home-track">${escapeHtml(trackNameForRace(nextRace))}</p><p class="home-event-date">${formatDate(nextRace.date)}<br>${escapeHtml(nextRace.time||'Time TBD')}</p>${nextRace.network?`<p class="race-network">Network: ${escapeHtml(nextRace.network)}</p>`:''}${poleSlot(nextRace)}<span class="home-panel-cta">Event schedule <span>→</span></span></section>`:`<section class="home-event-panel home-next"><span class="home-panel-label">SEASON STATUS</span><h3>Season completed</h3><p>No upcoming races scheduled.</p></section>`;
-    card.classList.add('home-series-card');
+    card.classList.add('home-series-card');card.dataset.series=series;
     card.innerHTML=`<div class="home-series-header">${seriesButton}<button type="button" class="home-hub-button" data-home-action="hub" aria-label="Open ${escapeHtml(series)} series hub">Series Hub</button></div><div class="home-event-grid">${nextMarkup}</div>`;
     const activate=event=>{
       const action=event.target.closest('[data-home-action]');
@@ -364,16 +358,9 @@ function renderHome(now = new Date()) {
       card.appendChild(summary);homeJobs.push(NascarCompetition.homeSummary(summary,series));
     }
   });
-  const futureSeries = [...new Set([
-    ...seriesSettings.order.filter(series => seriesStatus(series, now).status === 2),
-    "Moto GP", "Whelen Modified Tour", "WRC"
-  ])];
-  const futureSection = document.createElement("section");
-  futureSection.className = "future-series";
-  futureSection.setAttribute("aria-labelledby", "future-series-heading");
-  futureSection.innerHTML = `<h2 id="future-series-heading" class="series-group-heading">Future Series to Be Added</h2><ul>${futureSeries.map(series => `<li>${escapeHtml(series)}</li>`).join("")}<li class="future-more">and more!</li></ul>`;
-  container.appendChild(futureSection);
-  return Promise.allSettled(homeJobs);
+  SeriesCarousel.mount(container);
+  ChampionshipSnapshot.render(now);
+  return Promise.allSettled(homeJobs).then(results=>{SeasonTimeline.render(now);ChampionshipSnapshot.render(now);return results;});
 }
 
 function homePreviousPanel(card,race,winnerMarkup,open){
@@ -904,3 +891,4 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) refr
 window.addEventListener("focus", refreshCalendar);
 scheduleMidnightRefresh();
 loadData();
+

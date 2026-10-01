@@ -31,6 +31,7 @@ const FormulaEPreseason=(()=>{
  const esc=x=>escapeHtml(x??''),normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const legacyTracks=new Map();
  function install(){
+  if(typeof SeasonTimeline!=='undefined')SeasonTimeline.remember(allRaces.filter(r=>r.series===series&&!r.fePreseason));
   allTracks.filter(t=>t.source==='formula-e'&&!t.fePreseason).forEach(t=>legacyTracks.set(String(t.trackId),t));
   const tracks=venues.map(([id,city,country,name])=>{const matches=[...legacyTracks.values()].filter(t=>[t.name,t.apiName].some(n=>normalize(n)===normalize(name)));const old=matches.length===1?matches[0]:{};
    // Formula E may use a different layout from F1 at the same venue. Reuse
