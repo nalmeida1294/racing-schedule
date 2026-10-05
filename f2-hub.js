@@ -22,7 +22,7 @@ const F2Hub=(()=>{
   const identity=(id,fallback,teamId)=>{const d=driver(id),previous=rows('Results').filter(r=>r['Driver ID']===id).sort((a,b)=>String(b['Start UTC']).localeCompare(String(a['Start UTC'])))[0],t=team(teamId||d?.['Team ID']||previous?.['Team ID']);return `<span class="f2-identity" style="--f2-team:${color(t)}">${img(t?.['Logo URL Override']||t?.['Logo URL'])}<span><strong>${esc(name(id,fallback))}</strong><small>${esc(teamName(t))}</small></span></span>`;};
   async function load(){
     if(!configured())return;
-    if(pending)return pending;if(data&&Date.now()-loaded<300000)return;
+    if(pending)return pending;if(data&&Date.now()-loaded<60000)return;
     pending=(async()=>{try{
       const raw=await fetchSheet(window.RC_F2_CONFIG.feedUrl),next={};
       for(const row of raw){if(!['Events','Drivers','Teams','Standings','Results','Status'].includes(row.Kind))continue;const value=JSON.parse(row.Data);if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid F2 record');(next[row.Kind]??=[]).push(value);}
@@ -138,5 +138,5 @@ const F2Hub=(()=>{
     if(race)homePreviousPanel(card,race,`${identity(last['Driver ID'],last.Driver,last['Team ID'])}`,()=>openResults(last['Event ID'],last['Session ID']));
   }
   function eventLinks(race){if(protectedMode()||!data)return [];let event=race.f2EventId;if(!event)event=rows('Events').find(e=>race.date>=e['Start Date']&&race.date<=e['End Date'])?.['Event ID'];return [...new Map(resultRows().filter(r=>r['Event ID']===event).map(r=>[r['Session ID'],r])).values()].map(r=>({label:r.Session+' Results',session:r.Session,leader:(()=>{const winner=resultRows().find(w=>w['Session ID']===r['Session ID']&&Number(w.Position)===1);return winner?name(winner['Driver ID'],winner.Driver):'';})(),leaderLabel:/qualifying/i.test(r.Session)?'Pole sitter':'Winner',open:()=>openResults(r['Event ID'],r['Session ID'])}));}
-  return {load,install,enabled,configured,render,home,eventLinks,featureRace,raceCompleted:race=>!!data&&rows('Results').some(r=>r['Event ID']===race.f2EventId&&r.Session===race.f2Session&&Number(r.Position)>0)};
+  return {refreshResults:el=>{if(!protectedMode())results(el);},load,install,enabled,configured,render,home,eventLinks,featureRace,raceCompleted:race=>!!data&&rows('Results').some(r=>r['Event ID']===race.f2EventId&&r.Session===race.f2Session&&Number(r.Position)>0)};
 })();

@@ -14,8 +14,8 @@ const SeriesCarousel=(()=>{
   host.replaceChildren(heading,track,pages,status);
   let index=Math.max(0,cards.findIndex(c=>c.dataset.series===selected)),timer,frame;
   const controls=heading.querySelectorAll('button');
-  function height(){if(track.clientWidth)track.style.height=Math.ceil(cards[index].getBoundingClientRect().height)+'px';}
-  function update(){selected=cards[index].dataset.series;cards.forEach((card,i)=>{card.inert=i!==index;pages.children[i].setAttribute('aria-current',String(i===index));});controls[0].disabled=index===0;controls[1].disabled=index===cards.length-1;status.textContent=`${index+1} / ${cards.length} · ${selected}`;height();}
+
+  function update(){selected=cards[index].dataset.series;cards.forEach((card,i)=>{card.inert=i!==index;pages.children[i].setAttribute('aria-current',String(i===index));});controls[0].disabled=index===0;controls[1].disabled=index===cards.length-1;status.textContent=`${index+1} / ${cards.length} · ${selected}`;}
   function position(i){return cards[i].offsetLeft-cards[0].offsetLeft;}
   function go(i){index=Math.max(0,Math.min(cards.length-1,i));update();track.scrollTo({left:position(index),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
   function settle(){index=cards.reduce((best,c,i)=>Math.abs(position(i)-track.scrollLeft)<Math.abs(position(best)-track.scrollLeft)?i:best,0);update();if(Math.abs(track.scrollLeft-position(index))>1)track.scrollTo({left:position(index),behavior:'smooth'});}
@@ -23,7 +23,7 @@ const SeriesCarousel=(()=>{
   track.addEventListener('scroll',scroll,{passive:true});track.addEventListener('scrollend',settle);
   track.addEventListener('keydown',e=>{if(e.target!==track)return;if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();go(e.key==='Home'?0:e.key==='End'?cards.length-1:index+(e.key==='ArrowRight'?1:-1));}});
   controls[0].onclick=()=>go(index-1);controls[1].onclick=()=>go(index+1);
-  let width=0;const resize=new ResizeObserver(()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{height();if(track.clientWidth&&width!==track.clientWidth){width=track.clientWidth;track.scrollTo({left:position(index),behavior:'instant'});}});});
+  let width=0;const resize=new ResizeObserver(()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{if(track.clientWidth&&width!==track.clientWidth){width=track.clientWidth;track.scrollTo({left:position(index),behavior:'instant'});}});});
   cards.forEach(c=>resize.observe(c));resize.observe(track);
   update();track.scrollLeft=position(index);
   // Suppress the synthetic click after a drag without intercepting vertical scrolling.
@@ -35,3 +35,4 @@ const SeriesCarousel=(()=>{
  }
  return {mount};
 })();
+

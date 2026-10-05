@@ -23,11 +23,11 @@ function brandedLoaderMarkup(message) {
   return `<div class="splash-flag" aria-hidden="true"><span></span><span></span><span></span><span></span></div><p>RACE <em>CONTROL</em></p><span>${escapeHtml(message)}</span>`;
 }
 
-function loadF1Feeds(force = false, view = f1Tab) {
+function loadF1Feeds(force = false, view = f1Tab, silent = false) {
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Promise.resolve([]);
   const common=['drivers','constructors','status'];
   const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings','results','sessions'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews','standings'],tracks:['trackScores','reviews'],schedule:[],records:[]};
-  return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force)));
+  return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force, silent)));
 }
 let f1RefreshQueued=false;
 function queueF1Refresh(){
@@ -36,17 +36,18 @@ function queueF1Refresh(){
   requestAnimationFrame(()=>{f1RefreshQueued=false;updateF1HomeSummary();refreshF1Hub();if(typeof refreshF1EventRatings==='function')refreshF1EventRatings();});
 }
 
-function loadF1Feed(key, force = false) {
+function loadF1Feed(key, force = false, silent = false) {
   const entry = f1Store[key];
   if (!f1Feeds[key].gid) { entry.state = "unconfigured"; return Promise.resolve(); }
   if (entry.promise) return entry.promise;
-  if (!force && entry.state === "ready" && entry.loadedAt && Date.now() - entry.loadedAt < 5 * 60 * 1000) return Promise.resolve();
+  if (!force && entry.state === "ready" && entry.loadedAt && Date.now() - entry.loadedAt < 60 * 1000) return Promise.resolve();
   entry.state = "loading";
   entry.promise = (async () => {
     try {
       const rows = await fetchSheet(`${f1FeedBase}?gid=${f1Feeds[key].gid}&single=true&output=csv`, {force});
       const required = f1Feeds[key].required.concat(f1Feeds[key].manual ? [] : key === "status" ? ["Season"] : ["Season", "In Latest Feed", "Updated UTC"]);
-      // A correctly published empty data tab may have no rows yet.
+      // Empty is valid for a new tab, but must not erase a previously loaded automated feed.
+      if(!rows.length&&entry.rows.length&&!f1Feeds[key].manual)throw new Error('Unexpected empty feed; keeping previous data');
       if (rows.length && required.some(column => !(column in rows[0]))) throw new Error("Unexpected feed columns");
       entry.rows = rows;
       entry.state = "ready";
@@ -57,7 +58,7 @@ function loadF1Feed(key, force = false) {
       console.error(`Formula 1 ${key} unavailable:`, error);
     } finally {
       entry.promise = null;
-      queueF1Refresh();
+      if(!silent)queueF1Refresh();
     }
   })();
   return entry.promise;

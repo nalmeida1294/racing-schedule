@@ -6,7 +6,7 @@ const Spoilers=(()=>{
    const saved=JSON.parse(localStorage.getItem(key));
    if(saved&&typeof saved.enabled==='boolean'){
      const events=Array.isArray(saved.events)?saved.events:Object.entries(saved.choices||{}).filter(([series,id])=>typeof id==='string'&&id&&id!=='caught-up').map(([series,id])=>({series,id}));
-     state={enabled:saved.enabled,events:events.filter(e=>e&&typeof e.series==='string'&&typeof e.id==='string'&&e.id)};
+     state={enabled:saved.enabled,events:events.filter(e=>e&&typeof e.series==='string'&&typeof e.id==='string'&&e.id).map(e=>({...e,series:e.series==='CARS Tour LMSC'?'CARS Tour':e.series==='Special Event'?'Special Events':e.series}))};
    }
  }catch{}
  const protectedSeries=series=>state.enabled&&state.events.some(e=>e.series===series);

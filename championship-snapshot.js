@@ -9,7 +9,7 @@ const ChampionshipSnapshot = (() => {
   };
   const trophy='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 3h10v6a5 5 0 0 1-10 0V3Zm0 2H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4M12 14v5m-5 2h10m-9-2h8"/></svg>';
   function open(series) {
-    return withLoading(()=>series==='Formula 1'?renderF1Hub('standings'):nascarHubSeries.has(series)?renderNascarHub(series,'standings'):series==='Formula 2'?F2Hub.render('standings'):series==='F1 Academy'?AcademyHub.render('standings'):series==='WEC'?WECHub.render('standings'):renderSeriesHub(series),'Opening Standings…');
+    return withLoading(()=>series==='CARS Tour'?CARSHub.render('standings'):series==='Formula 1'?renderF1Hub('standings'):nascarHubSeries.has(series)?renderNascarHub(series,'standings'):series==='Formula 2'?F2Hub.render('standings'):series==='F1 Academy'?AcademyHub.render('standings'):series==='IMSA'?IMSAHub.render('standings'):series==='WEC'?WECHub.render('standings'):renderSeriesHub(series),'Opening Standings…');
   }
   function render(now=new Date()) {
     const host=document.getElementById('championship-snapshot');if(!host)return;
@@ -28,7 +28,7 @@ const ChampionshipSnapshot = (() => {
       // These already apply the hub's identity overrides and feed scoping.
       const leaders=protectedMode||useChampion?[]:[...(card?.querySelectorAll('.f1-home-leader')||[])].filter(el=>!/constructor|teams[’']? championship/i.test(el.querySelector('p>span')?.textContent||''));
       const button=document.createElement('button');button.type='button';button.className='snapshot-card'+(useChampion?' snapshot-champion':'');button.style.setProperty('--series-color',themeFor(s)[0]);button.dataset.snapshotSeries=s;
-      const label=protectedMode?'Spoiler Mode':useChampion?archive.season+' Champion':season.start>localIsoDate(now)?'Preseason':season.done===season.races.length?'Latest Standings · Season Completed':'Championship Leader'+(s==='WEC'?'s':'');
+      const label=protectedMode?'Spoiler Mode':useChampion?archive.season+' Champion':season.start>localIsoDate(now)?'Preseason':season.done===season.races.length?'Latest Standings · Season Completed':'Championship Leader'+(['WEC','IMSA','CARS Tour'].includes(s)?'s':'');
       button.innerHTML=`<span class="snapshot-brand">${seriesLogoMarkup(s)}<span>${escapeHtml(s)}</span></span><span class="snapshot-content"><span class="snapshot-label">${escapeHtml(label)}</span></span><span class="snapshot-end" aria-hidden="true">${useChampion?trophy:'›'}</span>`;
       const content=button.querySelector('.snapshot-content');
       if(useChampion){content.insertAdjacentHTML('beforeend',`<strong>${escapeHtml(archive.name)}</strong><small>Season Completed</small>`);button.title='Champion verified from the official series announcement';}
@@ -36,7 +36,7 @@ const ChampionshipSnapshot = (() => {
       else if(leaders.length){leaders.forEach(el=>{
         const name=el.querySelector('p>strong')?.textContent||'',points=el.querySelector('p>small')?.textContent||'';
         const row=document.createElement('span');row.className='snapshot-leader';
-        row.innerHTML=`<span>${s==='WEC'?`<small>${escapeHtml(el.querySelector('p>span')?.textContent.replace(' Championship Leaders','')||'')}</small>`:''}<strong>${escapeHtml(name)}</strong><small>${escapeHtml(points)}</small></span>`;
+        row.innerHTML=`<span>${['WEC','IMSA','CARS Tour'].includes(s)?`<small>${escapeHtml(el.querySelector('p>span')?.textContent.replace(' Championship Leaders','')||'')}</small>`:''}<strong>${escapeHtml(name)}</strong><small>${escapeHtml(points)}</small></span>`;
         const photo=el.querySelector('img.f1-home-portrait');if(photo){const copy=photo.cloneNode();copy.removeAttribute('class');copy.className='snapshot-portrait';copy.alt='';copy.onerror=()=>{copy.hidden=true;};row.appendChild(copy);}
         content.appendChild(row);
       });}

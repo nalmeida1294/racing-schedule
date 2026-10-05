@@ -11,6 +11,7 @@ const SeasonTimeline = (() => {
     return r.series === 'Formula E' ? String(year - (Number(r.date.slice(5, 7)) < 8 ? 1 : 0)) : String(year);
   }
   function model(series, now = new Date()) {
+    if(series==='Special Events')return null;
     const current = allRaces.filter(r => r.series === series);
     const seasons = new Map();
     // Keep a replaced Formula E season available during the offseason.
@@ -32,6 +33,8 @@ const SeasonTimeline = (() => {
       if (r.completed === true) return true;
       if (typeof AcademyHub!=='undefined' && series==='F1 Academy' && AcademyHub.raceCompleted(r)) return true;
       if (typeof F2Hub!=='undefined' && series==='Formula 2' && F2Hub.raceCompleted(r)) return true;
+      if (typeof IMSAHub!=='undefined' && series==='IMSA' && IMSAHub.raceCompleted(r)) return true;
+      if (typeof CARSHub!=='undefined' && series==='CARS Tour' && CARSHub.raceCompleted(r)) return true;
       if (typeof WECHub!=='undefined' && series==='WEC' && WECHub.raceCompleted(r)) return true;
       if (typeof NascarCompetition!=='undefined' && chaseSeries.has(series) && NascarCompetition.raceCompleted(r)) return true;
       if (series === 'Formula 1' && typeof f1Store !== 'undefined' && f1Store.results.rows.some(x => x['Race Date UTC'] === r.date && Number(x.Position)>0)) return true;
@@ -49,12 +52,12 @@ const SeasonTimeline = (() => {
     const host=document.getElementById('season-timeline'); if(!host)return;
     const items=seriesSettings.order.filter(s=>!seriesSettings.hidden.includes(s)).map(series=>({series,data:model(series,now)})).filter(x=>x.data);
     host.hidden=!items.length;
-    host.innerHTML='<div class="timeline-heading"><h2 id="timeline-heading">Season Timeline</h2><p>Your Series at a Glance</p></div><div class="timeline-list"></div><p class="timeline-note">One bar per scheduled race · Progress follows published results where available, otherwise past race dates.</p>';
+    host.innerHTML='<div class="timeline-heading"><h2 id="timeline-heading">Season Timeline</h2><p>Your Series at a Glance</p></div><div class="timeline-list"></div><p class="timeline-note">One bar per scheduled race'+(items.some(x=>x.series==='CARS Tour')?' (per weekend for CARS Tour)':'')+' · Progress follows published results where available, otherwise past race dates.</p>';
     const list=host.querySelector('.timeline-list');
     items.forEach(({series,data:d})=>{
       const button=document.createElement('button');button.type='button';button.className='timeline-row';button.style.setProperty('--series-color',themeFor(series)[0]);
       const season=series==='Formula E'?d.season+'/'+String(Number(d.season)+1).slice(-2):d.season;
-      button.setAttribute('aria-label',`${series}, ${season}: ${d.done} of ${d.races.length} races completed. ${d.label}. Open series hub`);
+      button.setAttribute('aria-label',`${series}, ${season}: ${d.done} of ${d.races.length} ${series==='CARS Tour'?'weekends':'races'} completed. ${d.label}. Open series hub`);
       button.innerHTML=`<span class="timeline-logo">${seriesLogoMarkup(series)}</span><span class="timeline-info"><strong>${escapeHtml(series)}</strong><small>${escapeHtml(season)} · ${escapeHtml(formatDate(d.start).replace(/, \d{4}$/, ''))} – ${escapeHtml(formatDate(d.end).replace(/, \d{4}$/, ''))}</small>${d.label?`<small class="timeline-status">${escapeHtml(d.label)}</small>`:''}</span><span class="timeline-progress"><span class="timeline-chase-track" aria-hidden="true">${d.chase>=0?`<span style="margin-left:${d.chase/d.races.length*100}%;width:${(d.races.length-d.chase)/d.races.length*100}%">The Chase</span>`:''}</span><span class="timeline-bars" aria-hidden="true">${d.races.map((r,i)=>`<i class="${d.complete[i]?'is-complete ':''}${d.chase>=0&&i>=d.chase?'is-chase':''}" title="${escapeHtml(r.event)} · ${escapeHtml(formatDate(r.date))}"></i>`).join('')}</span></span><span class="timeline-count">${d.done}<span>/${d.races.length}</span></span><span class="timeline-arrow" aria-hidden="true">›</span>`;
       button.onclick=()=>showSeries(series);list.appendChild(button);
     });

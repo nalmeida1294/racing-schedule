@@ -31,6 +31,9 @@
 
   <link rel="stylesheet" href="f2-hub.css">
   <link rel="stylesheet" href="wec-hub.css">
+  <link rel="stylesheet" href="imsa-hub.css">
+  <link rel="stylesheet" href="cars-hub.css">
+  <link rel="stylesheet" href="special-events.css">
   <link rel="stylesheet" href="formula-e-preseason.css">
   <link rel="stylesheet" href="academy-hub.css">
 </head>
@@ -235,9 +238,27 @@
       <h2 id="patch-notes-title">Patch notes</h2>
       <p class="patch-notes-intro">The latest additions and improvements to Race Control. Earlier entries follow our development milestones; date ranges group work completed across several sessions.</p>
       <article class="patch-release">
+        <time datetime="2026-10-05">October 5, 2026</time>
+        <h3>Special Events &amp; Faster Results</h3>
+        <p>Results screens and event-session links now check for updates automatically. Added faster event-window imports, provisional NASCAR race results before inspection, and continued checks for corrected classifications. F1 qualifying can update independently when another session source is unavailable.</p>
+        <p>Manage events in one Calendar sheet, with automatic IDs and publication. Schedules, entries, and results accept plain text on the same event row.</p>
+        <p>Added a dedicated calendar for marquee races and motorsport festivals, with multi-day dates, venue details, local session times, optional entries and results, and event photo galleries. Unverified dates appear separately under Awaiting Dates. A separate editable workbook powers the calendar.</p>
+      </article>
+      <article class="patch-release">
+        <time datetime="2026-10-02">October 2, 2026</time>
+        <h3>IMSA WeatherTech & CARS Tour Hubs</h3>
+        <p>CARS Tour now has one hub for Late Model Stock Cars and Pro Late Models, with a shared weekend schedule, separate dated standings, teams and drivers, results, and tracks. Includes homepage championship summaries and support for manually maintained results and timetable corrections.</p>
+        <ul>
+          <li>Prepared the IMSA hub with Overview, Schedule, Standings, Teams &amp; Drivers, Results, and Tracks, powered by a separate published IMSA workbook.</li>
+          <li>Added GTP, LMP2, GTD PRO, and GTD class views, individual driver and car/team championships, manufacturer standings, and session-specific driver crews.</li>
+          <li>Added official timing imports for practice, qualifying, and race results, class podiums, pit-stop counts, editable track media, and homepage class leaders. Historical weekends fill in during the initial syncs; future weekend session times can be entered when confirmed.</li>
+          <li>Kept homepage carousel tiles at the height of the tallest series so the footer stays in place when swiping.</li>
+        </ul>
+      </article>
+      <article class="patch-release">
         <time datetime="2026-10-01">October 1, 2026</time>
         <h3>Season Timeline</h3>
-        <ul><li>Homepage Series Hubs now swipe horizontally, with full-tile snapping, navigation controls and an adaptive height. Your selected series follow your custom order.</li></ul>
+        <ul><li>Homepage Series Hubs now swipe horizontally, with full-tile snapping, navigation controls and equal-height tiles sized to the tallest hub. Your selected series follow your custom order.</li></ul>
         <ul><li>Added a Championship Snapshot below the timeline for followed series, with driver photos where available, points, WEC class leaders, and verified completed-season champions. Spoiler Mode hides championship identities.</li></ul>
         <ul><li>Added a compact homepage timeline for followed series, with season dates, individual race progress bars and NASCAR Chase markers.</li><li>Announced upcoming seasons appear 30 days before their opener. Timeline rows open the series hub.</li></ul>
       </article>
@@ -428,11 +449,18 @@
     <script src="academy-hub.js"></script>
     <script src="wec-config.js"></script>
     <script src="wec-hub.js"></script>
+    <script src="imsa-config.js"></script>
+    <script src="imsa-hub.js"></script>
+    <script src="cars-config.js"></script>
+    <script src="cars-hub.js"></script>
+    <script src="special-config.js"></script>
+    <script src="special-events.js"></script>
     <script src="formula-e-preseason.js"></script>
     <script src="season-timeline.js"></script>
     <script src="championship-snapshot.js"></script>
     <script src="series-carousel.js"></script>
     <script src="script.js"></script>
+    <script src="results-refresh.js"></script>
     <script src="live-config.js"></script>
     <script src="live-adapter.js"></script>
     <script src="live-signalr.js"></script>
@@ -443,3 +471,4 @@
 </body>
 
 </html>
+

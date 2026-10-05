@@ -31,10 +31,11 @@ const NascarCompetition=(()=>{
  const requirements={qualifying:['Season','Series ID','Race ID','Driver ID','Position','Run ID','Session'],standings:['Season','Series ID','Driver ID','Position','Points'],results:['Season','Series ID','Race ID','Driver ID','Team ID','Position'],status:['Dataset','Season','Series ID','State']};
  async function load(kind) {
    const entry=cache[kind];if(entry?.pending)return entry.pending;
-   if(entry?.loaded&&Date.now()-entry.loaded<300000)return entry.rows;
+   if(entry?.loaded&&Date.now()-entry.loaded<60000)return entry.rows;
    if(!NASCAR_COMPETITION_FEEDS[kind])throw new Error('Not connected');
    const item=cache[kind]||(cache[kind]={});
    item.pending=fetchSheet(NASCAR_COMPETITION_FEEDS[kind]).then(rows=>{
+     if(!rows.length&&item.rows?.length)throw new Error('Unexpected empty results feed; keeping previous data');
      if(rows.length&&!requirements[kind].every(k=>Object.hasOwn(rows[0],k)))throw new Error('Unexpected headers');
      item.rows=rows;item.loaded=Date.now();return rows;
    }).finally(()=>{item.pending=null;});return item.pending;
@@ -99,7 +100,7 @@ const NascarCompetition=(()=>{
    if(!events.some(r=>String(r['Race ID'])===selection[series]))selection[series]=String(events[0]['Race ID']);
    const selected=events.find(r=>String(r['Race ID'])===selection[series]);
    const raceRows=rows.filter(r=>String(r['Race ID'])===selection[series]).sort((a,b)=>(Number(a.Position)||999)-(Number(b.Position)||999));
-   el.innerHTML=`<label class="nascar-event-picker">Event<select id="nascar-result-event">${events.map(r=>`<option value="${text(r['Race ID'])}"${String(r['Race ID'])===selection[series]?' selected':''}>${text(eventLabel(r))}</option>`).join('')}</select></label><h3>${text(selected.Event)}</h3><p class="f1-data-note">${text(selected['Race Date'])} · Race results</p><p class="nascar-chase-legend">${chase?chaseIcon()+' Gold shields and highlights show the current top '+chaseSizes[ids[series]]+' Chase grid, not the grid at the time of this race.':'Chase highlighting unavailable while standings cannot be loaded.'}</p>`+table(['Finish','Driver','Manufacturer','Start','Laps','Led','Points','Status'],raceRows.map(r=>`<tr${chase?.has(String(r['Driver ID']))?' class="nascar-chase-result"':''}><td>${String(r.Disqualified)==='TRUE'?'DSQ':Number(r.Position)>0?value(r.Position):'—'}</td><td>${identity(r,series,profiles,true)}${chase?.has(String(r['Driver ID']))?chaseIcon():''}</td><td>${text(r.Manufacturer)||'—'}</td><td>${Number(r.Start)>0?value(r.Start):'—'}</td>${['Laps','Laps Led','Points'].map(k=>`<td>${value(r[k])}</td>`).join('')}<td>${text(r.Status)||'—'}</td></tr>`));
+   el.innerHTML=`<label class="nascar-event-picker">Event<select id="nascar-result-event">${events.map(r=>`<option value="${text(r['Race ID'])}"${String(r['Race ID'])===selection[series]?' selected':''}>${text(eventLabel(r))}</option>`).join('')}</select></label><h3>${text(selected.Event)}</h3><p class="f1-data-note">${text(selected['Race Date'])} · ${raceRows.some(r=>r.Classification==='Provisional')?'Provisional results · Awaiting inspection; positions and points may change':'Race results · Subject to corrections'}</p><p class="nascar-chase-legend">${chase?chaseIcon()+' Gold shields and highlights show the current top '+chaseSizes[ids[series]]+' Chase grid, not the grid at the time of this race.':'Chase highlighting unavailable while standings cannot be loaded.'}</p>`+table(['Finish','Driver','Manufacturer','Start','Laps','Led','Points','Status'],raceRows.map(r=>`<tr${chase?.has(String(r['Driver ID']))?' class="nascar-chase-result"':''}><td>${String(r.Disqualified)==='TRUE'?'DSQ':Number(r.Position)>0?value(r.Position):'—'}</td><td>${identity(r,series,profiles,true)}${chase?.has(String(r['Driver ID']))?chaseIcon():''}</td><td>${text(r.Manufacturer)||'—'}</td><td>${Number(r.Start)>0?value(r.Start):'—'}</td>${['Laps','Laps Led','Points'].map(k=>`<td>${value(r[k])}</td>`).join('')}<td>${text(r.Status)||'—'}</td></tr>`));
    const available=[1,2,3].filter(n=>raceRows.some(r=>number(r['Stage '+n+' Position'])>0));
    const qualRows=qualifying.filter(r=>String(r['Race ID'])===selection[series]);
    const runs=[...new Map(qualRows.map(r=>[String(r['Run ID']),r])).values()];
@@ -174,7 +175,7 @@ const NascarCompetition=(()=>{
    const card=el.closest('.race-card');
    if(winner&&card?.querySelector('.home-event-grid')){
      const race=allRaces.find(r=>r.series===series&&String(r.raceId)===String(winner['Race ID']))||{series,raceId:winner['Race ID'],event:winner.Event,date:winner['Race Date'],trackId:winner['Track ID']};
-     homePreviousPanel(card,race,identity(winner,series,profiles,true),()=>{selection[series]=String(winner['Race ID']);sessionSelection[series]=0;return renderNascarHub(series,'results');});
+     homePreviousPanel(card,race,identity(winner,series,profiles,true)+(winner.Classification==='Provisional'?'<small>Provisional result</small>':''),()=>{selection[series]=String(winner['Race ID']);sessionSelection[series]=0;return renderNascarHub(series,'results');});
    }
    NascarProfiles.bindImages(el);
  }
@@ -208,7 +209,7 @@ const NascarCompetition=(()=>{
      nextRace(new Set(rows.map(r=>String(r['Race ID']))));
      const latest=rows.slice().sort((a,b)=>String(b['Race Date']).localeCompare(String(a['Race Date']))||Number(b['Race ID'])-Number(a['Race ID']))[0];
      const podium=latest?rows.filter(r=>String(r['Race ID'])===String(latest['Race ID'])&&Number(r.Position)>=1&&Number(r.Position)<=3).sort((a,b)=>Number(a.Position)-Number(b.Position)):[];
-     latestPanel.innerHTML='<p class="f1-kicker">LATEST RACE PODIUM</p>'+ (latest?`<h2>${text(latest.Event)}</h2><p class="f1-data-note">${text(eventLabel(latest))}</p><ol class="nascar-overview-list">${podium.map(r=>`<li><span class="nascar-overview-rank">${value(r.Position)}</span>${identity(r,series,profiles,true)}</li>`).join('')}</ol>${warning('Results')}`:'<p>No completed race results have been published for this season yet.</p>');
+     latestPanel.innerHTML='<p class="f1-kicker">LATEST RACE PODIUM</p>'+ (latest?`<h2>${text(latest.Event)}</h2><p class="f1-data-note">${text(eventLabel(latest))}${latest.Classification==='Provisional'?' · Provisional results — awaiting inspection':''}</p><ol class="nascar-overview-list">${podium.map(r=>`<li><span class="nascar-overview-rank">${value(r.Position)}</span>${identity(r,series,profiles,true)}</li>`).join('')}</ol>${warning('Results')}`:'<p>No completed race results have been published for this season yet.</p>');
      if(latest)overviewLink(latestPanel,'View full results for '+latest.Event,()=>{selection[series]=String(latest['Race ID']);renderNascarHub(series,'results');});
    }else failed(latestPanel,'LATEST RACE PODIUM');
    if(standingsResult.status==='fulfilled') {
@@ -276,7 +277,7 @@ const NascarCompetition=(()=>{
  async function preload(series,tab){
    if(typeof Spoilers!=="undefined"&&Spoilers.protected(series))return;
    const kinds={overview:['standings','results','status'],chase:['standings','results','status'],standings:['standings','status'],results:['results','standings','status',...(NASCAR_COMPETITION_FEEDS.qualifying?['qualifying']:[])],teams:['standings'] }[tab]||[];
-   await Promise.allSettled([...kinds.map(load),...(kinds.length?[NascarProfiles.load()]:[])]);
+   return Promise.allSettled([...kinds.map(load),...(kinds.length?[NascarProfiles.load()]:[])]);
  }
  async function eventLinks(race){
    const [raceData,qualData]=await Promise.all([load('results'),NASCAR_COMPETITION_FEEDS.qualifying?load('qualifying').catch(()=>[]):Promise.resolve([])]);
@@ -284,7 +285,7 @@ const NascarCompetition=(()=>{
    const qualifying=scoped(qualData,race.series).filter(r=>String(r['Race ID'])===String(race.raceId));
    const runs=[...new Map(qualifying.map(r=>[String(r['Run ID']),r])).values()];
    const links=[...(rows.length?[{key:0,label:'Race results'}]:[]),...runs.map(r=>({key:'q:'+r['Run ID'],label:r.Session==='Starting Grid'?'Starting grid':r.Session+' results'})),...[1,2,3].filter(n=>rows.some(r=>number(r['Stage '+n+' Position'])>0)).map(n=>({key:n,label:'Stage '+n+' results'}))];
-   return links.map(o=>({label:o.label,session:typeof o.key==='number'?'Race':'Qualifying',leader:(()=>{if(o.key!==0&&typeof o.key==='number')return '';const first=(o.key===0?rows:qualifying.filter(r=>'q:'+r['Run ID']===o.key)).find(r=>Number(r.Position)===1&&String(r.Disqualified).toUpperCase()!=='TRUE');return first?.['Driver Name']||first?.Driver||'';})(),leaderLabel:o.key===0?'Winner':o.label==='Starting grid'?'Starts P1':runs.length===1||/final/i.test(o.label)?'Pole sitter':'Session leader',open:()=>{selection[race.series]=String(race.raceId);sessionSelection[race.series]=o.key;return renderNascarHub(race.series,'results');}}));
+   return links.map(o=>({label:o.label,session:typeof o.key==='number'?'Race':'Qualifying',leader:(()=>{if(o.key!==0&&typeof o.key==='number')return '';const first=(o.key===0?rows:qualifying.filter(r=>'q:'+r['Run ID']===o.key)).find(r=>Number(r.Position)===1&&String(r.Disqualified).toUpperCase()!=='TRUE');return first?.['Driver Name']||first?.Driver||'';})(),leaderLabel:o.key===0?(rows.some(r=>r.Classification==='Provisional')?'Provisional winner':'Winner'):o.label==='Starting grid'?'Starts P1':runs.length===1||/final/i.test(o.label)?'Pole sitter':'Session leader',open:()=>{selection[race.series]=String(race.raceId);sessionSelection[race.series]=o.key;return renderNascarHub(race.series,'results');}}));
  }
  async function pole(race){
    if(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series))return null;
