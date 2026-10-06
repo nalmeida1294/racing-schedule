@@ -130,13 +130,16 @@ function fetchSheet(url, {force=false} = {}) {
     }catch{}
   }
   const item=cached||{};sheetRequests.set(url,item);
-  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),30000);
+  const controller=new AbortController();let timeout;
+  const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new Error('Feed request timed out'));},12000);});
   item.pending=(async()=>{
     try{
       const separator=url.includes('?')?'&':'?';
-      const response=await fetch(`${url}${separator}cacheBust=${force?Date.now():Math.floor(Date.now()/SHEET_CACHE_MS)}`,{signal:controller.signal});
-      if(!response.ok)throw new Error(`Feed returned ${response.status}`);
-      const raw=await response.text(),rows=csvObjects(raw);
+      const raw=await Promise.race([deadline,(async()=>{
+        const response=await fetch(`${url}${separator}cacheBust=${force?Date.now():Math.floor(Date.now()/SHEET_CACHE_MS)}`,{signal:controller.signal});
+        if(!response.ok)throw new Error(`Feed returned ${response.status}`);
+        return response.text();
+      })()]),rows=csvObjects(raw);
       item.rows=rows;item.loaded=Date.now();
       try {if(raw.length<1500000)sessionStorage.setItem(storageKey,JSON.stringify({loaded:item.loaded,text:raw}));}catch{}
       return rows;
@@ -451,7 +454,7 @@ async function fillPoleDisplays(root){
     try{return {series,id,data:series==='Formula 1'?await f1EventPole(race):await NascarCompetition.pole(race)};}catch{return null;}
   }));
   // Feed completion can rebuild F1 cards; populate the current elements.
-  if(slots.length)await new Promise(requestAnimationFrame);
+  if(slots.length)await new Promise(resolve=>{const timer=setTimeout(resolve,100);requestAnimationFrame(()=>{clearTimeout(timer);resolve();});});
   for(const slot of root.querySelectorAll('[data-pole-id]')){
     const result=displays.find(d=>d&&d.series===slot.dataset.poleSeries&&d.id===slot.dataset.poleId);
     const p=result?.data;
@@ -468,7 +471,7 @@ async function waitPageImages(root){
     let settled=false;
     const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);img.removeEventListener('load',done);img.removeEventListener('error',done);resolve();};
     const done=()=>{if(img.naturalWidth&&img.decode)img.decode().catch(()=>{}).finally(finish);else finish();};
-    const timer=setTimeout(()=>{if(!img.complete){img.hidden=true;img.dispatchEvent(new Event('error'));}finish();},15000);
+    const timer=setTimeout(()=>{if(!img.complete){img.hidden=true;img.dispatchEvent(new Event('error'));}finish();},8000);
     img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true});img.loading='eager';
     if(img.complete)done();
   })));
@@ -480,7 +483,7 @@ async function withLoading(prepare, message) {
   const timer=setTimeout(()=>setLoading(true,message),120);
   try{
     const result=await prepare();
-    await new Promise(resolve=>requestAnimationFrame(resolve));
+    await new Promise(resolve=>{const timer=setTimeout(resolve,100);requestAnimationFrame(()=>{clearTimeout(timer);resolve();});});
     const page=['home-view','series-view','event-view'].map(id=>document.getElementById(id)).find(el=>el&&el.style.display!=='none'&&el.getClientRects().length);
     if(page)await waitPageImages(page);
     return result;
@@ -880,18 +883,28 @@ async function loadData() {
   if(loading)return;
   loading=true;loadingRetry=loadData;setLoading(true,'Loading racing schedules…');
   try{
-    const families=await Promise.all(Object.values(detailSources).map(source=>fetchSheet(source.main)));
-    allRaces=families.flat().map(row=>({raceId:row['Race ID'],round:row.Round,event:row.Event,trackId:row['Track ID'],series:canonicalSeries(row.Series),date:row.Date,time:row.Time,network:row.Network,notes:row.Notes})).filter(r=>r.series&&r.event);
-    await Promise.all([...['NASCAR Cup Series','Formula 1','INDYCAR','WEC','Formula E'].map(series=>loadSeriesDetails(series)),loadF1Feeds(false,'home')]);
-    if(typeof F2Hub!=="undefined"&&F2Hub.configured()){await F2Hub.load();F2Hub.install();}
-    if(typeof AcademyHub!=="undefined"&&AcademyHub.configured()){await AcademyHub.load();AcademyHub.install();}
-    if(typeof WECHub!=="undefined"&&WECHub.configured()){await WECHub.load();WECHub.install();}
-    if(typeof IMSAHub!=="undefined"&&IMSAHub.configured()){await IMSAHub.load();IMSAHub.install();}
-    if(typeof CARSHub!=="undefined"&&CARSHub.configured()){await CARSHub.load();CARSHub.install();}
-    if(typeof SpecialEvents!=="undefined"&&SpecialEvents.configured()){await SpecialEvents.load();SpecialEvents.install();}
+    // Start independent requests together. Install shared-track hubs only once
+    // their base tracks and schedules have settled.
+    const hubs=[typeof F2Hub!=='undefined'&&F2Hub,typeof AcademyHub!=='undefined'&&AcademyHub,typeof WECHub!=='undefined'&&WECHub,typeof IMSAHub!=='undefined'&&IMSAHub,typeof CARSHub!=='undefined'&&CARSHub,typeof SpecialEvents!=='undefined'&&SpecialEvents].filter(h=>h&&h.configured());
+    const sources=Object.values(detailSources);
+    const [families,details,hubLoads]=await Promise.all([
+      Promise.allSettled(sources.map(source=>fetchSheet(source.main))),
+      Promise.allSettled([...['NASCAR Cup Series','Formula 1','INDYCAR','WEC','Formula E'].map(series=>loadSeriesDetails(series,false,true)),loadF1Feeds(false,'home'),NascarCompetition.preload('NASCAR Cup Series','results')]),
+      Promise.allSettled(hubs.map(h=>h.load()))
+    ]);
+    if(families.every(r=>r.status==='rejected'))throw new Error('All schedule sources are unavailable');
+    // A failed source keeps its existing in-memory schedule on a retry.
+    const failedSources=new Set(sources.filter((_,i)=>families[i].status==='rejected'));
+    const retained=allRaces.filter(r=>failedSources.has(detailSources[sourceForSeries(r.series)]));
+    allRaces=retained.concat(families.filter(r=>r.status==='fulfilled').flatMap(r=>r.value).map(row=>({raceId:row['Race ID'],round:row.Round,event:row.Event,trackId:row['Track ID'],series:canonicalSeries(row.Series),date:row.Date,time:row.Time,network:row.Network,notes:row.Notes})).filter(r=>r.series&&r.event));
+    hubs.forEach(h=>h.install());
+    FormulaEPreseason.install();
+    const partial=families.some(r=>r.status==='rejected')||details.some(r=>r.status==='rejected')||hubLoads.some(r=>r.status==='rejected')||hubs.some(h=>!h.enabled());
     await renderHome();
     await new Promise(resolve=>requestAnimationFrame(resolve));
     await waitPageImages(document.getElementById('home-view'));
+    const home=document.getElementById('home-view');home.querySelector('[data-startup-warning]')?.remove();
+    if(partial){const note=document.createElement('p');note.dataset.startupWarning='true';note.className='f1-warning';note.textContent='Some racing data could not load. Available series are ready. ';const retry=document.createElement('button');retry.type='button';retry.textContent='Retry missing data';retry.onclick=()=>loadData();note.append(retry);home.prepend(note);}
     dataReady=true;setLoading(false);loadingRetry=null;
   }catch(error){
     console.error('Error loading racing schedule:',error);
