@@ -296,5 +296,5 @@ const NascarCompetition=(()=>{
    const row=leaders[0],profile=NascarProfiles.identities(race.series,Number(row.Season)).find(p=>p.id===String(row['Driver ID']));
    return {label:row.Session==='Starting Grid'?'Starts P1':'Pole sitter',name:profile?.name||row['Driver Name'],detail:row.Session==='Starting Grid'?'Published starting grid · no timed qualifying':['#'+row['Car Number'],row.Manufacturer,number(row['Lap Time'])>0?Number(row['Lap Time']).toFixed(3)+'s':''].filter(Boolean).join(' · '),image:NascarProfiles.numberMarkup({number:row['Car Number'],numberUrl:profile?.number===String(row['Car Number'])?profile.numberUrl:''})};
  }
- return {render,homeSummary,overview,chase,preload,eventLinks,pole,raceCompleted:race=>(cache.results?.rows||[]).some(r=>Number(r['Series ID'])===ids[race.series]&&String(r['Race ID'])===String(race.raceId)&&Number(r.Position)>0),standingsFor:async series=>scoped(await load('standings'),series)};
+ return {snapshotStandings:series=>scoped(cache.standings?.rows||[],series),render,homeSummary,overview,chase,preload,eventLinks,pole,raceCompleted:race=>(cache.results?.rows||[]).some(r=>Number(r['Series ID'])===ids[race.series]&&String(r['Race ID'])===String(race.raceId)&&Number(r.Position)>0),standingsFor:async series=>scoped(await load('standings'),series)};
 })();

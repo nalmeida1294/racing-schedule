@@ -17,7 +17,7 @@ const SeasonTimeline = (() => {
     // Keep a replaced Formula E season available during the offseason.
     const retained = [...history.values()].filter(r => r.series === series && !current.some(c => usableRaceDate(c.date) && seasonOf(c) === seasonOf(r)));
     const seen = new Set();
-    [...retained, ...current].filter(r => usableRaceDate(r.date) && !/cancelled|canceled/i.test(r.status || r.notes || '')).sort((a,b) => raceStartTime(a)-raceStartTime(b) || a.date.localeCompare(b.date)).forEach(r => {
+    [...retained, ...current].filter(r => usableRaceDate(r.date) && (!chaseSeries.has(series) || (!/\bclash\b|\bduels?\b|\ball[ -]star\b|non[ -]points|exhibition/i.test(r.event || '') && Number(r.race_type_id ?? r.raceTypeId ?? 1)!==2)) && !/cancelled|canceled/i.test(r.status || r.notes || '')).sort((a,b) => raceStartTime(a)-raceStartTime(b) || a.date.localeCompare(b.date)).forEach(r => {
       const key = [r.raceId || r.event, r.date].join('|');
       if (seen.has(key)) return; seen.add(key);
       const season = seasonOf(r); if (!seasons.has(season)) seasons.set(season, []); seasons.get(season).push(r);

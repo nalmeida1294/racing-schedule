@@ -479,3 +479,18 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .session-outcome{display:flex;flex-wrap:wrap;gap:5px 10px;margin:12px 0 0;padding-top:10px;border-top:1px solid #ffffff10;font-size:12px}
 .session-outcome span{color:#aab5c3}.session-outcome strong{color:#f3f5f7}
 @media(max-width:600px){.weekend-session{grid-template-columns:26px minmax(0,1fr);gap:10px;padding:14px 12px}.weekend-session-mark{width:26px}.weekend-session .event-result-buttons{grid-column:2;align-items:flex-start;flex-direction:row;flex-wrap:wrap}.weekend-session h3{font-size:17px}.weekend-session .session-results-link{max-width:100%}}
+/* Compact homepage rhythm; the Series Hubs carousel retains its sizing. */
+.header-actions #series-menu>summary,.header-actions #customize-button{box-sizing:border-box;min-height:44px;height:44px;padding:8px 12px}
+.header-content{gap:12px}
+#weekend-section{padding:14px}
+.weekend-heading-row{margin-bottom:12px}
+#weekend-races{gap:18px}
+.weekend-day h3{margin-bottom:6px}
+.weekend-off-group{padding-top:10px}
+.weekend-off{min-height:54px;padding:5px 8px}
+.weekend-off .weekend-logo{min-height:36px}
+.weekend-off .weekend-logo img{height:30px}
+.weekend-off .weekend-event:empty,.weekend-off .weekend-time:empty{display:none}
+@media(max-width:600px){.header-actions{margin-top:2px}#weekend-section{padding:12px}.weekend-heading-row{margin-bottom:10px}.weekend-day h3{margin-bottom:5px}.weekend-off{min-height:52px}}
+
+body>header{padding-top:14px;padding-bottom:14px}

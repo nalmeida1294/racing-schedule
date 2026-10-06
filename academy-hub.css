@@ -28,3 +28,8 @@
 
 
 #academy-hub-content .nascar-schedule-action{display:inline-flex;width:fit-content;max-width:100%;justify-content:flex-start;gap:12px}.academy-podium>b,.academy-section-link span{color:#bda3db}
+/* Torso portraits use the available width instead of a tall full-body frame. */
+.academy-drivers .academy-portrait{height:auto;aspect-ratio:1 / 1;object-fit:contain;object-position:center bottom;margin-bottom:8px}
+.snapshot-card[data-snapshot-series="F1 Academy"] .snapshot-photo{width:42%}
+
+@media(max-width:600px){.academy-drivers .academy-portrait{width:calc(100% + 16px);max-width:none;margin-left:-8px;margin-right:-8px}}
