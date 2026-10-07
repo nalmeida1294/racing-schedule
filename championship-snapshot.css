@@ -7,3 +7,8 @@
 @media(max-width:360px){.snapshot-grid{grid-template-columns:1fr}.snapshot-card{height:184px;grid-template-rows:40px minmax(0,1fr)}.snapshot-title>strong{font-size:.8rem}.snapshot-photo{width:80px}.snapshot-content strong{font-size:.9rem}}
 
 .snapshot-content:not(:has(.snapshot-leader)):not(:has(.snapshot-champion-detail)){flex-direction:column;align-items:flex-start;justify-content:center}.snapshot-multiclass .snapshot-leader{min-height:0}.snapshot-multiclass .snapshot-leader>span:last-child{width:100%}
+.snapshot-photo{align-items:center}
+.snapshot-portrait{object-position:center center}
+.snapshot-card[data-snapshot-series="F1 Academy"] .snapshot-photo{width:48%}
+.snapshot-card[data-snapshot-series="F1 Academy"] .snapshot-photo{overflow:hidden}
+.snapshot-card[data-snapshot-series="F1 Academy"] .snapshot-portrait{transform:scale(1.55);transform-origin:center}

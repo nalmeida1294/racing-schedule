@@ -51,6 +51,8 @@ const SeasonTimeline = (() => {
   function render(now = new Date()) {
     const host=document.getElementById('season-timeline'); if(!host)return;
     const items=seriesSettings.order.filter(s=>!seriesSettings.hidden.includes(s)).map(series=>({series,data:model(series,now)})).filter(x=>x.data);
+    // Stable grouping preserves the user's order within active and completed seasons.
+    items.sort((a,b)=>Number(a.data.done===a.data.races.length)-Number(b.data.done===b.data.races.length));
     host.hidden=!items.length;
     host.innerHTML='<div class="timeline-heading"><h2 id="timeline-heading">Season Timeline</h2><p>Your Series at a Glance</p></div><div class="timeline-list"></div><p class="timeline-note">One bar per scheduled race'+(items.some(x=>x.series==='CARS Tour')?' (per weekend for CARS Tour)':'')+' · Progress follows published results where available, otherwise past race dates.</p>';
     const list=host.querySelector('.timeline-list');

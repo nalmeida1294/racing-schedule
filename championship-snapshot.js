@@ -24,7 +24,7 @@ const ChampionshipSnapshot = (() => {
   }
   function render(now=new Date()) {
     const host=document.getElementById('championship-snapshot');if(!host)return;
-    const series=seriesSettings.order.filter(s=>!seriesSettings.hidden.includes(s)&&SeasonTimeline.model(s,now));
+    const series=seriesSettings.order.filter(s=>!seriesSettings.hidden.includes(s)&&!['WEC','IMSA'].includes(s)&&SeasonTimeline.model(s,now));
     host.hidden=!series.length;
     host.innerHTML=`<div class="snapshot-heading">${trophy}<div><h2 id="snapshot-heading">Championship Snapshot</h2><p>Leaders Across Your Series</p></div></div><div class="snapshot-grid"></div>`;
     const grid=host.querySelector('.snapshot-grid');
@@ -55,6 +55,8 @@ const ChampionshipSnapshot = (() => {
       button.setAttribute('aria-label',`${s}: ${content.textContent}. Open ${useChampion?'series hub':'standings'}`);
       button.onclick=()=>useChampion?showSeries(s):open(s);grid.appendChild(button);
     });
+    // Use the rendered champion state, including spoiler protection and season checks.
+    [...grid.children].sort((a,b)=>Number(a.classList.contains('snapshot-champion'))-Number(b.classList.contains('snapshot-champion'))).forEach(card=>grid.appendChild(card));
     RaceDisplay.disclosure(host,grid,'championship');
   }
   return {render};
