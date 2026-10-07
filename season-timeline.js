@@ -61,6 +61,7 @@ const SeasonTimeline = (() => {
       button.innerHTML=`<span class="timeline-logo">${seriesLogoMarkup(series)}</span><span class="timeline-info"><strong>${escapeHtml(series)}</strong><small>${escapeHtml(season)} · ${escapeHtml(formatDate(d.start).replace(/, \d{4}$/, ''))} – ${escapeHtml(formatDate(d.end).replace(/, \d{4}$/, ''))}</small>${d.label?`<small class="timeline-status">${escapeHtml(d.label)}</small>`:''}</span><span class="timeline-progress"><span class="timeline-chase-track" aria-hidden="true">${d.chase>=0?`<span style="margin-left:${d.chase/d.races.length*100}%;width:${(d.races.length-d.chase)/d.races.length*100}%">The Chase</span>`:''}</span><span class="timeline-bars" aria-hidden="true">${d.races.map((r,i)=>`<i class="${d.complete[i]?'is-complete ':''}${d.chase>=0&&i>=d.chase?'is-chase':''}" title="${escapeHtml(r.event)} · ${escapeHtml(formatDate(r.date))}"></i>`).join('')}</span></span><span class="timeline-count">${d.done}<span>/${d.races.length}</span></span><span class="timeline-arrow" aria-hidden="true">›</span>`;
       button.onclick=()=>showSeries(series);list.appendChild(button);
     });
+    RaceDisplay.disclosure(host,list,'timeline');
   }
   return {render,model,remember};
 })();

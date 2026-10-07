@@ -55,6 +55,7 @@ const ChampionshipSnapshot = (() => {
       button.setAttribute('aria-label',`${s}: ${content.textContent}. Open ${useChampion?'series hub':'standings'}`);
       button.onclick=()=>useChampion?showSeries(s):open(s);grid.appendChild(button);
     });
+    RaceDisplay.disclosure(host,grid,'championship');
   }
   return {render};
 })();

@@ -90,9 +90,9 @@ function f1FeedNote(key) {
   const round = status?.["Through Round"] || rows[0]?.["Through Round"];
   const timestamp = status?.["Last Success UTC"] || rows[0]?.["Updated UTC"];
   const date = timestamp ? new Date(timestamp) : null;
-  const updated = date && Number.isFinite(date.getTime()) ? date.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  const updated = date && Number.isFinite(date.getTime()) ? date.toLocaleString("en-US", { timeZone:"America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
   const stale = entry.state === "error" || (status && !["OK", "NO DATA"].includes(status.State));
-  return `<p class="f1-data-note${stale ? " f1-warning" : ""}">${stale ? "Update unavailable · showing previously loaded data. " : ""}${round ? `Through round ${escapeHtml(round)} · ` : ""}${updated ? `Updated ${escapeHtml(updated)}` : "Awaiting published update"}</p>${entry.state === "error" ? `<button type="button" data-f1-retry="${key}">Retry update</button>` : ""}`;
+  return `<p class="f1-data-note${stale ? " f1-warning" : ""}">${stale ? "Update unavailable · showing previously loaded data. " : ""}${round ? `Data Through Round ${escapeHtml(round)} · ` : ""}${updated ? `Feed Last Synced: ${escapeHtml(updated)} ET` : "Awaiting published update"}</p>${entry.state === "error" ? `<button type="button" data-f1-retry="${key}">Retry update</button>` : ""}`;
 }
 function f1Pending(key, label) {
   const entry = f1Store[key];
@@ -200,7 +200,7 @@ function f1OverviewMarkup() {
   const next = seriesStatus("Formula 1").nextRace, latest = f1LatestResults();
 
   return `<div data-live-slot="overview" hidden></div><div class="f1-overview-grid"><section class="f1-feature event-photo-tile">${racePhotoMarkup(next)}<p class="f1-kicker">NEXT GRAND PRIX</p>${next
-    ? `<h2>${escapeHtml(next.event)}</h2><p>${escapeHtml(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${escapeHtml(next.time || "Time TBD")}</p>${poleSlot(next)}<button type="button" data-f1-next>Event & weekend schedule →</button>`
+    ? `<h2>${escapeHtml(next.event)}</h2><p>${escapeHtml(trackNameForRace(next))}</p><p>${formatDate(next.date)} · ${escapeHtml(RaceDisplay.time(next.time || "Time TBD"))}</p>${poleSlot(next)}<button type="button" data-f1-next>Event & weekend schedule →</button>`
     : `<h2>${seriesStatus("Formula 1").status === 1 ? "Season completed" : "Schedule coming soon"}</h2><p>The full calendar is available in Schedule.</p>`}</section>
     <section class="f1-feature f1-linked-feature"><button class="f1-card-link" data-f1-open="results" aria-label="View full results of the latest race"></button><p class="f1-kicker">LATEST RACE PODIUM</p>${latest.length
       ? `<h2>${escapeHtml(latest[0].Event)}</h2><p>${formatDate(latest[0]["Race Date UTC"])}</p><ol class="f1-podium">${latest.filter(row => ["1", "2", "3"].includes(row["Position Text"])).map(row => `<li value="${f1Rank(row)}"><strong>${f1TeamIdentity(row,true,true)}</strong><span>${escapeHtml(f1TeamName(row))}</span></li>`).join("")}</ol>${f1FeedNote("results")}`

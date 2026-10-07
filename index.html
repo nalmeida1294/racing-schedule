@@ -22,6 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="home-ux.css">
     <link rel="stylesheet" href="season-timeline.css">
     <link rel="stylesheet" href="championship-snapshot.css">
     <link rel="stylesheet" href="series-carousel.css">
@@ -30,7 +31,7 @@
     <link rel="stylesheet" href="live-hub.css">
 
   <link rel="stylesheet" href="f2-hub.css">
-  <link rel="stylesheet" href="wec-hub.css">
+  <link rel="stylesheet" href="wec-hub.css?v=20261007">
   <link rel="stylesheet" href="imsa-hub.css">
   <link rel="stylesheet" href="cars-hub.css">
   <link rel="stylesheet" href="special-events.css">
@@ -95,6 +96,7 @@
     </div>
 
 </header>
+<p class="site-timezone" title="Eastern Time adjusts between EST and EDT. Unconverted special-event source timetables are labeled separately.">Schedule Times: Eastern Time (ET)</p>
 
 
     <main>
@@ -238,7 +240,7 @@
       <h2 id="patch-notes-title">Patch notes</h2>
       <p class="patch-notes-intro">The latest additions and improvements to Race Control. Earlier entries follow our development milestones; date ranges group work completed across several sessions.</p>
       <article class="patch-release">
-        <time datetime="2026-10-06">October 6, 2026</time>
+        <time datetime="2026-10-07">October 7, 2026</time><h3>Faster, Clearer Racing Reference</h3><ul><li>Expandable season timelines and championship snapshots remember your preference.</li><li>Followed-series loading, saved-feed recovery, and nonblocking retry notices keep available pages usable.</li><li>Eastern Time labels and clearer feed timestamps distinguish data imports from race coverage.</li><li>WEC styling is included in this release.</li></ul></article><article class="patch-release"><time datetime="2026-10-06">October 6, 2026</time>
         <h3>A More Compact Homepage &amp; More Reliable Startup</h3>
         <p>F1 race reviews now support automatic safety-car, VSC, red-flag, starter and retirement counts after races. The Admin Hub keeps just rain and race ratings editable, with race facts shown read-only.</p>
         <p>Tighter header, race-week and timeline spacing. Championship snapshots now use equal-size cards with clearer portraits, leader gaps and gold champion styling. NASCAR timelines exclude exhibition races, and F1 Academy portraits have more room.</p>
@@ -445,6 +447,7 @@
     <script src="support.js"></script>
     <script src="spoiler-config.js"></script>
     <script src="spoilers.js"></script>
+    <script src="home-ux.js"></script>
     <script src="f1-hub.js"></script>
     <script src="f1-insights.js"></script>
     <script src="nascar-profiles.js"></script>

@@ -1,0 +1,6 @@
+.site-timezone{margin:0;padding:5px 16px 9px;text-align:center;color:#aeb8c4;font-size:12px;line-height:1.5}
+.home-summary-toggle{display:block;width:100%;margin:12px 0 0;padding:11px 16px;border:1px solid #ffffff26;border-radius:10px;background:#ffffff06;color:#e5e9ef;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.home-summary-toggle:hover{background:#ffffff10}.home-summary-toggle:focus-visible{outline:2px solid #f6c945;outline-offset:3px}
+.timeline-row[hidden],.snapshot-card[hidden]{display:none!important}
+.data-recovery-note{margin:12px 0;padding:12px 16px;border:1px solid #e2b54c55;border-radius:10px;background:#e2b54c0b;color:#dfd6be;font-size:13px;line-height:1.6}
+.data-recovery-note button{margin-left:10px;padding:6px 12px;border:1px solid #e2b54c66;border-radius:6px;background:transparent;color:inherit;font:inherit;cursor:pointer}
