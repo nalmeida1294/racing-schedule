@@ -42,6 +42,7 @@ const ResultsRefresh=(()=>{
       if(before.event){
         if(item)item[0].install();
         await eventResultShortcuts(before.event);
+        if(before.series==='Formula 1')refreshF1EventRatings();
       }else if(before.series==='Formula 1')renderF1Content();
       else if(nascarHubSeries.has(before.series))await NascarCompetition.render(before.el,before.series,'results');
       else item[0].refreshResults(before.el);

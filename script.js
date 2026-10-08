@@ -553,7 +553,7 @@ function renderNascarHub(series,tab='overview',prepared=false) {
   hub.querySelectorAll('[data-nascar-tab]').forEach(button=>button.addEventListener('click',()=>renderNascarHub(series,button.dataset.nascarTab)));
   setView('series-view');document.getElementById('back-button').hidden=true;
   const activeTab=hub.querySelector('[aria-pressed="true"]');
-  if(activeTab)activeTab.parentElement.scrollLeft=Math.max(0,activeTab.offsetLeft-activeTab.parentElement.offsetLeft-(activeTab.parentElement.clientWidth-activeTab.offsetWidth)/2);
+  alignSeriesTab(activeTab);
   if(tab==='schedule')focusScheduleRace();
   const reviewsReady=series==='NASCAR Cup Series'?loadCupReviews():null;
   return Promise.allSettled([contentReady,reviewsReady]);
@@ -585,7 +585,7 @@ function renderSeasonHub(series, tab='overview') {
   hub.hidden=false;setView('series-view');
   hub.querySelectorAll('[data-season-tab]').forEach(button=>button.onclick=()=>withLoading(async()=>{if(!complete&&button.dataset.seasonTab==='schedule')await loadSeriesDetails(series);renderSeasonHub(series,button.dataset.seasonTab);},'Opening series hub…'));
   const active=hub.querySelector('[aria-pressed="true"]');
-  active.parentElement.scrollLeft=Math.max(0,active.offsetLeft-active.parentElement.offsetLeft-(active.parentElement.clientWidth-active.offsetWidth)/2);
+  alignSeriesTab(active);
   if(!complete&&tab==='schedule')focusScheduleRace();
 }
 
@@ -965,3 +965,17 @@ window.addEventListener("focus", refreshCalendar);
 scheduleMidnightRefresh();
 loadData();
 
+
+// Scroll only the tab strip; keep the page and sticky header in place.
+function alignSeriesTab(tab) {
+  if(!tab)return;
+  const strip=tab.parentElement,buttons=[...strip.querySelectorAll('button')];
+  const max=Math.max(0,strip.scrollWidth-strip.clientWidth);
+  const centered=strip.scrollLeft+tab.getBoundingClientRect().left-strip.getBoundingClientRect().left-(strip.clientWidth-tab.offsetWidth)/2;
+  strip.scrollTo({left:tab===buttons[0]?0:tab===buttons[buttons.length-1]?max:Math.max(0,Math.min(max,centered)),behavior:'instant'});
+}
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('.f1-tabs,.nascar-hub-tabs').forEach(strip=>{
+    if(strip.clientWidth)alignSeriesTab(strip.querySelector('[aria-selected="true"],[aria-pressed="true"]'));
+  });
+});

@@ -26,7 +26,7 @@ function brandedLoaderMarkup(message) {
 function loadF1Feeds(force = false, view = f1Tab, silent = false) {
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Promise.resolve([]);
   const common=['drivers','constructors','status'];
-  const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings','results','sessions'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions'],rankings:[...common,'ratings','reviews','standings'],tracks:['trackScores','reviews'],schedule:[],records:[]};
+  const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings','results','sessions'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions','reviews','ratings'],rankings:[...common,'ratings','reviews','standings'],tracks:['trackScores','reviews'],schedule:[],records:[]};
   return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force, silent)));
 }
 let f1RefreshQueued=false;
@@ -140,7 +140,7 @@ function renderF1Hub(tab = "overview",prepared=false) {
   calendar.hidden = f1Tab !== "schedule";
   document.getElementById("f1-content").hidden = f1Tab === "schedule";
   setView("series-view");
-  selectedTab?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+  alignSeriesTab(selectedTab);
   if (f1Tab === "schedule") {
     calendar.setAttribute("role", "tabpanel");
     calendar.setAttribute("aria-labelledby", "f1-tab-schedule");
@@ -221,14 +221,34 @@ function f1TopThree(key, title, target) {
   return `<section class="f1-feature f1-linked-feature"><button class="f1-card-link" data-f1-open="${target}" aria-label="View ${escapeHtml(title.toLowerCase())} standings"></button><p class="f1-kicker">${title}</p>${rows.length ? '<ol class="f1-top-three">' + rows.map((row,i) => `<li><strong>${f1TeamIdentity(row,key === 'standings')}</strong><span>${f1Number(row.Points)} pts <small>${i ? Number.isFinite(Number(row.Points)) && Number.isFinite(Number(rows[0].Points)) ? '−' + Number((Number(rows[0].Points)-Number(row.Points)).toFixed(2)) + ' to leader' : 'Gap unavailable' : 'Leader'}</small></span></li>`).join('') + '</ol>' + f1FeedNote(key) : f1Pending(key,'Standings')}</section>`;
 }
 function f1Table(headers, rows, caption, changeLabel) {
-  const heading = changeLabel ? `<tr>${headers.slice(0,-2).map(header=>`<th scope="col" rowspan="2">${header}</th>`).join("")}<th scope="colgroup" colspan="2" class="f1-change-heading"><span>${escapeHtml(changeLabel)}</span></th></tr><tr>${headers.slice(-2).map(header=>`<th scope="col" class="f1-change-column">${header}</th>`).join("")}</tr>` : `<tr>${headers.map(header=>`<th scope="col">${header}</th>`).join("")}</tr>`;
+  const group=changeLabel?(typeof changeLabel==='string'?{label:changeLabel,start:headers.length-2,count:2}:changeLabel):null;
+  const cell=header=>`<th scope="col" rowspan="2">${header}</th>`;
+  const heading=group?`<tr>${headers.slice(0,group.start).map(cell).join('')}<th scope="colgroup" colspan="${group.count}" class="f1-change-heading"><span>${escapeHtml(group.label)}</span></th>${headers.slice(group.start+group.count).map(cell).join('')}</tr><tr>${headers.slice(group.start,group.start+group.count).map(header=>`<th scope="col" class="f1-change-column">${header}</th>`).join('')}</tr>`:`<tr>${headers.map(header=>`<th scope="col">${header}</th>`).join('')}</tr>`;
+
   return `<div class="f1-table-scroll" role="region" aria-label="${escapeHtml(caption)}" tabindex="0"><table class="f1-table"><caption>${escapeHtml(caption)}</caption><thead>${heading}</thead><tbody>${rows.join("")}</tbody></table></div>`;
 }
 const f1StandingSort={key:'Points',direction:'descending'};
+function f1IsDNF(row){
+  const status=String(row['Finish Status']||'').trim();
+  return status?!/^(Finished|Lapped|\+\d+ Laps?|Disqualified|Did not start|Did not qualify|Did not prequalify|Withdrawn|Excluded)$/i.test(status):null;
+}
+function f1ConstructorSeasonStats(team){
+  const through=Number(team['Through Round'])||Infinity,id=team['Constructor ID'],unique=new Map();
+  f1Rows('results').filter(r=>r['Constructor ID']===id&&Number(r.Round)<=through&&(!r.Session||/^(race|grand prix)$/i.test(r.Session))).forEach(r=>unique.set([r['Jolpica Race Key']||r.Round,r['Driver ID']].join('|'),r));
+  const races=[...unique.values()],available=f1Store.results.state==='ready'&&races.length>0;
+  const raceKeys=new Set(races.map(r=>r['Jolpica Race Key']||r.Round));
+  const qualifying=f1Rows('sessions').filter(r=>r['Constructor ID']===id&&r.Session==='Qualifying'&&raceKeys.has(r['Jolpica Race Key']||r.Round));
+  const covered=new Set(qualifying.map(r=>r['Jolpica Race Key']||r.Round));
+  return {
+    Poles:available&&f1Store.sessions.state==='ready'&&covered.size===raceKeys.size?new Set(qualifying.filter(r=>Number(r.Position)===1).map(r=>r['Jolpica Race Key']||r.Round)).size:null,
+    Podiums:available?races.filter(r=>Number(r.Position)>=1&&Number(r.Position)<=3&&!/disqualified|excluded/i.test(r['Finish Status']||'')).length:null,
+    DNFs:available&&races.every(r=>f1IsDNF(r)!==null)?races.filter(r=>f1IsDNF(r)).length:null
+  };
+}
 function f1DriverSeasonStats(driver){
   const through=Number(driver['Through Round'])||Infinity,id=driver['Driver ID'];
   const unique=new Map();
-  f1Rows('results').filter(r=>r['Driver ID']===id&&Number(r.Round)<=through).forEach(r=>unique.set(r['Jolpica Race Key'],r));
+  f1Rows('results').filter(r=>r['Driver ID']===id&&Number(r.Round)<=through&&(!r.Session||/^(race|grand prix)$/i.test(r.Session))).forEach(r=>unique.set(r['Jolpica Race Key']||r.Round,r));
   const races=[...unique.values()],available=f1Store.results.state==='ready'&&races.length>0;
   const positive=v=>String(v??'').trim()!==''&&Number.isFinite(Number(v))&&Number(v)>0;
   const starts=races.filter(r=>!/^(did not start|did not qualify|did not prequalify|withdrawn|excluded)$/i.test(r['Finish Status']||''));
@@ -236,14 +256,20 @@ function f1DriverSeasonStats(driver){
   const qualifying=f1Rows('sessions').filter(r=>r['Driver ID']===id&&r.Session==='Qualifying'&&unique.has(r['Jolpica Race Key']));
   const poleRaces=new Set(qualifying.filter(r=>Number(r.Position)===1).map(r=>r['Jolpica Race Key']));
   const unknownStatus=starts.some(r=>!String(r['Finish Status']||'').trim());
+  const sprintResults=new Map();
+  f1Rows('sessions').filter(r=>r['Driver ID']===id&&r.Session==='Sprint'&&Number(r.Round)<=through).forEach(r=>sprintResults.set(r['Jolpica Race Key']||r.Round,r));
+  const sprints=[...sprintResults.values()],sprintAvailable=f1Store.sessions.state==='ready';
+  const sprintPointsKnown=sprints.every(r=>String(r.Points??'').trim()!==''&&Number.isFinite(Number(r.Points)));
   return {Podiums:available?races.filter(r=>Number(r.Position)>=1&&Number(r.Position)<=3&&!/disqualified|excluded/i.test(r['Finish Status']||'')).length:null,
     Poles:available&&f1Store.sessions.state==='ready'&&qualifying.length?poleRaces.size:null,
     AverageFinish:average('Position'),AverageStart:average('Grid'),
-    DNFs:available&&!unknownStatus?starts.filter(r=>!/^Finished$|^\+\d+ Laps?$|^Disqualified$/i.test(String(r['Finish Status']).trim())).length:null};
+    DNFs:available&&!unknownStatus?starts.filter(r=>f1IsDNF(r)).length:null,
+    SprintWins:sprintAvailable?sprints.filter(r=>Number(r.Position)===1&&!/disqualified|excluded/i.test(r['Finish Status']||'')).length:null,
+    SprintPoints:sprintAvailable&&sprintPointsKnown?sprints.reduce((total,r)=>total+Number(r.Points),0):null};
 }
 function f1StandingsMarkup() {
-  const drivers=f1Sorted('standings').map(row=>({...row,...f1DriverSeasonStats(row),DriverName:f1DriverName(row)})),teams=f1Sorted('constructorStandings');
-  const columns=[['Position','Pos'],['DriverName','Driver'],['Points','Points'],['Wins','Wins'],['Podiums','Podiums'],['Poles','Poles'],['AverageFinish','Avg finish'],['AverageStart','Avg start'],['DNFs','DNFs']];
+  const drivers=f1Sorted('standings').map(row=>({...row,...f1DriverSeasonStats(row),DriverName:f1DriverName(row)})),teams=f1Sorted('constructorStandings').map(row=>({...row,...f1ConstructorSeasonStats(row)}));
+  const columns=[['Position','Pos'],['DriverName','Driver'],['Points','Points'],['Wins','GP Wins'],['Podiums','GP Podiums'],['Poles','GP Poles'],['AverageFinish','Avg GP Finish'],['AverageStart','Avg GP Start'],['DNFs','GP DNFs'],['SprintWins','Sprint Wins'],['SprintPoints','Sprint Points']];
   const numeric=v=>v===null||v===undefined||String(v).trim()===''||!Number.isFinite(Number(v))?null:Number(v);
   drivers.sort((a,b)=>{
     const key=f1StandingSort.key,av=key==='DriverName'?a[key]:numeric(a[key]),bv=key==='DriverName'?b[key]:numeric(b[key]);
@@ -253,8 +279,8 @@ function f1StandingsMarkup() {
   });
   const headers=columns.map(([key,label])=>`<button type="button" data-f1-sort="${key}" aria-label="Sort by ${label}">${label}<span aria-hidden="true">${f1StandingSort.key===key?(f1StandingSort.direction==='ascending'?' ↑':' ↓'):''}</span></button>`);
   let table=f1Table(headers,drivers.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row)}</th>${columns.slice(2).map(([key])=>`<td${key==='Points'?' class="f1-table-points"':''}>${numeric(row[key])===null?'—':key.startsWith('Average')?Number(row[key]).toFixed(1):f1Number(row[key])}</td>`).join('')}</tr>`),'Driver championship standings');
-  return `<section><h2>Driver Standings</h2>${drivers.length?f1FeedNote('standings')+'<p class="f1-data-note">Grand Prix statistics from loaded results. Poles use qualifying P1; average start excludes pit-lane starts. DNFs exclude DNS and disqualifications. Tap a heading to sort.</p>'+table:f1Pending('standings','Driver standings')}</section>
-    <section class="f1-section" id="f1-constructor-standings"><h2>Constructor Standings</h2>${teams.length?f1FeedNote('constructorStandings')+f1Table(['Pos','Constructor','Points','Wins'],teams.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row,false)}</th><td class="f1-table-points">${f1Number(row.Points)}</td><td>${f1Number(row.Wins)}</td></tr>`),'Constructor championship standings'):f1Pending('constructorStandings','Constructor standings')}</section>`;
+  return `<section><h2>Driver Standings</h2>${drivers.length?f1FeedNote('standings')+'<p class="f1-data-note">Points are the full championship total, including sprints. GP statistics exclude sprint races; Sprint Wins and Sprint Points are shown separately through the standings round. Poles use Grand Prix qualifying P1; average start excludes pit-lane starts. DNFs exclude DNS and disqualifications. Tap a heading to sort.</p>'+table:f1Pending('standings','Driver standings')}</section>
+    <section class="f1-section" id="f1-constructor-standings"><h2>Constructor Standings</h2>${teams.length?f1FeedNote('constructorStandings')+'<p class="f1-data-note">GP-only statistics, credited to the constructor at each event. Podiums and DNFs count individual cars; two podium finishers count as two podiums. Poles use Grand Prix qualifying P1. Lapped finishes, DNS and disqualifications are not DNFs. Points include sprints.</p>'+f1Table(['Pos','Constructor','Points','GP Wins','GP Poles','GP Podiums','GP DNFs'],teams.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row,false)}</th><td class="f1-table-points">${f1Number(row.Points)}</td><td>${f1Number(row.Wins)}</td>${['Poles','Podiums','DNFs'].map(key=>`<td>${row[key]===null?'—':f1Number(row[key])}</td>`).join('')}</tr>`),'Constructor championship standings'):f1Pending('constructorStandings','Constructor standings')}</section>`;
 }
 
 function f1SafeImage(value) {
@@ -294,7 +320,7 @@ function f1HeadToHead(teamId) {
 function f1HeadToHeadMarkup(teamId) {
   const pairs=f1HeadToHead(teamId);
   const metric=(label,values)=>{const total=values[0]+values[1];return `<div class="f1-h2h-score"><strong>${values[0]}</strong><span>${label}<small>${total} compared</small></span><strong>${values[1]}</strong></div><div class="f1-h2h-bar" aria-hidden="true"><i style="width:${total?values[0]/total*100:50}%"></i></div>`;};
-  return `<section class="f1-h2h"><h4>Teammate head-to-head</h4>${pairs.length?pairs.map(pair=>`<div class="f1-h2h-pair"><div class="f1-h2h-names"><strong>${escapeHtml(f1DriverName(pair.drivers[0]))}</strong><span>vs</span><strong>${escapeHtml(f1DriverName(pair.drivers[1]))}</strong></div>${metric('Qualifying',pair.qualifying)}${metric('Grand Prix',pair.race)}${pair.excluded?`<p class="f1-data-note">${pair.excluded} unscored session${pair.excluded===1?'':'s'}</p>`:''}</div>`).join(''):'<p class="f1-data-note">No comparable teammate results published yet.</p>'}${['sessions','results'].filter(key=>f1Store[key].state==='error').map(key=>`<p class="f1-warning">${key==='sessions'?'Qualifying':'Race'} update unavailable; counts may be incomplete.</p><button data-f1-retry="${key}">Retry results</button>`).join('')}<p class="f1-data-note">${new Date().getFullYear()} · Same team, same event. Official finishing order includes retirements; disqualifications, non-starts and ties are unscored. Replacement pairings are shown separately. Sprints are excluded.</p></section>`;
+  return `<section class="f1-h2h"><h4>Teammate head-to-head</h4>${pairs.length?pairs.map(pair=>`<div class="f1-h2h-pair"><div class="f1-h2h-names"><strong>${escapeHtml(f1DriverName(pair.drivers[0]))}</strong><span>vs</span><strong>${escapeHtml(f1DriverName(pair.drivers[1]))}</strong></div>${metric('Qualifying',pair.qualifying)}${metric('Grand Prix',pair.race)}${pair.excluded?`<p class="f1-data-note">${pair.excluded} unscored session${pair.excluded===1?'':'s'}</p>`:''}</div>`).join(''):'<p class="f1-data-note">No comparable teammate results published yet.</p>'}${['sessions','results'].filter(key=>f1Store[key].state==='error').map(key=>`<p class="f1-warning">${key==='sessions'?'Qualifying':'Race'} update unavailable; counts may be incomplete.</p><button data-f1-retry="${key}">Retry results</button>`).join('')}</section>`;
 }
 function f1TeamsMarkup() {
   const drivers = f1Rows("drivers"), teams = f1Rows("constructors");
@@ -305,9 +331,9 @@ function f1TeamsMarkup() {
     // Match the stable driver-ID order used by each head-to-head pairing.
     const members = drivers.filter(row => teamFor(row) === team["Constructor ID"]).sort((a,b)=>a['Driver ID'].localeCompare(b['Driver ID']));
     const color = /^#[0-9a-f]{6}$/i.test(team["Team Color Hex"] || "") ? team["Team Color Hex"] : "#e10600";
-    return `<section class="f1-team" style="--team-color:${color}">${f1Image(team["Logo URL"], f1TeamName(team), "f1-team-logo")}<h3>${escapeHtml(f1TeamName(team))}</h3><p>${escapeHtml([team.Nationality, team.Base].filter(Boolean).join(" · "))}</p>${team["Team Principal"] ? `<p>Team principal: ${escapeHtml(team["Team Principal"])}</p>` : ""}${members.length ? `<div class="f1-team-drivers">${members.map(f1DriverMarkup).join("")}</div>` : `<p class="f1-data-note">No driver assignment available.</p>`}${f1HeadToHeadMarkup(team['Constructor ID'])}</section>`;
+    return `<section class="f1-team" style="--team-color:${color}"><div class="f1-team-header">${f1Image(team["Logo URL"], f1TeamName(team), "f1-team-logo")}<div class="f1-team-details"><h3>${escapeHtml(f1TeamName(team))}</h3><p>${escapeHtml([team.Nationality, team.Base].filter(Boolean).join(" · "))}</p>${team["Team Principal"] ? `<p>Team principal: ${escapeHtml(team["Team Principal"])}</p>` : ""}</div></div>${members.length ? `<div class="f1-team-drivers">${members.map(f1DriverMarkup).join("")}</div>` : `<p class="f1-data-note">No driver assignment available.</p>`}${f1HeadToHeadMarkup(team['Constructor ID'])}</section>`;
   }).join("");
-  return `<h2>Teams & Drivers</h2><p class="f1-data-note">Team assignments reflect the latest published race, with any manual team overrides applied.</p>${f1FeedNote("drivers")}${!drivers.length ? f1Pending("drivers", "Drivers") : ""}<div class="f1-team-grid">${cards}</div>`;
+  return `<h2>Teams & Drivers</h2><p class="f1-data-note">Team assignments reflect the latest published race, with any manual team overrides applied.</p>${f1FeedNote("drivers")}${!drivers.length ? f1Pending("drivers", "Drivers") : ""}<div class="f1-team-grid">${cards}</div><p class="f1-data-note">${new Date().getFullYear()} · Same team, same event. Official finishing order includes retirements; disqualifications, non-starts and ties are unscored. Replacement pairings are shown separately. Sprints are excluded.</p>`;
 }
 
 function f1ValidRatings() {
@@ -364,12 +390,41 @@ function f1RankingsMarkup() {
   const latestEvent = f1Store.reviews.rows.find(row=>row['Session Key']===latestSession)?.Event;
   const changeLabel = latestSession ? 'After ' + (latestEvent || f1RatingLabel(latestSession)) : ''; 
 
-  return title + controls + note + (ranks.length ? f1Table(['Rank','Driver','Rating /10','Season high','Season low',...(changes ? ['Rating change','Rank change'] : [])], ranks.map(driver => {
-    const prior = previous.find(other => other.id === driver.id), season = seasonRanks.find(other => other.id === driver.id);
-    return `<tr><td>${rankOf(ranks,driver)}</td><th scope="row">${f1TeamIdentity({"Driver ID":driver.id,Driver:driver.name})}</th><td class="f1-table-points">${driver.average.toFixed(2)}</td><td>${season.high.toFixed(2)}</td><td>${season.low.toFixed(2)}</td>${changes ? '<td>' + (prior ? delta(driver.average-prior.average,2) : 'New') + '</td><td>' + (prior ? delta(rankOf(previous,prior)-rankOf(ranks,driver),0) : 'New') + '</td>' : ''}</tr>`;
-  }), changes ? `${f1RatingSeason} driver rankings` : f1RatingLabel(f1RatingSession), changes ? changeLabel : null) : '<p class="f1-empty">No rated sessions for this season yet.</p>');
+  const weekendRanks=f1RatingRanks(seasonRows.filter(row=>Number(row['Session Key'].split(':')[1])===latestRound));
+  const extreme=(driver,value)=>{
+    const matches=seasonRows.filter(row=>row['Driver ID']===driver.id&&Number(row.Rating)===value);
+    const row=matches[0],review=row&&f1Store.reviews.rows.find(r=>r['Session Key']===row['Session Key']);
+    const detail=matches.length>1?matches.length+' times':row?(review?.Event||row.Event||'Round '+row['Session Key'].split(':')[1])+(row.Session==='Sprint'?' · Sprint':''):'';
+    return `<td>${value.toFixed(2)}<small class="f1-rating-extreme">${escapeHtml(detail)}</small></td>`;
+  };
+  return title + controls + note + (changes?'<p class="f1-data-note">Last Race is the latest rated weekend score (Grand Prix weighted 3:1 to sprint, when both are rated).</p>':'') + (ranks.length ? f1Table(['Rank','Driver','Rating /10',...(changes ? ['Last Race','Rating Change','Rank Change'] : []),'Season High','Season Low'], ranks.map(driver => {
+    const prior = previous.find(other => other.id === driver.id), season = seasonRanks.find(other => other.id === driver.id),last=weekendRanks.find(other=>other.id===driver.id);
+    return `<tr><td>${rankOf(ranks,driver)}</td><th scope="row">${f1TeamIdentity({"Driver ID":driver.id,Driver:driver.name})}</th><td class="f1-table-points">${driver.average.toFixed(2)}</td>${changes ? '<td class="f1-change-column">'+(last?last.average.toFixed(2):'—')+'</td><td class="f1-change-column">' + (prior ? delta(driver.average-prior.average,2) : 'New') + '</td><td class="f1-change-column">' + (prior ? delta(rankOf(previous,prior)-rankOf(ranks,driver),0) : 'New') + '</td>' : ''}${extreme(driver,season.high)}${extreme(driver,season.low)}</tr>`;
+  }), changes ? `${f1RatingSeason} driver rankings` : f1RatingLabel(f1RatingSession), changes ? {label:changeLabel,start:3,count:3} : null) : '<p class="f1-empty">No rated sessions for this season yet.</p>');
 }
 
+function f1ReviewKey(row,session='Grand Prix') {
+  return row && /^\d{4}$/.test(String(row.Season)) && Number(row.Round)>0
+    ? `${row.Season}:${Number(row.Round)}:${session==='Sprint'?'SPRINT':'GP'}` : '';
+}
+function f1RaceSummaryMarkup(row,session='Grand Prix') {
+  if(typeof Spoilers!=='undefined'&&Spoilers.protected('Formula 1'))return '';
+  const key=f1ReviewKey(row,session);
+  if(!key)return '';
+  const review=f1Store.reviews.rows.find(r=>r['Session Key']===key);
+  const fields=[['VSC','VSC',Infinity],['SC','SC',Infinity],['Red Flags','Red Flags',Infinity],['Rain Score','Rain',5],['Race Score','Race Rating',5]];
+  return `<section class="f1-race-summary" aria-label="${session} summary"><h3>${session} Summary</h3><dl>${fields.map(([label,field,max])=>{
+    const raw=review?.[field]??(field==='Rain'?review?.['Rain (0-5)']:field==='Race Rating'?review?.['Race Rating (1-5)']:undefined);
+    const value=raw==null||String(raw).trim()===''?NaN:Number(raw);
+    const valid=Number.isFinite(value)&&value>=0&&value<=max&&(max!==Infinity||Number.isInteger(value))&&(field!=='Race Rating'||value>=1);
+    return `<div><dt>${label}</dt><dd>${valid?value+(max===5?' /5':''):(max===5?'Not rated':'—')}</dd></div>`;
+  }).join('')}</dl><p>Race-specific counts · personal scores${f1Store.reviews.state==='error'?' · Review update unavailable':''}</p></section>`;
+}
+function f1ResultDriverRating(row,session) {
+  if(typeof Spoilers!=='undefined'&&Spoilers.protected('Formula 1'))return '—';
+  const rating=f1ValidRatings().find(r=>r['Session Key']===f1ReviewKey(row,session)&&r['Driver ID']===row['Driver ID']);
+  return rating?Number(rating.Rating).toFixed(2):'—';
+}
 function f1ResultsMarkup() {
   const all=f1Rows('results').concat(f1Rows('sessions'));
   const races=[...new Map([...all].sort((a,b)=>Number(b.Round)-Number(a.Round)).map(row=>[row['Jolpica Race Key'],row])).values()];
@@ -385,9 +440,9 @@ function f1ResultsMarkup() {
   if(feed==='sessions'&&!f1Feeds.sessions.gid)return heading+controls+'<p class="f1-empty">Qualifying and sprint results are not connected yet.</p>';
   if(!rows.length)return heading+controls+(f1Store[feed].state==='loading'||f1Store[feed].state==='idle'||f1Store[feed].state==='error'?f1Pending(feed,types[f1ResultSession]+' results'):'<p class="f1-empty">No '+types[f1ResultSession].toLowerCase()+' results published for this event. The session may not have taken place or may not be part of this weekend.</p>');
   const qual=f1ResultSession==='Qualifying'||f1ResultSession==='Sprint Qualifying';
-  const headers=qual?['Pos','Driver','Constructor',...(f1ResultSession==='Sprint Qualifying'?['SQ1','SQ2','SQ3']:['Q1','Q2','Q3'])]:['Pos','Driver','Constructor','Grid','Laps','Status','Time / Gap','Points'];
-  const body=rows.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row,true,true)}</th><td>${f1TeamIdentity(row,false)}</td>${qual?['Q1','Q2','Q3'].map(q=>'<td>'+escapeHtml(row[q]||'—')+'</td>').join(''):`<td>${row.Grid==='0'?'Pit lane / N/A':f1Number(row.Grid)}</td><td>${f1Number(row.Laps)}</td><td>${escapeHtml(row['Finish Status'])}</td><td>${escapeHtml(row['Time or Gap']||'—')}</td><td class="f1-table-points">${f1Number(row.Points)}</td>`}</tr>`);
-  return heading+controls+f1FeedNote(feed)+`<p>${escapeHtml(rows[0].Circuit)}</p>`+(qual?'<p class="f1-data-note">Qualifying classification, not the starting grid. A dash means no time supplied for that segment.</p>':'')+f1Table(headers,body,rows[0].Event+' · '+types[f1ResultSession]);
+  const headers=qual?['Pos','Driver','Constructor',...(f1ResultSession==='Sprint Qualifying'?['SQ1','SQ2','SQ3']:['Q1','Q2','Q3'])]:['Pos','Driver','Constructor','Grid','Laps','Status','Time / Gap','Points','Rating /10'];
+  const body=rows.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row,true,true)}</th><td>${f1TeamIdentity(row,false)}</td>${qual?['Q1','Q2','Q3'].map(q=>'<td>'+escapeHtml(row[q]||'—')+'</td>').join(''):`<td>${row.Grid==='0'?'Pit lane / N/A':f1Number(row.Grid)}</td><td>${f1Number(row.Laps)}</td><td>${escapeHtml(row['Finish Status'])}</td><td>${escapeHtml(row['Time or Gap']||'—')}</td><td class="f1-table-points">${f1Number(row.Points)}</td><td class="f1-table-points">${f1ResultDriverRating(row,types[f1ResultSession])}</td>`}</tr>`);
+  return heading+controls+f1FeedNote(feed)+`<p>${escapeHtml(rows[0].Circuit)}</p>`+(qual?'<p class="f1-data-note">Qualifying classification, not the starting grid. A dash means no time supplied for that segment.</p>':f1RaceSummaryMarkup(rows[0],types[f1ResultSession]))+f1Table(headers,body,rows[0].Event+' · '+types[f1ResultSession]);
 }
 
 

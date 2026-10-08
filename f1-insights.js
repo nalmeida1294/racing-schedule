@@ -61,12 +61,24 @@ function showF1EventRatings(race) {
   f1EventForScores=race.series==='Formula 1'?race:null;
   if(!f1EventForScores)return;
   document.getElementById('event-details').insertAdjacentHTML('beforeend','<section class="detail-section" id="f1-event-scores"></section>');
-  refreshF1EventRatings(); loadF1Feed('reviews'); loadF1Feed('trackScores');
+  refreshF1EventRatings(); loadF1Feed('reviews'); loadF1Feed('trackScores'); loadF1Feed('results');
 }
 function refreshF1EventRatings() {
   const target=document.getElementById('f1-event-scores');
   if(!target||!f1EventForScores)return;
   const race=f1EventForScores,track=allTracks.find(t=>t.source==='formula'&&String(t.trackId)===String(race.trackId)),id=f1CircuitFor(track);
+
+  const root=document.getElementById('event-details'),hero=root.querySelector('.event-hero');
+  root.querySelector('#f1-event-race-summary')?.remove();
+  root.querySelector('#f1-event-winner')?.remove();
+  if(!(typeof Spoilers!=='undefined'&&Spoilers.protected('Formula 1'))){
+    const rows=f1Rows('results',Number(race.date.slice(0,4))).filter(r=>r['Race Date UTC']===race.date&&(!r.Session||/^(Race|Grand Prix)$/i.test(r.Session)));
+    if(hero&&rows.length&&new Set(rows.map(r=>r['Jolpica Race Key'])).size===1){
+      hero.insertAdjacentHTML('afterend','<div id="f1-event-race-summary">'+f1RaceSummaryMarkup(rows[0])+'</div>');
+      const winner=rows.find(r=>Number(r.Position)===1);
+      if(winner)hero.insertAdjacentHTML('beforeend','<div id="f1-event-winner" class="race-pole"><span class="race-pole-badge">P1</span><div><span class="race-pole-label">Race Winner</span><strong>'+escapeHtml(f1DriverName(winner))+'</strong></div></div>');
+    }
+  }
   target.innerHTML='<h2>Track ratings</h2>'+f1TrackScoreMarkup(id);
   target.querySelectorAll('[data-f1-retry]').forEach(b=>b.addEventListener('click',()=>loadF1Feed(b.dataset.f1Retry,true)));
 }

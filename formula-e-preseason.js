@@ -56,7 +56,7 @@ const FormulaEPreseason=(()=>{
   else body=`<section class="f1-feature"><h2>${tabs[tab]} Await the Season Start</h2><p>The ${season} season has not begun. Check back after the opening races for ${tab==='results'?'published race and qualifying results':'championship standings'}.</p></section>`;
   hub.innerHTML=`<div class="hub-sticky-navigation"><div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">${season} · PRESEASON</p><h1>Formula E</h1></div><nav class="nascar-hub-tabs" style="--hub-accent:${themeFor(series)[0]}" aria-label="Formula E sections">${Object.entries(tabs).map(([k,v])=>`<button data-fe-tab="${k}" aria-pressed="${k===tab}">${v}</button>`).join('')}</nav></div><div class="fe-preseason-content">${banner()}${body}</div>`;
   hub.hidden=false;setView('series-view');hub.querySelectorAll('[data-fe-tab],[data-fe-open]').forEach(b=>b.onclick=()=>withLoading(()=>render(b.dataset.feTab||b.dataset.feOpen),'Opening Formula E…'));hub.querySelectorAll('[data-fe-race]').forEach(b=>b.onclick=()=>showRaceDetails(racesFor(series).find(r=>r.raceId===b.dataset.feRace)));
-  const active=hub.querySelector('[aria-pressed="true"]');active.parentElement.scrollLeft=Math.max(0,active.offsetLeft-active.parentElement.offsetLeft-(active.parentElement.clientWidth-active.offsetWidth)/2);
+  const active=hub.querySelector('[aria-pressed="true"]');alignSeriesTab(active);
  }
  return {install,render};
 })();

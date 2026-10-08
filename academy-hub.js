@@ -120,7 +120,7 @@ const AcademyHub=(()=>{
     hub.hidden=false;setView('series-view');document.getElementById('back-button').hidden=true;
     hub.querySelectorAll('[data-academy-tab]').forEach(b=>b.onclick=()=>render(b.dataset.academyTab));
     hub.querySelector('[data-academy-retry]')?.addEventListener('click',()=>{loaded=0;render(which);});
-    const active=hub.querySelector('[aria-pressed="true"]');active.parentElement.scrollLeft=Math.max(0,active.offsetLeft-active.parentElement.offsetLeft-(active.parentElement.clientWidth-active.offsetWidth)/2);
+    const active=hub.querySelector('[aria-pressed="true"]');alignSeriesTab(active);
     if(which==='schedule')focusScheduleRace();
   }
   function openResults(event,session){selectedEvent=String(event);selectedSession=String(session||'');return render('results');}

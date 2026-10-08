@@ -2216,6 +2216,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid #ffbb00; outline-
 .f1-biography { font-size: 13px; line-height: 1.6; color: #bbb; white-space: pre-line; overflow-wrap: anywhere; }
 .f1-headshot { width: 60px; height: 68px; object-fit: cover; border-radius: 8px; }
 .f1-team-logo { width: 70px; max-height: 55px; object-fit: contain; margin-bottom: 12px; }
+.f1-team-header{display:flex;align-items:center;gap:16px;margin-bottom:16px;min-width:0}
+.f1-team-header .f1-team-logo{width:76px;height:64px;max-height:64px;flex:0 0 76px;margin:0;object-fit:contain}
+.f1-team-details{flex:1;min-width:0}
+.f1-team-details h3{margin:0 0 5px;font-size:22px;line-height:1.2;overflow-wrap:anywhere}
+.f1-team-details p{margin:3px 0 0;color:#aaa;font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+@media(max-width:480px){.f1-team-header{gap:12px;margin-bottom:12px}.f1-team-header .f1-team-logo{width:62px;height:56px;max-height:56px;flex-basis:62px}.f1-team-details h3{font-size:20px}.f1-team-details p{font-size:12px}}
 .f1-other-drivers { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
 .f1-select-label { display: block; font-size: 13px; margin: 20px 0 8px; }
 .f1-rating-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
@@ -2268,3 +2274,12 @@ a.header-title:focus-visible, #series-menu summary:focus-visible { outline: 2px 
     #customize-button { font-size: 12px; min-height: 44px; }
     #series-menu summary { font-size: 12px; }
 }
+
+/* Race-specific facts shared by F1 results and completed weekends. */
+.f1-race-summary{margin:16px 0;padding:16px;border:1px solid #ffffff18;border-left:3px solid #e10600;border-radius:14px;background:#ffffff04}
+.f1-race-summary h3{margin:0 0 12px;font-size:14px}
+.f1-race-summary dl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
+.f1-race-summary dt{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#aeb6c1}
+.f1-race-summary dd{margin:5px 0 0;font-size:16px;font-weight:700}
+.f1-race-summary p{margin:12px 0 0;font-size:11px;color:#aeb6c1}
+@media(max-width:480px){.f1-race-summary dl{grid-template-columns:repeat(3,minmax(0,1fr))}.f1-race-summary{padding:12px}}
