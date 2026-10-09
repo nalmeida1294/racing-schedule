@@ -501,3 +501,21 @@ body>header{padding-top:14px;padding-bottom:14px}
 .f1-tabs button,.nascar-hub-tabs button{scroll-snap-align:center}
 .f1-tabs button:first-child,.nascar-hub-tabs button:first-child{scroll-snap-align:start}
 .f1-tabs button:last-child,.nascar-hub-tabs button:last-child{scroll-snap-align:end}
+
+/* Keep row identities visible while statistics scroll horizontally. */
+:is(.f1-table-scroll,.nascar-competition-table,.f1-table-wrap){isolation:isolate}
+:is(.f1-table-scroll>.f1-table,.nascar-competition-table>.f1-table,.f1-table-wrap>.f2-table,.f1-table-wrap>.academy-table,.f1-table-wrap>.wec-table,.f1-table-wrap>.imsa-table)>:is(thead,tbody)>tr>:nth-child(2){--identity-cell-bg:#111417}
+:is(.f1-table-scroll>.f1-table,.nascar-competition-table>.f1-table,.f1-table-wrap>.f2-table,.f1-table-wrap>.academy-table,.f1-table-wrap>.wec-table,.f1-table-wrap>.imsa-table)>tbody>tr>:nth-child(2),
+:is(.f1-table-scroll>.f1-table,.nascar-competition-table>.f1-table,.f1-table-wrap>.f2-table,.f1-table-wrap>.academy-table,.f1-table-wrap>.wec-table,.f1-table-wrap>.imsa-table)>thead>tr:first-child>:nth-child(2){position:sticky;left:0;z-index:2;background:var(--identity-cell-bg);box-shadow:5px 0 9px -6px #000,1px 0 #ffffff1f}
+:is(.f1-table-scroll>.f1-table,.nascar-competition-table>.f1-table,.f1-table-wrap>.f2-table,.f1-table-wrap>.academy-table,.f1-table-wrap>.wec-table,.f1-table-wrap>.imsa-table)>thead>tr:first-child>:nth-child(2){--identity-cell-bg:#252525;z-index:3}
+.f1-table-scroll>.f1-table>tbody>tr:first-child>:nth-child(2){--identity-cell-bg:#211113}
+.nascar-competition-table>.f1-table>tbody>tr:is(.nascar-chase-driver,.nascar-chase-result)>:nth-child(2){--identity-cell-bg:#242116}
+.nascar-competition-table>.f1-table>tbody>tr.nascar-chase-eliminated>:nth-child(2){--identity-cell-bg:#1c2024}
+@media(max-width:600px){
+  :is(.f1-table-scroll>.f1-table,.nascar-competition-table>.f1-table,.f1-table-wrap>.f2-table,.f1-table-wrap>.academy-table,.f1-table-wrap>.wec-table,.f1-table-wrap>.imsa-table)>tbody>tr>:nth-child(2){min-width:125px;max-width:165px;white-space:normal;overflow-wrap:anywhere}
+}
+
+.chase-race-progress .chase-championship-finale{grid-column:1 / -1;border-color:#c2a25880;background:linear-gradient(110deg,#c2a25814,#ffffff03)}
+.chase-finale-label{margin-top:10px;padding-top:9px;border-top:1px solid #c2a25840;color:#e6ce91;font-size:12px;font-weight:700;letter-spacing:.04em}
+
+.nascar-result-identity{display:flex;align-items:center;gap:5px}.nascar-shield-slot{width:22px;flex:0 0 22px}.nascar-shield-slot .nascar-chase-icon{margin:0;width:22px}.nascar-result-identity .nascar-result-driver{min-width:0;flex:1}.nascar-race-summary{border-left-color:#d6b652}.nascar-race-summary dl{grid-template-columns:repeat(2,minmax(0,1fr))}

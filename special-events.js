@@ -7,6 +7,7 @@ const SpecialEvents=(()=>{
  const link=(url,label)=>safe(url)?`<a class="special-link" href="${esc(safe(url))}" target="_blank" rel="noopener noreferrer">${esc(label)} <span aria-hidden="true">↗</span></a>`:'';
  const visible=()=>rows('Events').filter(e=>e.Show!=='Hide');
  const dated=e=>usableRaceDate(e['Start Date'])&&usableRaceDate(e['End Date']);
+ const displayDate=e=>dated(e)&&e['End Date']>=e['Start Date']&&new Date(e['End Date']+'T12:00:00Z').getUTCDay()===0?e['End Date']:e['Start Date'];
  const range=e=>dated(e)?formatDate(e['Start Date'])+(e['End Date']!==e['Start Date']?' – '+formatDate(e['End Date']):''):'Dates To Be Confirmed';
  const track=e=>allTracks.find(t=>t.source==='special'&&t.trackId==='special-'+e['Track ID']);
  const eventPhoto=e=>image(e['Event Image URL']||track(e)?.imageUrl,'event-background-photo');
@@ -25,7 +26,7 @@ const SpecialEvents=(()=>{
  }
  async function load(){if(!configured())return;if(pending)return pending;if(data&&Date.now()-loaded<300000)return;pending=(async()=>{try{data=decode(await fetchSheet(window.RC_SPECIAL_CONFIG.feedUrl));loaded=Date.now();error='';}catch(e){error='Special Events update unavailable. '+(data?'Showing previously loaded events.':'Please try again later.');console.warn('Special Events',e.message);}finally{pending=null;}})();return pending;}
  function install(){if(!data)return;allTracks=allTracks.filter(t=>t.source!=='special').concat(rows('Tracks').map(t=>({source:'special',trackId:'special-'+t['Track ID'],name:t['Track Name'],city:t.City,state:t.Country,type:t['Track Type'],length:t['Track Length'],imageUrl:t['Track Image URL'],mapUrl:t['Track Map URL']})));
- allRaces=allRaces.filter(r=>!['Special Event',series].includes(r.series)).concat(visible().filter(e=>dated(e)&&!['Cancelled','Postponed'].includes(e['Date Status'])).map(e=>({series,raceId:'special-'+e['Event ID'],specialEventId:e['Event ID'],event:e.Event,trackId:'special-'+e['Track ID'],date:e['Start Date'],endDate:e['End Date'],time:range(e),network:e.Network,notes:e['Date Status']==='Provisional'?'Provisional dates':''})));}
+ allRaces=allRaces.filter(r=>!['Special Event',series].includes(r.series)).concat(visible().filter(e=>dated(e)&&!['Cancelled','Postponed'].includes(e['Date Status'])).map(e=>({series,raceId:'special-'+e['Event ID'],specialEventId:e['Event ID'],event:e.Event,trackId:'special-'+e['Track ID'],date:displayDate(e),startDate:e['Start Date'],endDate:e['End Date'],time:range(e),network:e.Network,notes:e['Date Status']==='Provisional'?'Provisional dates':''})));}
  function status(now){const today=localIsoDate(now),nextRace=racesFor(series).find(r=>r.endDate>=today);return {series,nextRace,status:nextRace?0:visible().length?1:2};}
  function open(e){const race={series,raceId:'special-'+e['Event ID'],specialEventId:e['Event ID'],event:e.Event,date:e['Start Date'],trackId:'special-'+e['Track ID']};return showRaceDetails(race);}
  async function render(prepared=false){if(!prepared)return withLoading(async()=>{await load();install();render(true);},'Opening Special Events…');activeSeriesName=series;document.getElementById('f1-hub').hidden=true;document.getElementById('series-calendar').hidden=true;const hub=document.getElementById('series-hub'),today=localIsoDate();

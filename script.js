@@ -519,8 +519,17 @@ async function loadCupReviews() {
     if(rows.length&&!['Track ID','Race Score (1-5)','Cautions (API)'].every(k=>Object.hasOwn(rows[0],k)))throw new Error('Unexpected Cup review headers');
     cupReviews.rows=rows;cupReviews.state='ready';
   } catch(error) {cupReviews.state='error';console.warn('Cup reviews unavailable',error);}
+  document.querySelectorAll('[data-cup-race]').forEach(el=>{el.innerHTML=cupRaceSummaryMarkup(el.dataset.cupRace,el.dataset.cupSeason);});
   document.querySelectorAll('[data-cup-track]').forEach(el=>{el.innerHTML=nascarTrackRatings(el.dataset.cupTrack);});
 }
+function cupRaceSummaryMarkup(raceId,season){
+  if(typeof Spoilers!=='undefined'&&Spoilers.protected('NASCAR Cup Series'))return '';
+  const r=cupReviews.rows.find(r=>String(r['Race ID'])===String(raceId)&&String(r.Season)===String(season));
+  const raw=String(r?.['Cautions Override']??'').trim()!==''?r['Cautions Override']:r?.['Cautions (API)'];
+  const n=raw==null||String(raw).trim()===''?NaN:Number(raw),score=Number(r?.['Race Score (1-5)']);
+  return '<section class="f1-race-summary nascar-race-summary"><h3>Cup Series Race Summary</h3><dl><div><dt>Cautions</dt><dd>'+(Number.isInteger(n)&&n>=0?n:'—')+'</dd></div><div><dt>Race Score</dt><dd>'+(score>=1&&score<=5?score+' /5':'Not rated')+'</dd></div></dl><p>Race-specific cautions · personal race score'+(cupReviews.state==='error'?' · Review update unavailable':'')+'</p></section>';
+}
+function cupRaceSummarySlot(id,season){return '<div data-cup-race="'+escapeHtml(String(id))+'" data-cup-season="'+escapeHtml(String(season))+'">'+cupRaceSummaryMarkup(id,season)+'</div>';}
 function renderNascarHub(series,tab='overview',prepared=false) {
   if(!prepared)return withLoading(async()=>{await loadSeriesDetails(series);await NascarCompetition.preload(series,tab);return renderNascarHub(series,tab,true);},'Opening '+series+'…');
   activeSeriesName=series;
@@ -739,6 +748,13 @@ async function eventResultShortcuts(race){
   try{
     const links=race.series==='CARS Tour'?CARSHub.eventLinks(race):race.series==='IMSA'?IMSAHub.eventLinks(race):race.series==='WEC'?WECHub.eventLinks(race):race.series==='Formula 1'?await f1EventResultLinks(race):race.series==='Formula 2'?F2Hub.eventLinks(race):race.series==='F1 Academy'?AcademyHub.eventLinks(race):await NascarCompetition.eventLinks(race);
     if(!host.isConnected||(typeof Spoilers!=='undefined'&&Spoilers.protected(race.series)))return;
+    if(nascarHubSeries.has(race.series)){
+      const root=document.getElementById('event-details'),hero=root.querySelector('.event-hero');
+      root.querySelector('[data-event-winner]')?.remove();root.querySelector('[data-cup-race]')?.remove();
+      const winner=links.find(l=>l.session==='Race'&&l.leader);
+      if(winner&&hero){hero.insertAdjacentHTML('beforeend','<div class="race-pole" data-event-winner><span class="race-pole-badge">P1</span><div><span class="race-pole-label">'+escapeHtml(winner.leaderLabel)+'</span><strong>'+escapeHtml(winner.leader)+'</strong></div></div>');}
+      if(links.some(l=>l.label==='Race results')&&hero&&race.series==='NASCAR Cup Series'){hero.insertAdjacentHTML('afterend',cupRaceSummarySlot(race.raceId,race.date.slice(0,4)));loadCupReviews();}
+    }
     host.querySelectorAll('.event-result-buttons').forEach(el=>{el.replaceChildren();el.hidden=true;});
     host.querySelectorAll('.weekend-session-outcomes').forEach(el=>el.replaceChildren());
     host.querySelectorAll('[data-results-retry]').forEach(el=>el.remove());

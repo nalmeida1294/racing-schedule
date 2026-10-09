@@ -65,19 +65,20 @@ const F2Hub=(()=>{
   const enabled=()=>!!data;
   function note(){const status=rows('Status')[0];return `${error?`<p class="f1-warning">${esc(error)}</p>`:''}<p class="f1-data-note">${esc(RaceDisplay.feedNote(status,rows('Events'),rows('Results')))}</p>`;}
   let standingsSort={key:'Points',direction:-1};
-  function driverStats(id){
-    const entries=[...new Map(rows('Results').filter(r=>r['Driver ID']===id).map(r=>[r['Session ID'],r])).values()];
+  let teamStandingsSort={key:'Points',direction:-1};
+  function driverStats(id,category='Driver'){
+    const entries=[...new Map(rows('Results').filter(r=>String(r[category==='Team'?'Team ID':'Driver ID'])===String(id)).map(r=>[r['Session ID']+'|'+r['Driver ID'],r])).values()];
     const races=entries.filter(r=>/race/i.test(r.Session));
     const feature=races.filter(r=>/feature/i.test(r.Session)&&Number(r.Position)===1).length;
     const sprint=races.filter(r=>/sprint/i.test(r.Session)&&Number(r.Position)===1).length;
-    return {Wins:feature+sprint,'Feature Wins':feature,'Sprint Wins':sprint,Poles:entries.filter(r=>/qualifying/i.test(r.Session)&&Number(r.Position)===1).length,Podiums:races.filter(r=>Number(r.Position)>=1&&Number(r.Position)<=3).length,DNFs:races.filter(r=>/^(DNF|RET|RETIRED)$/i.test(r.Status)).length};
+    return {Starts:races.filter(r=>!/^(DNS|DNQ|DNPQ|WD|WITHDRAWN|DID NOT START)$/i.test(r.Status)&&(/^(OK|DNF|RET|RETIRED|DSQ|DQ)$/i.test(r.Status)||Number(r.Laps)>0||Number(r.Position)>0)).length,Wins:feature+sprint,'Feature Wins':feature,'Sprint Wins':sprint,Poles:entries.filter(r=>/qualifying/i.test(r.Session)&&Number(r.Position)===1).length,Podiums:races.filter(r=>Number(r.Position)>=1&&Number(r.Position)<=3).length,DNFs:races.filter(r=>/^(DNF|RET|RETIRED)$/i.test(r.Status)).length};
   }
   function standings(category='Driver',limit){
     const base=rows('Standings').filter(r=>r.Category===category).sort((a,b)=>Number(a.Position)-Number(b.Position));
-    const detailed=category==='Driver'&&!limit,keys=['Points','Wins','Feature Wins','Sprint Wins','Poles','Podiums','DNFs'];
-    const sorted=base.map(r=>({...r,...driverStats(r.ID)}));
-    if(detailed)sorted.sort((a,b)=>(Number(a[standingsSort.key])-Number(b[standingsSort.key]))*standingsSort.direction||Number(a.Position)-Number(b.Position));
-    return `<div class="f1-table-wrap"><table class="f2-table"><thead><tr><th>Pos</th><th>${category==='Driver'?'Driver':'Team'}</th>${(detailed?keys:['Points']).map(k=>`<th ${detailed?`aria-sort="${standingsSort.key===k?(standingsSort.direction===-1?'descending':'ascending'):'none'}"`:''}>${detailed?`<button data-f2-sort="${k}">${k}${standingsSort.key===k?(standingsSort.direction===-1?' ↓':' ↑'):''}</button>`:k}</th>`).join('')}<th>Behind</th></tr></thead><tbody>${sorted.slice(0,limit||sorted.length).map(r=>`<tr><td>${esc(r.Position)}</td><td>${category==='Driver'?identity(r.ID,r.Name):`${img(team(r.ID)?.['Logo URL Override']||team(r.ID)?.['Logo URL'])}${esc(teamName(team(r.ID))||r.Name)}`}</td>${(detailed?keys:['Points']).map(k=>`<td>${esc(r[k])}</td>`).join('')}<td>${Number(r.Position)===1?'—':'−'+(Number(base[0].Points)-Number(r.Points))}</td></tr>`).join('')}</tbody></table></div>`;
+    const detailed=!limit,sort=category==='Team'?teamStandingsSort:standingsSort,keys=category==='Team'?['Points','Wins','Poles','DNFs']:['Points','Wins','Feature Wins','Sprint Wins','Poles','Podiums','DNFs','Starts'];
+    const sorted=base.map(r=>({...r,...driverStats(r.ID,category)}));
+    if(detailed)sorted.sort((a,b)=>(Number(a[sort.key])-Number(b[sort.key]))*sort.direction||Number(a.Position)-Number(b.Position));
+    return `<div class="f1-table-wrap"><table class="f2-table"><thead><tr><th>Pos</th><th>${category==='Driver'?'Driver':'Team'}</th>${(detailed?keys:['Points']).map(k=>`<th ${detailed?`aria-sort="${sort.key===k?(sort.direction===-1?'descending':'ascending'):'none'}"`:''}>${detailed?`<button data-f2-sort="${k}" data-f2-category="${category}">${k}${sort.key===k?(sort.direction===-1?' ↓':' ↑'):''}</button>`:k}</th>`).join('')}<th>Behind</th></tr></thead><tbody>${sorted.slice(0,limit||sorted.length).map(r=>`<tr><td>${esc(r.Position)}</td><td>${category==='Driver'?identity(r.ID,r.Name):`${img(team(r.ID)?.['Logo URL Override']||team(r.ID)?.['Logo URL'])}${esc(teamName(team(r.ID))||r.Name)}`}</td>${(detailed?keys:['Points']).map(k=>`<td>${esc(r[k])}</td>`).join('')}<td>${Number(r.Position)===1?'—':'−'+(Number(base[0].Points)-Number(r.Points))}</td></tr>`).join('')}</tbody></table></div>`;
   }
   function seasonDrivers(){
     const list=new Map(rows('Drivers').map(d=>[d['Driver ID'],d]));
@@ -114,8 +115,14 @@ const F2Hub=(()=>{
     if(which==='schedule')renderSeries(series,false,true);
     else if(protectedMode())el.innerHTML=Spoilers.note();
     else if(!data)el.innerHTML=`<section class="f1-feature"><h2>Formula 2</h2><p>${configured()?esc(error||'Results are temporarily unavailable.'):'The Formula 2 data connection is being prepared. The schedule remains available.'}</p>${configured()?'<button class="nascar-schedule-action" data-f2-retry>Try Again</button>':''}</section>`;
-    else if(which==='overview')overview(el);else if(which==='teams')teams(el);else if(which==='results')results(el);else if(which==='tracks')tracks(el);else el.innerHTML=`${note()}<h2>Driver Standings</h2><p class="f1-data-note">Stats cover imported race and qualifying results; totals update as historical sessions finish loading. Scroll sideways for all stats.</p>${standings()}<h2 id="f2-team-standings">Team Standings</h2>${standings('Team')}`;
-    hub.querySelectorAll('[data-f2-sort]').forEach(b=>b.onclick=()=>{standingsSort={key:b.dataset.f2Sort,direction:standingsSort.key===b.dataset.f2Sort?-standingsSort.direction:-1};render('standings',true);});
+    else if(which==='overview')overview(el);else if(which==='teams')teams(el);else if(which==='results')results(el);else if(which==='tracks')tracks(el);else el.innerHTML=`${note()}<h2>Driver Standings</h2><p class="f1-data-note">Stats cover imported race and qualifying results; totals update as historical sessions finish loading. Wins, starts and DNFs include feature and sprint races. Poles use qualifying P1. Team statistics count each car and are credited to its team at that event. Scroll sideways for all stats; tap a heading to sort.</p>${standings()}<h2 id="f2-team-standings">Team Standings</h2>${standings('Team')}`;
+    hub.querySelectorAll('[data-f2-sort]').forEach(b=>b.onclick=async()=>{
+      const category=b.dataset.f2Category,sort=category==='Team'?teamStandingsSort:standingsSort,scroll=b.closest('.f1-table-wrap').scrollLeft;
+      sort.direction=sort.key===b.dataset.f2Sort?-sort.direction:-1;sort.key=b.dataset.f2Sort;
+      await render('standings',true);
+      const next=hub.querySelector('[data-f2-category="'+category+'"][data-f2-sort="'+sort.key+'"]');
+      if(next){next.closest('.f1-table-wrap').scrollLeft=scroll;next.focus({preventScroll:true});}
+    });
     hub.hidden=false;setView('series-view');document.getElementById('back-button').hidden=true;
     hub.querySelectorAll('[data-f2-tab]').forEach(b=>b.onclick=()=>render(b.dataset.f2Tab));
     hub.querySelector('[data-f2-retry]')?.addEventListener('click',()=>{loaded=0;render(which);});

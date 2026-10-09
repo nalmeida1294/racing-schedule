@@ -165,12 +165,12 @@ function renderF1Content() {
     destination?.scrollIntoView({block:'start',behavior:'instant'});
   }));
   panel.querySelectorAll('[data-f1-sort]').forEach(button=>{
-    const key=button.dataset.f1Sort;button.closest('th').setAttribute('aria-sort',f1StandingSort.key===key?f1StandingSort.direction:'none');
+    const key=button.dataset.f1Sort,constructor=button.dataset.f1SortTable==='constructors',sort=constructor?f1ConstructorSort:f1StandingSort;button.closest('th').setAttribute('aria-sort',sort.key===key?sort.direction:'none');
     button.addEventListener('click',()=>{
       const scroll=button.closest('.f1-table-scroll').scrollLeft;
-      f1StandingSort.direction=f1StandingSort.key===key?(f1StandingSort.direction==='ascending'?'descending':'ascending'):['Position','DriverName','AverageFinish','AverageStart','DNFs'].includes(key)?'ascending':'descending';
-      f1StandingSort.key=key;renderF1Content();
-      const next=panel.querySelector(`[data-f1-sort="${key}"]`);next.closest('.f1-table-scroll').scrollLeft=scroll;next.focus({preventScroll:true});
+      sort.direction=sort.key===key?(sort.direction==='ascending'?'descending':'ascending'):['Position','DriverName','TeamName','AverageFinish','AverageStart','DNFs'].includes(key)?'ascending':'descending';
+      sort.key=key;renderF1Content();
+      const next=panel.querySelector(`[data-f1-sort="${key}"]${constructor?'[data-f1-sort-table="constructors"]':':not([data-f1-sort-table])'}`);next.closest('.f1-table-scroll').scrollLeft=scroll;next.focus({preventScroll:true});
     });
   });
   if (typeof bindF1Insights === "function") bindF1Insights(panel);
@@ -228,6 +228,7 @@ function f1Table(headers, rows, caption, changeLabel) {
   return `<div class="f1-table-scroll" role="region" aria-label="${escapeHtml(caption)}" tabindex="0"><table class="f1-table"><caption>${escapeHtml(caption)}</caption><thead>${heading}</thead><tbody>${rows.join("")}</tbody></table></div>`;
 }
 const f1StandingSort={key:'Points',direction:'descending'};
+const f1ConstructorSort={key:'Points',direction:'descending'};
 function f1IsDNF(row){
   const status=String(row['Finish Status']||'').trim();
   return status?!/^(Finished|Lapped|\+\d+ Laps?|Disqualified|Did not start|Did not qualify|Did not prequalify|Withdrawn|Excluded)$/i.test(status):null;
@@ -268,7 +269,7 @@ function f1DriverSeasonStats(driver){
     SprintPoints:sprintAvailable&&sprintPointsKnown?sprints.reduce((total,r)=>total+Number(r.Points),0):null};
 }
 function f1StandingsMarkup() {
-  const drivers=f1Sorted('standings').map(row=>({...row,...f1DriverSeasonStats(row),DriverName:f1DriverName(row)})),teams=f1Sorted('constructorStandings').map(row=>({...row,...f1ConstructorSeasonStats(row)}));
+  const drivers=f1Sorted('standings').map(row=>({...row,...f1DriverSeasonStats(row),DriverName:f1DriverName(row)})),teams=f1Sorted('constructorStandings').map(row=>({...row,...f1ConstructorSeasonStats(row),TeamName:f1TeamName(row)}));
   const columns=[['Position','Pos'],['DriverName','Driver'],['Points','Points'],['Wins','GP Wins'],['Podiums','GP Podiums'],['Poles','GP Poles'],['AverageFinish','Avg GP Finish'],['AverageStart','Avg GP Start'],['DNFs','GP DNFs'],['SprintWins','Sprint Wins'],['SprintPoints','Sprint Points']];
   const numeric=v=>v===null||v===undefined||String(v).trim()===''||!Number.isFinite(Number(v))?null:Number(v);
   drivers.sort((a,b)=>{
@@ -277,10 +278,17 @@ function f1StandingsMarkup() {
     const delta=key==='DriverName'?av.localeCompare(bv):av-bv;
     return (f1StandingSort.direction==='ascending'?delta:-delta)||f1Rank(a)-f1Rank(b);
   });
+  teams.sort((a,b)=>{
+    const key=f1ConstructorSort.key,av=key==='TeamName'?a[key]:numeric(a[key]),bv=key==='TeamName'?b[key]:numeric(b[key]);
+    if(av===null||bv===null)return av===bv?f1Rank(a)-f1Rank(b):av===null?1:-1;
+    const delta=key==='TeamName'?av.localeCompare(bv):av-bv;
+    return (f1ConstructorSort.direction==='ascending'?delta:-delta)||f1Rank(a)-f1Rank(b);
+  });
+  const teamHeaders=[['Position','Pos'],['TeamName','Constructor'],['Points','Points'],['Wins','GP Wins'],['Poles','GP Poles'],['Podiums','GP Podiums'],['DNFs','GP DNFs']].map(([key,label])=>`<button type="button" data-f1-sort="${key}" data-f1-sort-table="constructors" aria-label="Sort constructors by ${label}">${label}<span aria-hidden="true">${f1ConstructorSort.key===key?(f1ConstructorSort.direction==='ascending'?' ↑':' ↓'):''}</span></button>`);
   const headers=columns.map(([key,label])=>`<button type="button" data-f1-sort="${key}" aria-label="Sort by ${label}">${label}<span aria-hidden="true">${f1StandingSort.key===key?(f1StandingSort.direction==='ascending'?' ↑':' ↓'):''}</span></button>`);
   let table=f1Table(headers,drivers.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row)}</th>${columns.slice(2).map(([key])=>`<td${key==='Points'?' class="f1-table-points"':''}>${numeric(row[key])===null?'—':key.startsWith('Average')?Number(row[key]).toFixed(1):f1Number(row[key])}</td>`).join('')}</tr>`),'Driver championship standings');
   return `<section><h2>Driver Standings</h2>${drivers.length?f1FeedNote('standings')+'<p class="f1-data-note">Points are the full championship total, including sprints. GP statistics exclude sprint races; Sprint Wins and Sprint Points are shown separately through the standings round. Poles use Grand Prix qualifying P1; average start excludes pit-lane starts. DNFs exclude DNS and disqualifications. Tap a heading to sort.</p>'+table:f1Pending('standings','Driver standings')}</section>
-    <section class="f1-section" id="f1-constructor-standings"><h2>Constructor Standings</h2>${teams.length?f1FeedNote('constructorStandings')+'<p class="f1-data-note">GP-only statistics, credited to the constructor at each event. Podiums and DNFs count individual cars; two podium finishers count as two podiums. Poles use Grand Prix qualifying P1. Lapped finishes, DNS and disqualifications are not DNFs. Points include sprints.</p>'+f1Table(['Pos','Constructor','Points','GP Wins','GP Poles','GP Podiums','GP DNFs'],teams.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row,false)}</th><td class="f1-table-points">${f1Number(row.Points)}</td><td>${f1Number(row.Wins)}</td>${['Poles','Podiums','DNFs'].map(key=>`<td>${row[key]===null?'—':f1Number(row[key])}</td>`).join('')}</tr>`),'Constructor championship standings'):f1Pending('constructorStandings','Constructor standings')}</section>`;
+    <section class="f1-section" id="f1-constructor-standings"><h2>Constructor Standings</h2>${teams.length?f1FeedNote('constructorStandings')+'<p class="f1-data-note">GP-only statistics, credited to the constructor at each event. Podiums and DNFs count individual cars; two podium finishers count as two podiums. Poles use Grand Prix qualifying P1. Lapped finishes, DNS and disqualifications are not DNFs. Points include sprints. Tap a heading to sort.</p>'+f1Table(teamHeaders,teams.map(row=>`<tr><td>${escapeHtml(row['Position Text']||row.Position)}</td><th scope="row">${f1TeamIdentity(row,false)}</th><td class="f1-table-points">${f1Number(row.Points)}</td><td>${f1Number(row.Wins)}</td>${['Poles','Podiums','DNFs'].map(key=>`<td>${row[key]===null?'—':f1Number(row[key])}</td>`).join('')}</tr>`),'Constructor championship standings'):f1Pending('constructorStandings','Constructor standings')}</section>`;
 }
 
 function f1SafeImage(value) {
