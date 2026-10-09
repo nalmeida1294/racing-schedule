@@ -433,7 +433,7 @@ function setLoading(visible, message = "Loading Race Control…") {
   loader.classList.toggle("is-hidden", !visible);
   loader.setAttribute("aria-hidden", String(!visible));
   document.getElementById("loader-message").textContent = message;
-  document.getElementById("loader-brand").innerHTML = brandedLoaderMarkup("");
+  if(visible)CircuitLoader.start();else CircuitLoader.stop();
   document.getElementById("retry-load").hidden = true;
   const cancel=document.getElementById("cancel-load");if(cancel)cancel.hidden=true;
   document.getElementById("app").setAttribute("aria-busy", String(visible));
@@ -469,9 +469,10 @@ async function waitPageImages(root){
   await fillPoleDisplays(root);
   // Include the full rendered page, even below the fold, but not closed panels.
   const images=[...root.querySelectorAll('img')].filter(img=>!img.hidden&&!img.closest('[inert]')&&img.getClientRects().length);
+  let readyImages=0;
   await Promise.all(images.map(img=>new Promise(resolve=>{
     let settled=false;
-    const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);img.removeEventListener('load',done);img.removeEventListener('error',done);resolve();};
+    const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);img.removeEventListener('load',done);img.removeEventListener('error',done);CircuitLoader.progress(.7+.28*(++readyImages/Math.max(1,images.length)));resolve();};
     const done=()=>{if(img.naturalWidth&&img.decode)img.decode().catch(()=>{}).finally(finish);else finish();};
     const timer=setTimeout(()=>{if(!img.complete){img.hidden=true;img.dispatchEvent(new Event('error'));}finish();},8000);
     img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true});img.loading='eager';
@@ -485,9 +486,11 @@ async function withLoading(prepare, message) {
   const timer=setTimeout(()=>setLoading(true,message),120);
   try{
     const result=await prepare();
+    CircuitLoader.progress(.7);
     await new Promise(resolve=>{const timer=setTimeout(resolve,100);requestAnimationFrame(()=>{clearTimeout(timer);resolve();});});
     const page=['home-view','series-view','event-view'].map(id=>document.getElementById(id)).find(el=>el&&el.style.display!=='none'&&el.getClientRects().length);
     if(page)await waitPageImages(page);
+    await CircuitLoader.finish();
     updateFeedRecoveryNotice();
     return result;
   }
@@ -931,7 +934,8 @@ async function loadData() {
   loading=true;loadingRetry=loadData;setLoading(true,'Loading racing schedules…');
   try{
     const sources=Object.values(detailSources);
-    const [families]=await Promise.all([Promise.allSettled(sources.map(source=>fetchSheet(source.main))),ensureFollowedHomeData()]);
+    let readySources=0;
+    const [families]=await Promise.all([Promise.allSettled(sources.map(source=>fetchSheet(source.main).finally(()=>CircuitLoader.progress(.55*(++readySources/sources.length))))),ensureFollowedHomeData()]);
     if(families.every(r=>r.status==='rejected'))throw new Error('All schedule sources are unavailable');
     // A failed source keeps its existing in-memory schedule on a retry.
     const failedSources=new Set(sources.filter((_,i)=>families[i].status==='rejected'));
@@ -942,11 +946,13 @@ async function loadData() {
     FormulaEPreseason.install();
     const partial=families.some(r=>r.status==='rejected');
     await renderHome();
+    CircuitLoader.progress(.7);
     await new Promise(resolve=>{const timer=setTimeout(resolve,100);requestAnimationFrame(()=>{clearTimeout(timer);resolve();});});
     await waitPageImages(document.getElementById('home-view'));
     const home=document.getElementById('home-view');home.querySelector('[data-startup-warning]')?.remove();
     if(partial){const note=document.createElement('p');note.dataset.startupWarning='true';note.className='f1-warning';note.textContent='Some racing data could not load. Available series are ready. ';const retry=document.createElement('button');retry.type='button';retry.textContent='Retry missing data';retry.onclick=()=>loadData();note.append(retry);home.prepend(note);}
     updateFeedRecoveryNotice();
+    await CircuitLoader.finish();
     dataReady=true;setLoading(false);loadingRetry=null;
   }catch(error){
     console.error('Error loading racing schedule:',error);

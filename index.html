@@ -43,10 +43,7 @@
 <body>
 
 <div id="app-splash" role="status" aria-label="Opening Race Control">
-    <div id="loader-brand" class="brand-loader"><div class="splash-flag" aria-hidden="true">
-        <span></span><span></span><span></span><span></span>
-    </div>
-    <p>RACE <em>CONTROL</em></p></div>
+    <div id="loader-brand" class="brand-loader"><div class="loading-circuit" role="progressbar" aria-label="Loading page" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><svg viewBox="0 0 600 330" aria-hidden="true"><path class="loading-track" d="M300 285 H125 A90 90 0 0 1 35 195 V135 A90 90 0 0 1 125 45 H475 A90 90 0 0 1 565 135 V195 A90 90 0 0 1 475 285 Z"/><path class="loading-trail" pathLength="1" d="M300 285 H125 A90 90 0 0 1 35 195 V135 A90 90 0 0 1 125 45 H475 A90 90 0 0 1 565 135 V195 A90 90 0 0 1 475 285 Z"/><image href="icons/race-control-icon-512.png" x="270" y="103" width="60" height="60"/><text x="300" y="194" text-anchor="middle" class="loading-wordmark">Race <tspan fill="#ffbb00">Control</tspan></text><g class="loading-car" transform="translate(300 285) rotate(180)"><rect x="-10" y="-9" width="7" height="4" rx="1" fill="#080a0d"/><rect x="4" y="-9" width="7" height="4" rx="1" fill="#080a0d"/><rect x="-10" y="5" width="7" height="4" rx="1" fill="#080a0d"/><rect x="4" y="5" width="7" height="4" rx="1" fill="#080a0d"/><rect x="-14" y="-6" width="28" height="12" rx="5" fill="#ffca35" stroke="#fff1b5" stroke-width="1"/><path d="M-3-5H4L7 0 4 5H-3Z" fill="#202831"/><path d="M10-4V4" stroke="#fff" stroke-width="2"/></g></svg></div></div>
     <span id="loader-message">Opening Race Control…</span>
     <button id="retry-load" type="button" hidden>Try again</button>
     <button id="cancel-load" type="button" hidden>Go back</button>
@@ -239,7 +236,7 @@
       <h2 id="patch-notes-title">Patch notes</h2>
       <p class="patch-notes-intro">The latest additions and improvements to Race Control. Earlier entries follow our development milestones; date ranges group work completed across several sessions.</p>
       <article class="patch-release">
-        <time datetime="2026-10-09">October 9, 2026</time><h3>Standings &amp; Table Improvements</h3><p>Special Events spanning multiple days now appear on Sunday when their date range ends on Sunday. Event details retain the full date range.</p><p>F2 driver standings include starts alongside separate feature/sprint wins, poles and DNFs. Team standings now include sortable wins, poles and DNFs.</p><p>NASCAR results place Chase shields beside driver names and show stage points beside total points. Cup results and completed weekends include caution counts and race scores. NASCAR event headers now include race winners.</p><p>All three NASCAR standings tables now include sortable poles and NASCAR-reported DNF totals, with driver names frozen while scrolling sideways.</p><p>The final race in each NASCAR Chase overview spans the full row and is marked The Championship Finale.</p><p>Driver and constructor names stay visible while scrolling F1 standings, rankings and results. NASCAR, F2, F1 Academy and endurance tables also keep their driver or car/team column in view.</p><p>F1 constructor standings now sort by position, constructor, points, wins, poles, podiums and DNFs. Points is the default; tap again to reverse the order.</p></article><article class="patch-release"><time datetime="2026-10-08">October 8, 2026</time>
+        <time datetime="2026-10-09">October 9, 2026</time><h3>Standings &amp; Table Improvements</h3><p>A lightweight Indianapolis-inspired loading screen keeps the Race Control logo centered while a car advances around the track as data and images load. Reduced-motion mode uses a static progress trail.</p><p>Special Events spanning multiple days now appear on Sunday when their date range ends on Sunday. Event details retain the full date range.</p><p>F2 driver standings include starts alongside separate feature/sprint wins, poles and DNFs. Team standings now include sortable wins, poles and DNFs.</p><p>NASCAR results place Chase shields beside driver names and show stage points beside total points. Cup results and completed weekends include caution counts and race scores. NASCAR event headers now include race winners.</p><p>All three NASCAR standings tables now include sortable poles and NASCAR-reported DNF totals, with driver names frozen while scrolling sideways.</p><p>The final race in each NASCAR Chase overview spans the full row and is marked The Championship Finale.</p><p>Driver and constructor names stay visible while scrolling F1 standings, rankings and results. NASCAR, F2, F1 Academy and endurance tables also keep their driver or car/team column in view.</p><p>F1 constructor standings now sort by position, constructor, points, wins, poles, podiums and DNFs. Points is the default; tap again to reverse the order.</p></article><article class="patch-release"><time datetime="2026-10-08">October 8, 2026</time>
         <h3>F1 Grand Prix &amp; Sprint Statistics</h3>
         <p>Selected tabs align centrally across all series hubs, with the first and last tabs aligned to the edges.</p>
         <p>F1 results and completed weekends now show race-specific VSC, safety car and red flag counts, rain scores and race scores. Results include individual driver ratings, and completed event headers show the race winner alongside the pole sitter.</p>
@@ -479,6 +476,7 @@
     <script src="season-timeline.js"></script>
     <script src="championship-snapshot.js"></script>
     <script src="series-carousel.js"></script>
+    <script src="loading-circuit.js"></script>
     <script src="script.js"></script>
     <script src="results-refresh.js"></script>
     <script src="live-config.js"></script>
