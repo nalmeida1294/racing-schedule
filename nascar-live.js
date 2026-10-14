@@ -13,7 +13,10 @@
     const d=v.driver||{},id=String(d.driver_id??'');
     if(!id||ids.has(id))throw new Error('Missing or duplicate driver identity');ids.add(id);
     const position=number(v.running_position),start=number(v.starting_position);
-    return {id,name:d.full_name||[d.first_name,d.last_name].filter(Boolean).join(' ')||'Driver',number:String(v.vehicle_number??v.car_number??''),position:position>0?position:null,
+    const rawName=d.full_name||[d.first_name,d.last_name].filter(Boolean).join(' ')||'Driver';
+    const chaseDriver=/(?:^|\s)\(C\)(?=\s|$)/.test(rawName);
+    const name=rawName.replace(/(?:^|\s)\(C\)(?=\s|$)/g,' ').replace(/\s+/g,' ').trim();
+    return {id,name,chaseDriver,number:String(v.vehicle_number??v.car_number??''),position:position>0?position:null,
       gap:number(v.delta),last:number(v.last_lap_time),best:number(v.best_lap_time),laps:number(v.laps_completed),speed:number(v.last_lap_speed),
       change:start>0&&position>0?start-position:null,status:Number(v.status),pits:Array.isArray(v.pit_stops)?v.pit_stops:null,onTrack:typeof v.is_on_track==='boolean'?v.is_on_track:null};
   }).sort((a,b)=>(a.position??999)-(b.position??999));
@@ -42,6 +45,23 @@
  const p=r=>phase(r,state,raceStartTime(r)),same=()=>matches(selected,state);
  const columns={gap:'Gap',last:'Last lap',best:'Best lap',laps:'Laps',speed:'Speed',change:'+/−'};
  const labels={unknown:'STATUS UNAVAILABLE',not_started:'AWAITING START',green:'GREEN FLAG',yellow:'CAUTION',red_flag:'RED FLAG',suspended:'SESSION STOPPED',finished:'CHECKERED FLAG'};
+ const failedImages=new Set();
+ function liveIdentity(d){
+  const season=Number(selected?.date?.slice(0,4))||new Date().getFullYear();
+  const profile=typeof NascarProfiles!=='undefined'?NascarProfiles.identities(SERIES,season).find(p=>p.id===d.id&&String(p.number)===String(d.number)):null;
+  const numberUrl=profile?.numberUrl&&!failedImages.has(profile.numberUrl)?profile.numberUrl:'';
+  const make=profile?.manufacturer||'',logo=make?NascarProfiles.manufacturerLogo(make):'';
+  const safeLogo=logo&&!failedImages.has(logo)?f1SafeImage(logo):'';
+  const number=typeof NascarProfiles!=='undefined'?NascarProfiles.numberMarkup({number:d.number,numberUrl}):'<span>#'+esc(d.number)+'</span>';
+  return '<span class="cup-live-identity">'+number+'<span class="cup-live-name">'+esc(d.name)+(d.chaseDriver&&typeof NascarCompetition!=='undefined'?NascarCompetition.chaseIcon():'')+(d.status===3?'<small>OUT</small>':d.status===2?'<small>BEHIND WALL</small>':'')+'</span>'+(make?'<span class="cup-live-make">'+(safeLogo?'<img src="'+esc(safeLogo)+'" alt="'+esc(make)+'" decoding="async" referrerpolicy="no-referrer">':'')+'<span'+(safeLogo?' hidden':'')+'>'+esc(make)+'</span></span>':'')+'</span>';
+ }
+ function bindLiveImages(){
+  el('cup-live-panel')?.querySelectorAll('.cup-live-identity img').forEach(img=>{
+   if(img.dataset.liveBound)return;img.dataset.liveBound='true';
+   const fallback=()=>{failedImages.add(img.getAttribute('src'));img.hidden=true;if(img.nextElementSibling)img.nextElementSibling.hidden=false;};
+   img.addEventListener('error',fallback,{once:true});if(img.complete&&!img.naturalWidth)fallback();
+  });
+ }
  function put(id,html){const node=el(id);if(node&&node.innerHTML!==html)node.innerHTML=html;}
  function entry(race){const phase=p(race),badge={live:'● LIVE',soon:'STARTING SOON',waiting:'AWAITING FEED',concluded:'RACE CONCLUDED'}[phase]||'RACE HUB';
   return `<button type="button" class="live-entry cup-live-entry event-photo-tile" data-cup-live="${esc(race.raceId)}">${racePhotoMarkup(race)}${seriesLogoMarkup(SERIES)}<span><strong>Race Hub <b class="live-badge" data-phase="${phase}">${badge}</b></strong><small>${esc(race.event)} · ${esc(trackNameForRace(race))}</small></span><span aria-hidden="true">→</span></button>`;
@@ -81,16 +101,17 @@
     const body=el('cup-timing-body'),ids=new Set(s.drivers.map(d=>d.id));[...body.children].forEach(r=>{if(!ids.has(r.dataset.driver))r.remove();});
     s.drivers.forEach((d,i)=>{let row=[...body.children].find(r=>r.dataset.driver===d.id);if(!row){row=document.createElement('tr');row.dataset.driver=d.id;}
       const cells={gap:val(d.gap),last:d.last>0?d.last.toFixed(3):'—',best:d.best>0?d.best.toFixed(3):'—',laps:val(d.laps),speed:d.speed>0?d.speed.toFixed(1):'—',change:d.change===null||d.change===0?'—':`<span class="live-change ${d.change>0?'gain':'loss'}">${d.change>0?'↑':'↓'}${Math.abs(d.change)}</span>`};
-      const html=`<td>${val(d.position)}</td><th scope="row" style="--driver-color:#f5c518"><span class="cup-car-number">${esc(d.number)}</span> ${esc(d.name)}${d.status===3?'<small>OUT</small>':d.status===2?'<small>BEHIND WALL</small>':''}</th>${cols.map(k=>`<td>${cells[k]}</td>`).join('')}`;
-      if(row.innerHTML!==html)row.innerHTML=html;if(body.children[i]!==row)body.insertBefore(row,body.children[i]||null);
+      const html=`<td>${val(d.position)}</td><th scope="row" style="--driver-color:#f5c518">${liveIdentity(d)}</th>${cols.map(k=>`<td>${cells[k]}</td>`).join('')}`;
+      if(row._liveMarkup!==html){row.innerHTML=html;row._liveMarkup=html;}if(body.children[i]!==row)body.insertBefore(row,body.children[i]||null);
     });
-  } else if(tab==='race')put('cup-live-panel',`<dl class="live-weather-grid">${[['Cautions',s.cautions],['Caution laps',s.cautionLaps],['Lead changes',s.leadChanges],['Stage',s.stage]].map(([name,v])=>`<div><dt>${name}</dt><dd>${val(v)}</dd></div>`).join('')}</dl><h2>Pit visits</h2><div class="live-timing-scroll"><table class="live-timing"><thead><tr><th>Driver</th><th>Visits</th><th>Last entry lap</th></tr></thead><tbody>${s.drivers.map(d=>`<tr><th scope="row">#${esc(d.number)} ${esc(d.name)}</th><td>${val(d.pits?.length)}</td><td>${val(d.pits?.at(-1)?.pit_in_leader_lap)}</td></tr>`).join('')}</tbody></table></div><p class="live-help">Pit visits reported by the feed; not confirmed tire changes or stationary stop duration.</p>`);
+  } else if(tab==='race')put('cup-live-panel',`<dl class="live-weather-grid">${[['Cautions',s.cautions],['Caution laps',s.cautionLaps],['Lead changes',s.leadChanges],['Stage',s.stage]].map(([name,v])=>`<div><dt>${name}</dt><dd>${val(v)}</dd></div>`).join('')}</dl><h2>Pit visits</h2><div class="live-timing-scroll"><table class="live-timing"><thead><tr><th>Driver</th><th>Visits</th><th>Last entry lap</th></tr></thead><tbody>${s.drivers.map(d=>`<tr><th scope="row">${liveIdentity(d)}</th><td>${val(d.pits?.length)}</td><td>${val(d.pits?.at(-1)?.pit_in_leader_lap)}</td></tr>`).join('')}</tbody></table></div><p class="live-help">Pit visits reported by the feed; not confirmed tire changes or stationary stop duration.</p>`);
   else if(tab==='events')put('cup-live-panel',`<p class="live-help">Changes observed while connected. This is not a complete race-control log.</p>${events.length?`<ol class="live-events">${events.slice().reverse().map(e=>`<li><time>${esc(new Date(e.time).toLocaleTimeString())}</time><div><strong>${esc(e.message)}</strong><small>Lap ${val(e.lap)}</small></div></li>`).join('')}</ol>`:'<p class="live-empty">No changes observed yet.</p>'}`);
   else if(!el('cup-live-columns')){
     put('cup-live-panel',`<fieldset id="cup-live-columns"><legend>Timing columns</legend><p class="live-help">Extra columns may need a sideways scroll.</p>${Object.entries(columns).map(([k,v])=>`<label><span>${v}</span><input type="checkbox" data-cup-column="${k}" ${prefs[k]?'checked':''}></label>`).join('')}</fieldset><p class="live-help">Saved on this device. Refreshes approximately every 10 seconds while this hub is open.</p><button type="button" class="live-back" data-cup-retry>Refresh feed</button>`);
     el('cup-live-columns').onchange=e=>{const k=e.target.dataset.cupColumn;if(!(k in prefs))return;prefs[k]=e.target.checked;try{localStorage.setItem('cup-live-columns',JSON.stringify(prefs));}catch{}};
   }
  }
+ function renderWithImages(){render();bindLiveImages();}
  async function poll(){
   if(busy||document.hidden)return;
   busy=true;controller=new AbortController();const timeout=setTimeout(()=>controller?.abort(),12000);
@@ -98,12 +119,13 @@
     if(!state||state.raceId!==next.raceId||state.runId!==next.runId||state.series!==next.series)events=[];
     else if(matches(selected,next)&&next.fresh&&state.fresh){if(state.status!==next.status)events.push({time:next.updatedAt,message:labels[next.status],lap:next.lap});if(next.cautions!==null&&state.cautions!==null&&next.cautions>state.cautions)events.push({time:next.updatedAt,message:'Caution count increased to '+next.cautions,lap:next.lap});events=events.slice(-100);}
     state=next;connection='connected';
-  }catch(e){if(!document.hidden)connection='error';}finally{clearTimeout(timeout);controller=null;busy=false;render();entries();schedule();}
+  }catch(e){if(!document.hidden)connection='error';}finally{clearTimeout(timeout);controller=null;busy=false;renderWithImages();entries();schedule();}
  }
  function schedule(){clearTimeout(timer);if(document.hidden)return;const active=open&&selected&&['soon','waiting','live'].includes(p(selected));timer=setTimeout(poll,active?10000:120000);}
  function show(race){
   returnTo={view:['home-view','series-view','event-view'].find(id=>el(id).style.display!=='none')||'home-view',series:activeSeriesName,scroll:scrollY,focus:document.activeElement,backHidden:el('back-button').hidden};
-  if(!selected||String(selected.raceId)!==String(race.raceId))events=[];selected=race;open=true;tab='live';shell();setView('nascar-live-view');render();el('cup-live-heading').focus();poll();
+  if(!selected||String(selected.raceId)!==String(race.raceId))events=[];selected=race;open=true;tab='live';shell();setView('nascar-live-view');renderWithImages();el('cup-live-heading').focus();poll();
+  if(typeof NascarProfiles!=='undefined')NascarProfiles.load().then(()=>{if(open)renderWithImages();}).catch(()=>{});
  }
  const refresh=root.liveRefreshEntries,viewChanged=root.liveViewChanged;
  root.liveRefreshEntries=()=>{refresh?.();entries();};
@@ -111,6 +133,6 @@
  document.addEventListener('click',e=>{const entry=e.target.closest('[data-cup-live]');if(entry){const race=allRaces.find(r=>r.series===SERIES&&String(r.raceId)===entry.dataset.cupLive);if(race)show(race);}if(e.target.closest('[data-cup-schedule]')&&selected)renderRaceDetails(selected);if(e.target.closest('[data-cup-retry]'))poll();});
  document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);controller?.abort();}else poll();});
  root.addEventListener('pagehide',()=>{clearTimeout(timer);controller?.abort();clearInterval(ticker);clearInterval(init);});
- const ticker=setInterval(()=>{if(!document.hidden){render();entries();}},5000);
+ const ticker=setInterval(()=>{if(!document.hidden){renderWithImages();entries();}},5000);
  const init=setInterval(()=>{if(!dataReady)return;clearInterval(init);entries();poll();},250);
 })(globalThis);

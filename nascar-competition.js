@@ -249,7 +249,8 @@ const NascarCompetition=(()=>{
    const delta=id=>{const a=current?.get(id),b=prior?.get(id);return comparable&&a&&b?{rank:Number(b['Championship Position'])-Number(a['Championship Position']),gap:(leaderPoints(prior)-Number(b['Championship Points']))-(leaderPoints(current)-Number(a['Championship Points']))}:null;};
    const grid=standings.filter(r=>Number(r.Position)<=size);
    const movers=grid.map(r=>({r,d:delta(String(r['Driver ID']))})).filter(x=>x.d?.rank>0).sort((a,b)=>b.d.rank-a.d.rank);
-   const calendar=racesFor(series).filter(r=>/chase/i.test(r.round||'')).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+   // Round labels are manually entered; accept the known "Chae" typo too.
+   const calendar=racesFor(series).filter(r=>/\bcha(?:se|e)\b/i.test(r.round||'')).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
    const chaseRows=[...new Map(rows.filter(r=>Number(r['Race Type'])===1&&number(r['Chase Round'])>0).map(r=>[r['Race ID']+':'+r['Driver ID'],r])).values()];
    const drops=grid.map(r=>({r,d:delta(String(r['Driver ID']))})).filter(x=>x.d?.rank<0).sort((a,b)=>a.d.rank-b.d.rank);
    const moverList=(items,up)=>items.slice(0,2).map(({r,d})=>`<li><strong>${text(r['Driver Name'])}</strong><span>${up?'↑':'↓'} ${Math.abs(d.rank)} places</span><small>${d.gap>0?'+':''}${d.gap} pts ${d.gap>0?'gained on':d.gap<0?'lost to':'change to'} leader</small></li>`).join('')||`<li>${comparable?'No position '+(up?'gains':'drops')+' this round.':'Consecutive saved rounds needed.'}</li>`;
@@ -303,5 +304,5 @@ const NascarCompetition=(()=>{
    const row=leaders[0],profile=NascarProfiles.identities(race.series,Number(row.Season)).find(p=>p.id===String(row['Driver ID']));
    return {label:row.Session==='Starting Grid'?'Starts P1':'Pole sitter',name:profile?.name||row['Driver Name'],detail:row.Session==='Starting Grid'?'Published starting grid · no timed qualifying':['#'+row['Car Number'],row.Manufacturer,number(row['Lap Time'])>0?Number(row['Lap Time']).toFixed(3)+'s':''].filter(Boolean).join(' · '),image:NascarProfiles.numberMarkup({number:row['Car Number'],numberUrl:profile?.number===String(row['Car Number'])?profile.numberUrl:''})};
  }
- return {snapshotStandings:series=>scoped(cache.standings?.rows||[],series),render,homeSummary,overview,chase,preload,eventLinks,pole,raceCompleted:race=>(cache.results?.rows||[]).some(r=>Number(r['Series ID'])===ids[race.series]&&String(r['Race ID'])===String(race.raceId)&&Number(r.Position)>0),standingsFor:async series=>scoped(await load('standings'),series)};
+ return {chaseIcon,snapshotStandings:series=>scoped(cache.standings?.rows||[],series),render,homeSummary,overview,chase,preload,eventLinks,pole,raceCompleted:race=>(cache.results?.rows||[]).some(r=>Number(r['Series ID'])===ids[race.series]&&String(r['Race ID'])===String(race.raceId)&&Number(r.Position)>0),standingsFor:async series=>scoped(await load('standings'),series)};
 })();

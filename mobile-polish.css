@@ -512,7 +512,7 @@ body>header{padding-top:14px;padding-bottom:14px}
 .nascar-competition-table>.f1-table>tbody>tr:is(.nascar-chase-driver,.nascar-chase-result)>:nth-child(2){--identity-cell-bg:#242116}
 .nascar-competition-table>.f1-table>tbody>tr.nascar-chase-eliminated>:nth-child(2){--identity-cell-bg:#1c2024}
 @media(max-width:600px){
-  :is(.f1-table-scroll>.f1-table,.nascar-competition-table>.f1-table,.f1-table-wrap>.f2-table,.f1-table-wrap>.academy-table,.f1-table-wrap>.wec-table,.f1-table-wrap>.imsa-table)>tbody>tr>:nth-child(2){min-width:125px;max-width:165px;white-space:normal;overflow-wrap:anywhere}
+  :is(.f1-table-scroll>.f1-table,.nascar-competition-table>.f1-table,.f1-table-wrap>.f2-table,.f1-table-wrap>.academy-table,.f1-table-wrap>.wec-table,.f1-table-wrap>.imsa-table)>tbody>tr>:nth-child(2){min-width:190px;max-width:260px;white-space:normal;overflow-wrap:normal}
 }
 
 .chase-race-progress .chase-championship-finale{grid-column:1 / -1;border-color:#c2a25880;background:linear-gradient(110deg,#c2a25814,#ffffff03)}
@@ -521,3 +521,24 @@ body>header{padding-top:14px;padding-bottom:14px}
 .nascar-result-identity{display:flex;align-items:center;gap:5px}.nascar-shield-slot{width:22px;flex:0 0 22px}.nascar-shield-slot .nascar-chase-icon{margin:0;width:22px}.nascar-result-identity .nascar-result-driver{min-width:0;flex:1}.nascar-race-summary{border-left-color:#d6b652}.nascar-race-summary dl{grid-template-columns:repeat(2,minmax(0,1fr))}
 
 .loading-circuit{width:min(86vw,420px)}.loading-circuit svg{display:block;width:100%;height:auto;overflow:visible}.loading-track{fill:none;stroke:#424b52;stroke-width:10}.loading-trail{fill:none;stroke:#ffbb00;stroke-width:4;stroke-dasharray:0 1}.loading-wordmark{fill:#f4f4f4;font:italic 700 42px 'Barlow Condensed',sans-serif}.loading-car{filter:drop-shadow(0 2px 3px #0009)}@media(prefers-reduced-motion:reduce){.loading-car{display:none}}
+
+.cup-live-identity{display:flex;align-items:center;gap:7px;min-width:0}.cup-live-identity .nascar-number{flex:0 0 34px;width:34px}.cup-live-identity .nascar-number-image{width:34px;height:28px;object-fit:contain}.cup-live-name{white-space:normal;min-width:75px;max-width:140px}.cup-live-make{display:flex;align-items:center;flex:0 0 30px;font-size:9px;white-space:normal}.cup-live-make img{width:30px;height:24px;object-fit:contain}.cup-live-identity [hidden]{display:none}
+
+/* Reserve readable text space beside number graphics and Chase shields. */
+.nascar-competition-table .nascar-result-identity{min-width:218px;align-items:center}
+.nascar-competition-table .nascar-result-driver{min-width:190px;gap:8px}
+.nascar-competition-table .nascar-result-identity .nascar-result-driver{min-width:190px}
+.nascar-competition-table .nascar-result-driver>.nascar-number{flex:0 0 38px;width:38px}
+.nascar-competition-table .nascar-result-driver>span:last-child{min-width:125px;flex:1;white-space:normal;overflow-wrap:normal;word-break:normal}
+.nascar-competition-table .nascar-result-driver strong,.nascar-competition-table .nascar-result-driver small{white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.4}
+@media(max-width:600px){
+ .nascar-competition-table .nascar-result-identity{min-width:200px;gap:4px}
+ .nascar-competition-table .nascar-result-driver,.nascar-competition-table .nascar-result-identity .nascar-result-driver{min-width:178px;gap:6px;padding-left:6px}
+ .nascar-competition-table .nascar-shield-slot{width:18px;flex-basis:18px}
+ .nascar-competition-table .nascar-shield-slot .nascar-chase-icon,.nascar-competition-table .nascar-shield-slot svg{width:18px}
+ .nascar-competition-table .nascar-result-driver>.nascar-number{width:32px;flex-basis:32px}
+ .nascar-competition-table .nascar-result-driver .nascar-number-image{width:32px;height:28px}
+ .nascar-competition-table .nascar-result-driver>span:last-child{min-width:125px}
+}
+
+.cup-live-name .nascar-chase-icon{display:inline-flex;width:18px;height:20px;margin-left:5px;vertical-align:middle}.cup-live-name .nascar-chase-icon svg{width:18px;height:20px}

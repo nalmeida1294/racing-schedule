@@ -117,7 +117,8 @@ const AcademyHub=(()=>{
     else if(!data)el.innerHTML=`<section class="f1-feature"><h2>F1 Academy</h2><p>${configured()?esc(error||'Results are temporarily unavailable.'):'The F1 Academy data connection is being prepared. The schedule remains available.'}</p>${configured()?'<button class="nascar-schedule-action" data-academy-retry>Try Again</button>':''}</section>`;
     else if(which==='overview')overview(el);else if(which==='teams')teams(el);else if(which==='results')results(el);else if(which==='tracks')tracks(el);else el.innerHTML=`${note()}<h2>Driver Standings</h2><p class="f1-data-note">Stats cover imported race and qualifying results; totals update as historical sessions finish loading. Scroll sideways for all stats.</p>${standings()}<h2 id="academy-team-standings">Team Standings</h2>${standings('Team')}`;
     hub.querySelectorAll('[data-academy-sort]').forEach(b=>b.onclick=()=>{standingsSort={key:b.dataset.academySort,direction:standingsSort.key===b.dataset.academySort?-standingsSort.direction:-1};render('standings',true);});
-    hub.hidden=false;setView('series-view');document.getElementById('back-button').hidden=true;
+    if(which==='overview')SeasonTimeline.renderOverview(el,series);
+  hub.hidden=false;setView('series-view');document.getElementById('back-button').hidden=true;
     hub.querySelectorAll('[data-academy-tab]').forEach(b=>b.onclick=()=>render(b.dataset.academyTab));
     hub.querySelector('[data-academy-retry]')?.addEventListener('click',()=>{loaded=0;render(which);});
     const active=hub.querySelector('[aria-pressed="true"]');alignSeriesTab(active);

@@ -568,7 +568,10 @@ function renderNascarHub(series,tab='overview',prepared=false) {
   alignSeriesTab(activeTab);
   if(tab==='schedule')focusScheduleRace();
   const reviewsReady=series==='NASCAR Cup Series'?loadCupReviews():null;
-  return Promise.allSettled([contentReady,reviewsReady]);
+  const overviewHost=hub.querySelector('#nascar-hub-content');
+  return Promise.allSettled([contentReady,reviewsReady]).then(()=>{
+    if(tab==='overview'&&overviewHost?.isConnected)SeasonTimeline.renderOverview(overviewHost,series);
+  });
 }
 function renderSeriesHub(series) {
   if(series==='Special Events')return SpecialEvents.render();
@@ -590,6 +593,7 @@ function renderSeasonHub(series, tab='overview') {
   const hub=document.getElementById('series-hub'),complete=completedHubSeries.has(series);
   const tabs={overview:'Overview',schedule:'Schedule',standings:'Standings',teams:'Teams & Drivers',results:'Results',tracks:'Tracks'};
   hub.innerHTML=`<div class="hub-sticky-navigation"><div class="series-hub-hero">${seriesLogoMarkup(series,true)}<p class="weekend-eyebrow">THE SERIES HUB</p><h1>${escapeHtml(series)}</h1></div><nav class="nascar-hub-tabs" style="--hub-accent:${themeFor(series)[0]}" aria-label="${escapeHtml(series)} sections">${Object.entries(tabs).map(([key,label])=>`<button type="button" data-season-tab="${key}" aria-pressed="${key===tab}">${label}</button>`).join('')}</nav></div><section class="detail-section season-hub-message"><p class="weekend-eyebrow">${escapeHtml(tabs[tab])}</p><h2>${complete?'Season Completed':'Your Series Hub'}</h2><p>${complete?series==='Formula E'?'The 2025/26 season is complete. The 2026/27 season begins in Jeddah on December 18–19, 2026. Check back for the new season’s schedule, teams, drivers, standings, and results.':'Thank you for following the 2026 season. Check back in 2027 for the new season’s schedule, teams, drivers, standings, and results.':'Select Schedule to explore the available events. More series information will appear here when available.'}</p></section>`;
+  if(tab==='overview')SeasonTimeline.renderOverview(hub.querySelector('.season-hub-message'),series);
   if(!complete&&tab==='schedule'){
     renderSeries(series,false,true);
     hub.querySelector('.season-hub-message').hidden=true;

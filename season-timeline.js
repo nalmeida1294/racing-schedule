@@ -48,22 +48,31 @@ const SeasonTimeline = (() => {
     const label=pre ? (start<=addDays(today,30) ? 'Season Begins '+formatDate(start) : 'Offseason · Next Season '+formatDate(start)) : done===races.length ? 'Season Completed' : '';
     return {races,complete,done,start,end,season,label,chase:races.findIndex(r=>chaseSeries.has(series)&&/\bchase\b/i.test(r.round||''))};
   }
-  function render(now = new Date()) {
-    const host=document.getElementById('season-timeline'); if(!host)return;
-    const items=seriesSettings.order.filter(s=>!seriesSettings.hidden.includes(s)).map(series=>({series,data:model(series,now)})).filter(x=>x.data);
+  function render(now = new Date(), host=document.getElementById('season-timeline'), onlySeries=null) {
+    if(!host)return;
+    const items=(onlySeries?[onlySeries]:seriesSettings.order.filter(s=>!seriesSettings.hidden.includes(s))).map(series=>({series,data:model(series,now)})).filter(x=>x.data);
     // Stable grouping preserves the user's order within active and completed seasons.
     items.sort((a,b)=>Number(a.data.done===a.data.races.length)-Number(b.data.done===b.data.races.length));
     host.hidden=!items.length;
-    host.innerHTML='<div class="timeline-heading"><h2 id="timeline-heading">Season Timeline</h2><p>Your Series at a Glance</p></div><div class="timeline-list"></div><p class="timeline-note">One bar per scheduled race'+(items.some(x=>x.series==='CARS Tour')?' (per weekend for CARS Tour)':'')+' · Progress follows published results where available, otherwise past race dates.</p>';
+    host.innerHTML='<div class="timeline-heading"><h2'+(onlySeries?'':' id="timeline-heading"')+'>Season Timeline</h2><p>'+(onlySeries?'Season Progress':'Your Series at a Glance')+'</p></div><div class="timeline-list"></div><p class="timeline-note">One bar per scheduled race'+(items.some(x=>x.series==='CARS Tour')?' (per weekend for CARS Tour)':'')+' · Progress follows published results where available, otherwise past race dates.</p>';
     const list=host.querySelector('.timeline-list');
     items.forEach(({series,data:d})=>{
       const button=document.createElement('button');button.type='button';button.className='timeline-row';button.style.setProperty('--series-color',themeFor(series)[0]);
       const season=series==='Formula E'?d.season+'/'+String(Number(d.season)+1).slice(-2):d.season;
       button.setAttribute('aria-label',`${series}, ${season}: ${d.done} of ${d.races.length} ${series==='CARS Tour'?'weekends':'races'} completed. ${d.label}. Open series hub`);
       button.innerHTML=`<span class="timeline-logo">${seriesLogoMarkup(series)}</span><span class="timeline-info"><strong>${escapeHtml(series)}</strong><small>${escapeHtml(season)} · ${escapeHtml(formatDate(d.start).replace(/, \d{4}$/, ''))} – ${escapeHtml(formatDate(d.end).replace(/, \d{4}$/, ''))}</small>${d.label?`<small class="timeline-status">${escapeHtml(d.label)}</small>`:''}</span><span class="timeline-progress"><span class="timeline-chase-track" aria-hidden="true">${d.chase>=0?`<span style="margin-left:${d.chase/d.races.length*100}%;width:${(d.races.length-d.chase)/d.races.length*100}%">The Chase</span>`:''}</span><span class="timeline-bars" aria-hidden="true">${d.races.map((r,i)=>`<i class="${d.complete[i]?'is-complete ':''}${d.chase>=0&&i>=d.chase?'is-chase':''}" title="${escapeHtml(r.event)} · ${escapeHtml(formatDate(r.date))}"></i>`).join('')}</span></span><span class="timeline-count">${d.done}<span>/${d.races.length}</span></span><span class="timeline-arrow" aria-hidden="true">›</span>`;
-      button.onclick=()=>showSeries(series);list.appendChild(button);
+      if(onlySeries){button.setAttribute('aria-label',button.getAttribute('aria-label').replace('Open series hub','Open schedule'));button.onclick=()=>renderSeries(series);}
+      else button.onclick=()=>showSeries(series);
+      list.appendChild(button);
     });
-    RaceDisplay.disclosure(host,list,'timeline');
+    if(!onlySeries)RaceDisplay.disclosure(host,list,'timeline');
   }
-  return {render,model,remember};
+  function renderOverview(host,series){
+    if(!host)return;
+    host.querySelector('.hub-season-timeline')?.remove();
+    const section=document.createElement('section');section.className='hub-season-timeline';section.setAttribute('aria-label','Season Timeline');
+    render(new Date(),section,series);
+    if(!section.hidden)host.prepend(section);
+  }
+  return {render,model,remember,renderOverview};
 })();

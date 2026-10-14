@@ -123,7 +123,8 @@ const F2Hub=(()=>{
       const next=hub.querySelector('[data-f2-category="'+category+'"][data-f2-sort="'+sort.key+'"]');
       if(next){next.closest('.f1-table-wrap').scrollLeft=scroll;next.focus({preventScroll:true});}
     });
-    hub.hidden=false;setView('series-view');document.getElementById('back-button').hidden=true;
+    if(which==='overview')SeasonTimeline.renderOverview(el,series);
+  hub.hidden=false;setView('series-view');document.getElementById('back-button').hidden=true;
     hub.querySelectorAll('[data-f2-tab]').forEach(b=>b.onclick=()=>render(b.dataset.f2Tab));
     hub.querySelector('[data-f2-retry]')?.addEventListener('click',()=>{loaded=0;render(which);});
     const active=hub.querySelector('[aria-pressed="true"]');alignSeriesTab(active);

@@ -25,6 +25,7 @@ function brandedLoaderMarkup(message) {
 
 function loadF1Feeds(force = false, view = f1Tab, silent = false) {
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1"))return Promise.resolve([]);
+  if(view==='records')return F1Career.load(force);
   const common=['drivers','constructors','status'];
   const dependencies={home:['standings','constructorStandings','drivers','constructors','results'],overview:[...common,'standings','constructorStandings','results'],standings:[...common,'standings','constructorStandings','results','sessions'],teams:[...common,'standings','results','sessions'],results:[...common,'results','sessions','reviews','ratings'],rankings:[...common,'ratings','reviews','standings'],tracks:['trackScores','reviews'],schedule:[],records:[]};
   return Promise.all((dependencies[view]||[]).map(key => loadF1Feed(key, force, silent)));
@@ -155,7 +156,9 @@ function refreshF1Hub() {
 function renderF1Content() {
   const panel = document.getElementById("f1-content");
   if(typeof Spoilers!=="undefined"&&Spoilers.protected("Formula 1")){Spoilers.render(panel,"Formula 1");return;}
-  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup, tracks: () => f1TracksMarkup(), records: () => '<h2>Career Records</h2><p class="f1-empty">Coming soon.</p>' }[f1Tab] || f1OverviewMarkup)();
+  panel.innerHTML = ({ overview: f1OverviewMarkup, standings: f1StandingsMarkup, teams: f1TeamsMarkup, results: f1ResultsMarkup, rankings: f1RankingsMarkup, tracks: () => f1TracksMarkup(), records: () => F1Career.markup() }[f1Tab] || f1OverviewMarkup)();
+  if(f1Tab==='overview')SeasonTimeline.renderOverview(panel,'Formula 1');
+  if(f1Tab==='records')F1Career.bind(panel);
   panel.querySelectorAll('[data-f1-open]').forEach(button => button.addEventListener('click', async () => {
     const target = button.dataset.f1Open;
     if (target === 'results') { f1SelectedRace = f1LatestResults()[0]?.['Jolpica Race Key'] || ''; f1ResultSession='results'; }
